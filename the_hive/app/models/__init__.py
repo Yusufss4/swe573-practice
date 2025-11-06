@@ -1,6 +1,55 @@
-"""Database models."""
+"""Database models for The Hive.
 
-from app.models.user import User
+This module exports all SQLModel table definitions for the application.
+Models are organized by domain:
+- User: Authentication and profiles
+- Offer/Need: Service posts
+- Tag: Semantic categorization
+- Participant: Handshake mechanism and exchange tracking
+- Ledger/Transfer: TimeBank accounting
+- Comment: User feedback
+- Report: Moderation system
+"""
 
-__all__ = ["User"]
+from app.models.user import User, UserRole
+from app.models.tag import Tag
+from app.models.offer import Offer, OfferStatus
+from app.models.need import Need, NeedStatus
+from app.models.associations import OfferTag, NeedTag
+from app.models.participant import Participant, ParticipantRole, ParticipantStatus
+from app.models.ledger import LedgerEntry, Transfer, TransactionType
+from app.models.comment import Comment
+from app.models.report import Report, ReportReason, ReportStatus, ReportAction
+
+__all__ = [
+    # User
+    "User",
+    "UserRole",
+    # Tags
+    "Tag",
+    # Offers and Needs
+    "Offer",
+    "OfferStatus",
+    "Need",
+    "NeedStatus",
+    # Associations
+    "OfferTag",
+    "NeedTag",
+    # Participants (Handshake)
+    "Participant",
+    "ParticipantRole",
+    "ParticipantStatus",
+    # TimeBank Ledger
+    "LedgerEntry",
+    "Transfer",
+    "TransactionType",
+    # Comments
+    "Comment",
+    # Reports
+    "Report",
+    "ReportReason",
+    "ReportStatus",
+    "ReportAction",
+]
+
 
