@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
+from app.core.db import check_db_connection
 from app.core.logging import get_logger, setup_logging
 
 # Initialize logging
@@ -68,6 +69,9 @@ async def health_check() -> JSONResponse:
     Returns the application status and basic information.
     Useful for container orchestration and monitoring.
     """
+    # Check database connection
+    db_status = "connected" if check_db_connection() else "disconnected"
+    
     return JSONResponse(
         status_code=200,
         content={
@@ -75,6 +79,7 @@ async def health_check() -> JSONResponse:
             "app": settings.APP_NAME,
             "environment": settings.APP_ENV,
             "version": "0.1.0",
+            "database": db_status,
         },
     )
 
@@ -93,6 +98,7 @@ async def root() -> dict[str, str]:
     }
 
 
-# Include routers here when created
-# from app.api import router as api_router
-# app.include_router(api_router, prefix="/api/v1")
+# Include API routers
+from app.api.users import router as users_router
+app.include_router(users_router, prefix="/api/v1")
+

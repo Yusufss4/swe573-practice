@@ -206,6 +206,8 @@ Once running, visit:
 
 ## 🗄️ Database Migrations
 
+For detailed database usage, see [DATABASE.md](DATABASE.md).
+
 Initialize Alembic (first time):
 
 ```bash
@@ -222,6 +224,12 @@ Apply migrations:
 
 ```bash
 alembic upgrade head
+```
+
+Quick database check:
+
+```bash
+python -c "from app.core.db import check_db_connection; print(check_db_connection())"
 ```
 
 ## 🔐 Security
