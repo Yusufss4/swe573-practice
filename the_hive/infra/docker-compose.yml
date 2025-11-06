@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: the_hive_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: the_hive
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Application
+  app:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: the_hive_app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/the_hive
+      - APP_ENV=production
+      - SECRET_KEY=change-this-secret-key-in-production
+      - ADMIN_SESSION_SECRET=change-this-admin-secret-in-production
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../app:/app/app
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
