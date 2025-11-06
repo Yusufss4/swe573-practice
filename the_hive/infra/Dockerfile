@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y \
 COPY pyproject.toml ./
 COPY app ./app
 COPY migrations ./migrations
+COPY scripts ./scripts
+COPY tests ./tests
 COPY .env.example ./.env
 
 # Install Python dependencies
