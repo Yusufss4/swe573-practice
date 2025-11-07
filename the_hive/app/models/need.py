@@ -22,6 +22,7 @@ class Need(SQLModel, table=True):
     - FR-3.2: Can renew/extend, not shorten
     - FR-3.3: Auto-archive after expiration
     - FR-3.6: Track accepted participants vs capacity
+    - FR-4.1: Available time slots for scheduling
     - SRS Constraints: 7-day default validity, capacity default 1
     """
 
@@ -54,6 +55,10 @@ class Need(SQLModel, table=True):
     
     # Status
     status: NeedStatus = Field(default=NeedStatus.ACTIVE, index=True)
+    
+    # Availability calendar data (FR-4.1)
+    # Stored as JSON array of time slot objects
+    available_slots: Optional[str] = Field(default=None)  # JSON string
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -6,6 +6,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.time_slot import AvailableTimeSlot
+
 
 class NeedBase(BaseModel):
     """Base schema for Need with common fields."""
@@ -21,6 +23,10 @@ class NeedBase(BaseModel):
 class NeedCreate(NeedBase):
     """Schema for creating a new Need."""
     tags: list[str] = Field(..., min_length=1, max_length=10)
+    available_slots: Optional[list[AvailableTimeSlot]] = Field(
+        None,
+        description="Available time slots grouped by date"
+    )
 
 
 class NeedUpdate(BaseModel):
@@ -33,6 +39,10 @@ class NeedUpdate(BaseModel):
     location_name: Optional[str] = Field(None, max_length=255)
     capacity: Optional[int] = Field(None, ge=1)
     tags: Optional[list[str]] = Field(None, min_length=1, max_length=10)
+    available_slots: Optional[list[AvailableTimeSlot]] = Field(
+        None,
+        description="Available time slots grouped by date"
+    )
 
 
 class NeedExtend(BaseModel):
@@ -55,6 +65,7 @@ class NeedResponse(BaseModel):
     capacity: int
     accepted_count: int
     status: str
+    available_slots: Optional[list[AvailableTimeSlot]] = None
     tags: list[str] = []
     created_at: datetime
     updated_at: datetime

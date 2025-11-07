@@ -36,6 +36,15 @@ def _build_need_response(session: Session, need: Need) -> NeedResponse:
     """Build a NeedResponse with tags."""
     tags = get_need_tags(session, need.id)
     
+    # Parse available slots if present
+    available_slots = None
+    if need.available_slots:
+        import json
+        try:
+            available_slots = json.loads(need.available_slots)
+        except:
+            available_slots = None
+    
     return NeedResponse(
         id=need.id,
         creator_id=need.creator_id,
@@ -50,6 +59,7 @@ def _build_need_response(session: Session, need: Need) -> NeedResponse:
         capacity=need.capacity,
         accepted_count=need.accepted_count,
         status=need.status.value,
+        available_slots=available_slots,
         tags=tags,
         created_at=need.created_at,
         updated_at=need.updated_at,
@@ -98,6 +108,11 @@ def create_need(
         end_date=end_date,
         status=NeedStatus.ACTIVE,
     )
+    
+    # Store available slots as JSON if provided
+    if need_data.available_slots:
+        import json
+        new_need.available_slots = json.dumps([slot.model_dump() for slot in need_data.available_slots])
     
     session.add(new_need)
     session.commit()
@@ -259,6 +274,14 @@ def update_need(
     for key, value in update_data.items():
         if key == "tags":
             update_need_tags(session, need_id, value)
+        elif key == "available_slots" and value is not None:
+            import json
+            # value is already a list of dicts from model_dump()
+            if value and isinstance(value[0], dict):
+                need.available_slots = json.dumps(value)
+            else:
+                # If it's AvailableTimeSlot objects, convert them
+                need.available_slots = json.dumps([slot.model_dump() for slot in value])
         elif key == "capacity":
             # SRS FR-3.7: Cannot decrease capacity below accepted count
             if value < need.accepted_count:

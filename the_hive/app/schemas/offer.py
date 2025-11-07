@@ -6,6 +6,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.time_slot import AvailableTimeSlot
+
 
 class OfferBase(BaseModel):
     """Base schema for Offer with common fields."""
@@ -28,22 +30,10 @@ class OfferBase(BaseModel):
 class OfferCreate(OfferBase):
     """Schema for creating a new Offer."""
     tags: list[str] = Field(..., min_length=1, max_length=10)
-    available_slots: Optional[list[str]] = None  # ISO datetime strings
-    
-    @field_validator('available_slots')
-    @classmethod
-    def validate_slots(cls, v):
-        """Validate that available slots are in the future."""
-        if v:
-            now = datetime.utcnow()
-            for slot_str in v:
-                try:
-                    slot = datetime.fromisoformat(slot_str.replace('Z', '+00:00'))
-                    if slot < now:
-                        raise ValueError(f"Slot {slot_str} is in the past")
-                except ValueError as e:
-                    raise ValueError(f"Invalid datetime format: {slot_str}") from e
-        return v
+    available_slots: Optional[list[AvailableTimeSlot]] = Field(
+        None, 
+        description="Available time slots grouped by date"
+    )
 
 
 class OfferUpdate(BaseModel):
@@ -56,7 +46,10 @@ class OfferUpdate(BaseModel):
     location_name: Optional[str] = Field(None, max_length=255)
     capacity: Optional[int] = Field(None, ge=1)
     tags: Optional[list[str]] = Field(None, min_length=1, max_length=10)
-    available_slots: Optional[list[str]] = None
+    available_slots: Optional[list[AvailableTimeSlot]] = Field(
+        None,
+        description="Available time slots grouped by date"
+    )
 
 
 class OfferExtend(BaseModel):
@@ -79,7 +72,7 @@ class OfferResponse(BaseModel):
     capacity: int
     accepted_count: int
     status: str
-    available_slots: Optional[list[str]] = None
+    available_slots: Optional[list[AvailableTimeSlot]] = None
     tags: list[str] = []
     created_at: datetime
     updated_at: datetime

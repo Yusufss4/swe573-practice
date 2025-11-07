@@ -40,6 +40,7 @@ def register(
         username=user_data.username,
         password_hash=hashed_password,
         full_name=user_data.full_name,
+        timezone=user_data.timezone or "UTC",  # Default to UTC if not provided
         role="user",
         balance=5.0,
         is_active=True

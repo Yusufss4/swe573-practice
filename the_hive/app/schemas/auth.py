@@ -8,6 +8,11 @@ class UserRegister(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=8, max_length=100)
     full_name: str | None = Field(None, max_length=100)
+    timezone: str | None = Field(
+        None,
+        max_length=50,
+        description="User's IANA timezone (e.g., 'America/New_York', 'Europe/Istanbul')"
+    )
 
 
 class UserLogin(BaseModel):
@@ -33,6 +38,7 @@ class UserResponse(BaseModel):
     full_name: str | None
     role: str
     balance: float
+    timezone: str
     is_active: bool
     created_at: datetime
     

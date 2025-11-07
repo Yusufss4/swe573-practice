@@ -112,7 +112,7 @@ def create_offer(
     # Store available slots as JSON if provided
     if offer_data.available_slots:
         import json
-        new_offer.available_slots = json.dumps(offer_data.available_slots)
+        new_offer.available_slots = json.dumps([slot.model_dump() for slot in offer_data.available_slots])
     
     session.add(new_offer)
     session.commit()
@@ -276,7 +276,12 @@ def update_offer(
             update_offer_tags(session, offer_id, value)
         elif key == "available_slots" and value is not None:
             import json
-            offer.available_slots = json.dumps(value)
+            # value is already a list of dicts from model_dump()
+            if value and isinstance(value[0], dict):
+                offer.available_slots = json.dumps(value)
+            else:
+                # If it's AvailableTimeSlot objects, convert them
+                offer.available_slots = json.dumps([slot.model_dump() for slot in value])
         elif key == "capacity":
             # SRS FR-3.7: Cannot decrease capacity below accepted count
             if value < offer.accepted_count:
