@@ -266,6 +266,8 @@ def test_search_by_remote_flag(client: TestClient, auth_headers: dict):
 
 def test_search_sort_by_recency(client: TestClient, auth_headers: dict):
     """Test sorting by recency (most recent first)."""
+    import time
+    
     # Create items in sequence
     response1 = client.post("/api/v1/offers/", headers=auth_headers, json={
         "title": "First Offer",
@@ -275,6 +277,9 @@ def test_search_sort_by_recency(client: TestClient, auth_headers: dict):
         "tags": ["test"]
     })
     offer1_id = response1.json()["id"]
+    
+    # Small delay to ensure different timestamps
+    time.sleep(0.1)
     
     response2 = client.post("/api/v1/offers/", headers=auth_headers, json={
         "title": "Second Offer",
