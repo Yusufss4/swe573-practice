@@ -116,6 +116,8 @@ pytest -k "test_create_offer"         # Pattern match
 PYTHONPATH=. pytest tests/            # If import issues
 ```
 
+**Golden Path Test:** See `tests/test_golden_path_need.py` for a comprehensive workflow demonstration showing the complete lifecycle of a Need from creation through completion with TimeBank balance updates.
+
 ### Database
 - **PostgreSQL** in production/docker (connection pooling disabled via `NullPool`)
 - **SQLite** in tests (in-memory)
