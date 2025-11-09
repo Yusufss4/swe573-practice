@@ -430,3 +430,66 @@ def list_need_participants(
         skip=skip,
         limit=limit
     )
+
+
+@router.post("/exchange/{participant_id}/complete", status_code=status.HTTP_200_OK)
+def complete_exchange_endpoint(
+    participant_id: int,
+    current_user: CurrentUser,
+    session: Annotated[Session, Depends(get_session)],
+):
+    """
+    Complete an exchange and update TimeBank ledger.
+    
+    SRS Requirements:
+    - FR-7.1: TimeBank system tracks time exchanges
+    - FR-7.2: Provider gains hours (credit), requester loses hours (debit)
+    - FR-7.4: Enforce reciprocity limit (10 hours)
+    - FR-7.5: All transactions logged for auditability
+    - FR-7.6: Separate transaction per participant
+    
+    Creates double-entry ledger entries:
+    - Provider: CREDIT (earning hours)
+    - Requester: DEBIT (spending hours)
+    
+    Updates both user balances and creates audit trail.
+    
+    Args:
+        participant_id: ID of the participant/exchange to complete
+        current_user: User completing the exchange (must be provider or requester)
+        session: Database session
+        
+    Returns:
+        ExchangeCompleteResponse with details and balances
+    """
+    from app.core.ledger import complete_exchange, check_reciprocity_limit
+    from app.schemas.ledger import ExchangeCompleteResponse
+    from app.models.user import User
+    
+    # Complete the exchange (creates ledger entries)
+    provider_entry, requester_entry, transfer = complete_exchange(
+        session=session,
+        participant_id=participant_id,
+        completing_user_id=current_user.id,
+    )
+    
+    # Get updated balances
+    provider = session.get(User, provider_entry.user_id)
+    requester = session.get(User, requester_entry.user_id)
+    
+    # Check if there was a warning about reciprocity limit
+    _, warning_message = check_reciprocity_limit(
+        session, requester.id, 0  # Check current state
+    )
+    
+    return ExchangeCompleteResponse(
+        participant_id=participant_id,
+        provider_id=provider.id,
+        requester_id=requester.id,
+        hours=transfer.amount,
+        provider_new_balance=provider.balance,
+        requester_new_balance=requester.balance,
+        transfer_id=transfer.id,
+        warning=warning_message if warning_message else None,
+        completed_at=transfer.timestamp,
+    )

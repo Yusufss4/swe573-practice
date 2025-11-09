@@ -5,9 +5,11 @@ from sqlmodel import Session, select
 
 from app.core.auth import CurrentUser, get_current_user
 from app.core.db import get_session
+from app.core.ledger import get_user_ledger
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.models.user import User
 from app.schemas.auth import Token, UserLogin, UserRegister, UserResponse
+from app.schemas.ledger import LedgerHistoryResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -100,3 +102,25 @@ def get_current_user_info(current_user: CurrentUser) -> User:
 @router.post("/logout")
 def logout() -> dict[str, str]:
     return {"message": "Successfully logged out. Please delete your token."}
+
+
+@router.get("/me/ledger", response_model=LedgerHistoryResponse)
+def get_my_ledger_history(
+    current_user: CurrentUser,
+    session: Annotated[Session, Depends(get_session)],
+    skip: int = 0,
+    limit: int = 20
+) -> dict:
+    """Get current user's transaction history from the TimeBank ledger"""
+    if not current_user.id:
+        raise HTTPException(status_code=400, detail="User ID not found")
+    
+    entries, total = get_user_ledger(session, current_user.id, skip, limit)
+    
+    return {
+        "items": entries,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "current_balance": current_user.balance or 0.0
+    }
