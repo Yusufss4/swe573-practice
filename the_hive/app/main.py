@@ -64,8 +64,10 @@ async def root() -> dict[str, str]:
 from app.api.auth import router as auth_router
 from app.api.needs import router as needs_router
 from app.api.offers import router as offers_router
+from app.api.search import router as search_router
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(offers_router, prefix="/api/v1")
 app.include_router(needs_router, prefix="/api/v1")
+app.include_router(search_router, prefix="/api/v1")
 
