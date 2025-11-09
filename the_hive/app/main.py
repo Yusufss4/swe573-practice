@@ -63,6 +63,7 @@ async def root() -> dict[str, str]:
 
 from app.api.auth import router as auth_router
 from app.api.comments import router as comments_router
+from app.api.dashboard import router as dashboard_router
 from app.api.handshake import router as handshake_router
 from app.api.needs import router as needs_router
 from app.api.offers import router as offers_router
@@ -76,4 +77,5 @@ app.include_router(participants_router, prefix="/api/v1")
 app.include_router(handshake_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(comments_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
 
