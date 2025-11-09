@@ -20,6 +20,7 @@ from app.models.participant import Participant, ParticipantRole, ParticipantStat
 from app.models.ledger import LedgerEntry, Transfer, TransactionType
 from app.models.comment import Comment
 from app.models.report import Report, ReportReason, ReportStatus, ReportAction
+from app.models.forum import ForumTopic, ForumComment, ForumTopicTag, TopicType
 
 __all__ = [
     # User
@@ -50,6 +51,11 @@ __all__ = [
     "ReportReason",
     "ReportStatus",
     "ReportAction",
+    # Forum
+    "ForumTopic",
+    "ForumComment",
+    "ForumTopicTag",
+    "TopicType",
 ]
 
 
