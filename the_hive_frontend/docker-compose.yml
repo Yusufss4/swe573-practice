@@ -1,0 +1,37 @@
+services:
+  # Frontend Application (Development)
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: the_hive_frontend_dev
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_APP_NAME=The Hive
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
+      # Exclude node_modules from volume for performance
+      - /app/node_modules
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # Frontend Application (Production)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: the_hive_frontend
+    ports:
+      - "3001:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

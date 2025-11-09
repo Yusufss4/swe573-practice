@@ -71,8 +71,10 @@ from app.api.needs import router as needs_router
 from app.api.offers import router as offers_router
 from app.api.participants import router as participants_router
 from app.api.search import router as search_router
+from app.api.users import router as users_router
 
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(users_router, prefix="/api/v1")
 app.include_router(offers_router, prefix="/api/v1")
 app.include_router(needs_router, prefix="/api/v1")
 app.include_router(participants_router, prefix="/api/v1")

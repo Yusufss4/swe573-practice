@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.gitignore
+README.md
+SETUP_GUIDE.md
+IMPLEMENTATION_SUMMARY.md
+Attributions.md
+setup.sh
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store

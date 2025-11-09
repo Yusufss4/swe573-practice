@@ -1,0 +1,17 @@
+# Development Dockerfile with hot reload
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+# Copy source code
+COPY . .
+
+# Expose Vite dev server port
+EXPOSE 3000
+
+# Start development server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

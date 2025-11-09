@@ -16,6 +16,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - the_hive_network
 
   # FastAPI Application
   app:
@@ -28,7 +30,7 @@ services:
       - APP_ENV=production
       - SECRET_KEY=change-this-secret-key-in-production
       - ADMIN_SESSION_SECRET=change-this-admin-secret-in-production
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:80,http://frontend
     ports:
       - "8000:8000"
     depends_on:
@@ -39,6 +41,43 @@ services:
       - ../scripts:/app/scripts
       - ../tests:/app/tests
     restart: unless-stopped
+    networks:
+      - the_hive_network
+
+  # Frontend Application (Development mode with hot reload)
+  frontend:
+    build:
+      context: ../../the_hive_frontend
+      dockerfile: Dockerfile.dev
+    container_name: the_hive_frontend
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_APP_NAME=The Hive
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../../the_hive_frontend/src:/app/src
+      - ../../the_hive_frontend/components:/app/components
+      - ../../the_hive_frontend/styles:/app/styles
+      - ../../the_hive_frontend/public:/app/public
+      - ../../the_hive_frontend/index.html:/app/index.html
+      - ../../the_hive_frontend/vite.config.ts:/app/vite.config.ts
+      - ../../the_hive_frontend/tailwind.config.js:/app/tailwind.config.js
+      - ../../the_hive_frontend/postcss.config.js:/app/postcss.config.js
+      - ../../the_hive_frontend/tsconfig.json:/app/tsconfig.json
+      # Exclude node_modules from volume for performance
+      - /app/node_modules
+    depends_on:
+      - app
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - the_hive_network
 
 volumes:
   postgres_data:
+
+networks:
+  the_hive_network:
+    driver: bridge
