@@ -35,6 +35,7 @@ import {
   Close as DeclineIcon,
   ExitToApp as WithdrawIcon,
   Visibility as ViewIcon,
+    CheckCircle as CompleteIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
@@ -134,10 +135,15 @@ export default function ActiveItems() {
 
   const [activeTab, setActiveTab] = useState(0)
   const [acceptDialogOpen, setAcceptDialogOpen] = useState(false)
+    const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null)
   const [selectedPost, setSelectedPost] = useState<MyPost | null>(null)
   const [hours, setHours] = useState('2')
   const [error, setError] = useState<string | null>(null)
+    const [completeSuccess, setCompleteSuccess] = useState<{
+        hours: number
+        newBalance: number
+    } | null>(null)
 
   // Fetch user's offers with participants
   const { data: myOffers, isLoading: offersLoading } = useQuery({
@@ -211,83 +217,87 @@ export default function ActiveItems() {
   const { data: myApplicationsData, isLoading: applicationsLoading } = useQuery({
     queryKey: ['myApplications'],
     queryFn: async () => {
-      // Fetch all offers and needs to find user's applications
-      const [offersRes, needsRes] = await Promise.all([
-        apiClient.get('/offers/'),
-        apiClient.get('/needs/'),
-      ])
+        // Use the handshake API to get user's proposals
+        const response = await apiClient.get('/handshake/my-proposals', {
+            params: {
+                status_filter: 'all', // Get all statuses
+                limit: 100, // Get up to 100 proposals
+            },
+        })
 
-      const allOffers = offersRes.data.items || []
-      const allNeeds = needsRes.data.items || []
+        const proposals = response.data.items || []
 
-      // Get participants for each offer/need and filter for current user
-      const applications: MyApplication[] = []
-
-      // Check offers
-      for (const offer of allOffers) {
-        if (offer.creator_id !== user?.id) {
+        // Fetch offer/need details for each proposal
+        const applications: MyApplication[] = await Promise.all(
+            proposals.map(async (proposal: any) => {
           try {
-            const participantsRes = await apiClient.get(`/participants/offers/${offer.id}`)
-            const userParticipation = participantsRes.data.items?.find(
-              (p: Participant) => p.user_id === user?.id
-            )
-            if (userParticipation) {
-              applications.push({
-                id: userParticipation.id,
-                type: 'offer',
-                item_id: offer.id,
-                item_title: offer.title,
-                item_creator: {
-                  id: offer.creator_id,
-                  username: offer.creator?.username || 'Unknown',
-                  display_name: offer.creator?.display_name,
-                },
-                status: userParticipation.status,
-                message: userParticipation.message,
-                hours_contributed: userParticipation.hours_contributed,
-                created_at: userParticipation.created_at,
-              })
+              let item_title = 'Unknown'
+              let item_creator = {
+                  id: 0,
+                  username: 'Unknown',
+                  display_name: undefined,
             }
-          } catch (error) {
-            // Skip if error fetching participants
-          }
-        }
-      }
+              let item_id = 0
+              let type: 'offer' | 'need' = 'offer'
 
-      // Check needs
-      for (const need of allNeeds) {
-        if (need.creator_id !== user?.id) {
-          try {
-            const participantsRes = await apiClient.get(`/participants/needs/${need.id}`)
-            const userParticipation = participantsRes.data.items?.find(
-              (p: Participant) => p.user_id === user?.id
-            )
-            if (userParticipation) {
-              applications.push({
-                id: userParticipation.id,
-                type: 'need',
-                item_id: need.id,
-                item_title: need.title,
-                item_creator: {
-                  id: need.creator_id,
-                  username: need.creator?.username || 'Unknown',
-                  display_name: need.creator?.display_name,
-                },
-                status: userParticipation.status,
-                message: userParticipation.message,
-                hours_contributed: userParticipation.hours_contributed,
-                created_at: userParticipation.created_at,
-              })
+              if (proposal.offer_id) {
+                  const offerRes = await apiClient.get(`/offers/${proposal.offer_id}`)
+                  item_title = offerRes.data.title
+                  item_creator = {
+                      id: offerRes.data.creator_id,
+                      username: offerRes.data.creator?.username || 'Unknown',
+                      display_name: offerRes.data.creator?.display_name,
+                  }
+                item_id = proposal.offer_id
+                type = 'offer'
+            } else if (proposal.need_id) {
+                const needRes = await apiClient.get(`/needs/${proposal.need_id}`)
+                item_title = needRes.data.title
+                item_creator = {
+                    id: needRes.data.creator_id,
+                    username: needRes.data.creator?.username || 'Unknown',
+                    display_name: needRes.data.creator?.display_name,
+              }
+                item_id = proposal.need_id
+                type = 'need'
             }
+
+              return {
+                  id: proposal.id,
+                  type,
+                  item_id,
+                  item_title,
+                  item_creator,
+                  status: proposal.status,
+                  message: proposal.message || '',
+                  hours_contributed: proposal.hours_contributed,
+                  created_at: proposal.created_at,
+              }
           } catch (error) {
-            // Skip if error fetching participants
+              console.error('Error fetching item details for proposal:', error)
+              // Return a fallback object
+              return {
+                  id: proposal.id,
+                  type: proposal.offer_id ? 'offer' as const : 'need' as const,
+                  item_id: proposal.offer_id || proposal.need_id || 0,
+                  item_title: 'Item details unavailable',
+                  item_creator: {
+                    id: 0,
+                    username: 'Unknown',
+                    display_name: undefined,
+                },
+                  status: proposal.status,
+                  message: proposal.message || '',
+                  hours_contributed: proposal.hours_contributed,
+                  created_at: proposal.created_at,
+              }
           }
-        }
-      }
+        })
+      )
 
       return applications
     },
-    enabled: !!user && activeTab === 1, // Only fetch when on applications tab
+      enabled: !!user,
   })
 
   const myApplications: MyApplication[] = myApplicationsData || []
@@ -335,6 +345,29 @@ export default function ActiveItems() {
     },
   })
 
+    // Complete Exchange mutation
+    const completeMutation = useMutation({
+        mutationFn: async (participantId: number) => {
+            const response = await apiClient.post(`/participants/exchange/${participantId}/complete`)
+            return response.data
+        },
+        onSuccess: (data) => {
+            // Store success data to show in dialog
+            const isProvider = data.provider_id === user?.id
+            setCompleteSuccess({
+                hours: data.hours,
+                newBalance: isProvider ? data.provider_new_balance : data.requester_new_balance,
+            })
+            queryClient.invalidateQueries({ queryKey: ['myOffers'] })
+            queryClient.invalidateQueries({ queryKey: ['myNeeds'] })
+            queryClient.invalidateQueries({ queryKey: ['myApplications'] })
+        },
+        onError: (err: any) => {
+            const errorMessage = err.response?.data?.detail || 'Failed to complete exchange'
+            setError(errorMessage)
+        },
+    })
+
   const handleAcceptClick = (post: MyPost, participant: Participant) => {
     setSelectedPost(post)
     setSelectedParticipant(participant)
@@ -370,6 +403,32 @@ export default function ActiveItems() {
       declineMutation.mutate(participantId)
     }
   }
+
+    const handleCompleteClick = (item: Participant | MyApplication) => {
+        // For MyApplication, we only need the id for completion
+        if ('item_id' in item) {
+            // It's a MyApplication
+            setSelectedParticipant({ id: item.id } as Participant)
+        } else {
+            // It's a Participant
+            setSelectedParticipant(item)
+        }
+        setCompleteDialogOpen(true)
+        setError(null)
+        setCompleteSuccess(null)
+    }
+
+    const handleCompleteSubmit = () => {
+        if (!selectedParticipant) return
+        completeMutation.mutate(selectedParticipant.id)
+    }
+
+    const handleCompleteDialogClose = () => {
+        setCompleteDialogOpen(false)
+        setSelectedParticipant(null)
+        setError(null)
+        setCompleteSuccess(null)
+    }
 
   const handleViewPost = (postId: number, postType: 'offer' | 'need') => {
       const path = postType === 'offer' ? `/offers/${postId}` : `/needs/${postId}`
@@ -569,6 +628,22 @@ export default function ActiveItems() {
                                   </Tooltip>
                                 </Box>
                               )}
+
+                                    {/* Action Button for Accepted - Complete Exchange */}
+                                    {participant.status === 'accepted' && (
+                                        <Tooltip title="Mark as Complete">
+                                            <Button
+                                                variant="contained"
+                                                color="primary"
+                                                size="small"
+                                                startIcon={<CompleteIcon />}
+                                                onClick={() => handleCompleteClick(participant)}
+                                                disabled={completeMutation.isPending}
+                                            >
+                                                Complete
+                                            </Button>
+                                        </Tooltip>
+                                    )}
                             </Box>
                           </Box>
                         ))}
@@ -688,9 +763,20 @@ export default function ActiveItems() {
                         </Button>
                       )}
                       {application.status === 'accepted' && (
-                        <Alert severity="success" sx={{ width: '100%' }}>
-                          Your application has been accepted! The creator will contact you to arrange the exchange.
-                        </Alert>
+                                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: '100%' }}>
+                                        <Alert severity="success" sx={{ flex: 1 }}>
+                                            Accepted! Arrange the exchange with the creator, then mark as complete.
+                                        </Alert>
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            startIcon={<CompleteIcon />}
+                                            onClick={() => handleCompleteClick(application)}
+                                            disabled={completeMutation.isPending}
+                                        >
+                                            Complete
+                                        </Button>
+                                    </Box>
                       )}
                       {application.status === 'completed' && (
                         <Alert severity="info" sx={{ width: '100%' }}>
@@ -705,6 +791,91 @@ export default function ActiveItems() {
           </Grid>
         )}
       </TabPanel>
+
+          {/* Complete Exchange Dialog */}
+          <Dialog
+              open={completeDialogOpen}
+              onClose={() => !completeMutation.isPending && handleCompleteDialogClose()}
+              maxWidth="sm"
+              fullWidth
+          >
+              <DialogTitle>
+                  {completeSuccess ? 'Exchange Completed!' : 'Complete Exchange'}
+              </DialogTitle>
+              <DialogContent>
+                  {completeSuccess ? (
+                      <>
+                          <Alert severity="success" sx={{ mb: 2 }}>
+                              The exchange has been successfully completed!
+                          </Alert>
+                          <Typography variant="body2" color="text.secondary" paragraph>
+                              <strong>{completeSuccess.hours}</strong> hours have been transferred.
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" paragraph>
+                              Your new balance: <strong>{completeSuccess.newBalance.toFixed(1)}</strong> hours
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                              You can now leave feedback for the other participant on their profile page.
+                          </Typography>
+                      </>
+                  ) : (
+                      <>
+                          <Typography variant="body2" color="text.secondary" paragraph>
+                              Mark this exchange as complete? This will:
+                          </Typography>
+                          <Box component="ul" sx={{ pl: 2, mb: 2 }}>
+                              <Typography component="li" variant="body2" color="text.secondary">
+                                  Transfer the agreed hours via TimeBank
+                              </Typography>
+                              <Typography component="li" variant="body2" color="text.secondary">
+                                  Update both participants' balances
+                              </Typography>
+                              <Typography component="li" variant="body2" color="text.secondary">
+                                  Mark the exchange as completed (cannot be undone)
+                              </Typography>
+                              <Typography component="li" variant="body2" color="text.secondary">
+                                  Allow both parties to leave feedback
+                              </Typography>
+                          </Box>
+
+                          {error && (
+                              <Alert severity="error" sx={{ mb: 2 }}>
+                                  {error}
+                              </Alert>
+                          )}
+
+                          <Alert severity="info">
+                              Make sure the real-world exchange has happened before marking as complete.
+                          </Alert>
+                      </>
+                  )}
+              </DialogContent>
+              <DialogActions>
+                  {completeSuccess ? (
+                      <Button onClick={handleCompleteDialogClose} variant="contained">
+                          Close
+                      </Button>
+                  ) : (
+                      <>
+                          <Button
+                              onClick={handleCompleteDialogClose}
+                              disabled={completeMutation.isPending}
+                          >
+                              Cancel
+                          </Button>
+                          <Button
+                              onClick={handleCompleteSubmit}
+                              variant="contained"
+                              color="primary"
+                              disabled={completeMutation.isPending}
+                              startIcon={completeMutation.isPending ? <CircularProgress size={20} /> : <CompleteIcon />}
+                          >
+                              {completeMutation.isPending ? 'Completing...' : 'Mark as Complete'}
+                          </Button>
+                      </>
+                  )}
+              </DialogActions>
+          </Dialog>
 
       {/* Accept Dialog */}
       <Dialog
