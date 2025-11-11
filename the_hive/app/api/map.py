@@ -80,6 +80,8 @@ def approximate_coordinate(coord: float, precision: int = 2) -> float:
 @router.get("/feed", response_model=MapFeedResponse)
 def get_map_feed(
     session: Annotated[Session, Depends(get_session)],
+    type: Optional[str] = Query(None, description="Filter by type: 'offer' or 'need'"),
+    is_remote: Optional[bool] = Query(None, description="Filter by remote status"),
     user_lat: Optional[float] = Query(None, description="User's latitude for distance sorting"),
     user_lon: Optional[float] = Query(None, description="User's longitude for distance sorting"),
     tags: Optional[str] = Query(None, description="Comma-separated tag names to filter by"),
@@ -96,12 +98,16 @@ def get_map_feed(
     - Only location_name (e.g., "Brooklyn, NY") shown
     
     Features (SRS FR-9):
+    - Type filtering (offers only, needs only, or both)
+    - Remote filtering (show only remote items)
     - Distance sorting if user location provided
     - Tag filtering
     - Includes both offers and needs
     - Remote items included (no distance)
     
     Args:
+        type: Filter by 'offer' or 'need', or None for both
+        is_remote: True for remote only, False for location-based only, None for all
         user_lat: User's latitude for distance calculation
         user_lon: User's longitude for distance calculation  
         tags: Comma-separated tags to filter by
@@ -119,42 +125,58 @@ def get_map_feed(
     if tags:
         tag_names = [t.strip() for t in tags.split(",") if t.strip()]
     
-    # Query active offers
-    offer_query = select(Offer).where(Offer.status == OfferStatus.ACTIVE)
-    
-    # Filter by tags if specified
-    if tag_names:
-        # Get tag IDs
-        tag_query = select(Tag.id).where(Tag.name.in_(tag_names))
-        tag_ids = list(session.exec(tag_query).all())
+    # Only fetch offers if type is None or 'offer'
+    if type is None or type == 'offer':
+        # Query active offers
+        offer_query = select(Offer).where(Offer.status == OfferStatus.ACTIVE)
         
-        if tag_ids:
-            # Filter offers that have at least one of the specified tags
-            offer_query = offer_query.where(
-                Offer.id.in_(
-                    select(OfferTag.offer_id).where(OfferTag.tag_id.in_(tag_ids))
-                )
-            )
-    
-    offers = session.exec(offer_query).all()
-    
-    # Query active needs
-    need_query = select(Need).where(Need.status == NeedStatus.ACTIVE)
-    
-    # Filter by tags if specified
-    if tag_names:
-        tag_query = select(Tag.id).where(Tag.name.in_(tag_names))
-        tag_ids = list(session.exec(tag_query).all())
+        # Filter by remote status if specified
+        if is_remote is not None:
+            offer_query = offer_query.where(Offer.is_remote == is_remote)
         
-        if tag_ids:
-            # Filter needs that have at least one of the specified tags
-            need_query = need_query.where(
-                Need.id.in_(
-                    select(NeedTag.need_id).where(NeedTag.tag_id.in_(tag_ids))
+        # Filter by tags if specified
+        if tag_names:
+            # Get tag IDs
+            tag_query = select(Tag.id).where(Tag.name.in_(tag_names))
+            tag_ids = list(session.exec(tag_query).all())
+            
+            if tag_ids:
+                # Filter offers that have at least one of the specified tags
+                offer_query = offer_query.where(
+                    Offer.id.in_(
+                        select(OfferTag.offer_id).where(OfferTag.tag_id.in_(tag_ids))
+                    )
                 )
-            )
+        
+        offers = session.exec(offer_query).all()
+    else:
+        offers = []
     
-    needs = session.exec(need_query).all()
+    # Only fetch needs if type is None or 'need'
+    if type is None or type == 'need':
+        # Query active needs
+        need_query = select(Need).where(Need.status == NeedStatus.ACTIVE)
+        
+        # Filter by remote status if specified
+        if is_remote is not None:
+            need_query = need_query.where(Need.is_remote == is_remote)
+        
+        # Filter by tags if specified
+        if tag_names:
+            tag_query = select(Tag.id).where(Tag.name.in_(tag_names))
+            tag_ids = list(session.exec(tag_query).all())
+            
+            if tag_ids:
+                # Filter needs that have at least one of the specified tags
+                need_query = need_query.where(
+                    Need.id.in_(
+                        select(NeedTag.need_id).where(NeedTag.tag_id.in_(tag_ids))
+                    )
+                )
+        
+        needs = session.exec(need_query).all()
+    else:
+        needs = []
     
     # Process offers
     for offer in offers:

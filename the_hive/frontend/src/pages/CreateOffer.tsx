@@ -30,6 +30,7 @@ import {
 import { useMutation } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
+import LocationPicker from '@/components/LocationPicker'
 
 interface CreateOfferRequest {
   title: string
@@ -61,9 +62,9 @@ export default function CreateOffer() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [isRemote, setIsRemote] = useState(true)
-  const [locationName, setLocationName] = useState('')
-  const [locationLat, setLocationLat] = useState('')
-  const [locationLon, setLocationLon] = useState('')
+  const [location, setLocation] = useState<{ name: string; lat?: number; lon?: number }>({
+    name: '',
+  })
   const [capacity, setCapacity] = useState('3')
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
@@ -117,7 +118,7 @@ export default function CreateOffer() {
       setError('Description is required')
       return
     }
-    if (!isRemote && !locationName.trim()) {
+    if (!isRemote && !location.name.trim()) {
       setError('Location is required for in-person offers')
       return
     }
@@ -142,15 +143,13 @@ export default function CreateOffer() {
     }
 
     // Add location for in-person offers
-    if (!isRemote && locationName.trim()) {
-      requestData.location_name = locationName.trim()
+    if (!isRemote && location.name.trim()) {
+      requestData.location_name = location.name.trim()
       
-      // Optional: Add coordinates if provided
-      const lat = parseFloat(locationLat)
-      const lon = parseFloat(locationLon)
-      if (!isNaN(lat) && !isNaN(lon)) {
-        requestData.location_lat = lat
-        requestData.location_lon = lon
+      // Add coordinates if provided
+      if (location.lat !== undefined && location.lon !== undefined) {
+        requestData.location_lat = location.lat
+        requestData.location_lon = location.lon
       }
     }
 
@@ -251,49 +250,16 @@ export default function CreateOffer() {
                 <Typography variant="subtitle2" gutterBottom fontWeight={600}>
                   Location Details
                 </Typography>
-                <TextField
-                  fullWidth
-                  required
-                  label="Location Name"
-                  placeholder="e.g., Brooklyn, NY or Downtown Manhattan"
-                  value={locationName}
-                  onChange={(e) => setLocationName(e.target.value)}
-                  disabled={createMutation.isPending}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LocationIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ mb: 2 }}
-                />
-                
-                <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                  Optional: Add coordinates for map display
+                <Typography variant="caption" color="text.secondary" gutterBottom display="block" sx={{ mb: 2 }}>
+                  You can provide just a place name (e.g., "Brooklyn, NY") or use the map picker for more precision.
+                  Coordinates are optional and will be rounded for privacy.
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
-                    label="Latitude"
-                    placeholder="40.7589"
-                    value={locationLat}
-                    onChange={(e) => setLocationLat(e.target.value)}
-                    disabled={createMutation.isPending}
-                    type="number"
-                    inputProps={{ step: 'any' }}
-                    fullWidth
-                  />
-                  <TextField
-                    label="Longitude"
-                    placeholder="-73.9851"
-                    value={locationLon}
-                    onChange={(e) => setLocationLon(e.target.value)}
-                    disabled={createMutation.isPending}
-                    type="number"
-                    inputProps={{ step: 'any' }}
-                    fullWidth
-                  />
-                </Box>
+                <LocationPicker
+                  value={location}
+                  onChange={setLocation}
+                  disabled={createMutation.isPending}
+                  required={!isRemote}
+                />
               </Box>
             )}
 

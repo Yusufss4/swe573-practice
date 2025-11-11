@@ -28,6 +28,8 @@ import {
   Alert,
   Tooltip,
   Badge,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -78,9 +80,10 @@ interface MapFeedItem {
   type: 'offer' | 'need'
   title: string
   description?: string | null
-  location_lat?: number
-  location_lon?: number
-  location_name?: string
+  is_remote: boolean
+  approximate_lat?: number | null
+  approximate_lon?: number | null
+  location_name?: string | null
   tags?: Array<{ id: number; name: string }> | null
   creator?: {
     id: number
@@ -89,8 +92,7 @@ interface MapFeedItem {
   }
   capacity?: number
   accepted_count?: number
-  status: string
-  created_at: string
+  distance_km?: number | null
 }
 
 interface MapFeedResponse {
@@ -119,6 +121,7 @@ const MapView = () => {
   const [typeFilter, setTypeFilter] = useState<'all' | 'offers' | 'needs'>('all')
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [remoteOnly, setRemoteOnly] = useState<boolean>(false)
   const [distanceFilter, setDistanceFilter] = useState<number>(50) // km
   const [sortBy, setSortBy] = useState<'recent' | 'distance' | 'popularity'>('recent')
   
@@ -128,11 +131,21 @@ const MapView = () => {
 
   // SRS FR-9: Fetch map feed data
   const { data: mapFeed, isLoading, error, refetch } = useQuery<MapFeedResponse>({
-    queryKey: ['mapFeed', typeFilter],
+    queryKey: ['mapFeed', typeFilter, remoteOnly],
     queryFn: async () => {
       const params = new URLSearchParams()
-      if (typeFilter !== 'all') {
-        params.append('type', typeFilter === 'offers' ? 'offer' : 'need')
+
+      // Add type filter
+      if (typeFilter === 'offers') {
+        params.append('type', 'offer')
+      } else if (typeFilter === 'needs') {
+        params.append('type', 'need')
+      }
+      // If 'all', don't add type parameter - backend will return both
+
+      // Add remote filter
+      if (remoteOnly) {
+        params.append('is_remote', 'true')
       }
       
       const response = await apiClient.get<MapFeedResponse>(`/map/feed?${params.toString()}`)
@@ -198,8 +211,8 @@ const MapView = () => {
   const handleMarkerClick = (item: MapFeedItem) => {
     // Only highlight and center map when marker is clicked
     setSelectedItem(item)
-    if (item.location_lat && item.location_lon) {
-      setMapCenter([item.location_lat, item.location_lon])
+    if (item.approximate_lat && item.approximate_lon) {
+      setMapCenter([item.approximate_lat, item.approximate_lon])
     }
   }
 
@@ -215,6 +228,7 @@ const MapView = () => {
     setSearchQuery('')
     setTypeFilter('all')
     setSelectedTags([])
+    setRemoteOnly(false)
     setDistanceFilter(50)
     setSortBy('recent')
   }
@@ -343,11 +357,11 @@ const MapView = () => {
                     
                     {/* Markers for filtered items */}
                     {filteredItems
-                      .filter((item) => item.location_lat && item.location_lon)
+                          .filter((item) => item.approximate_lat && item.approximate_lon)
                       .map((item) => (
                         <Marker
                           key={`${item.type}-${item.id}`}
-                          position={[item.location_lat!, item.location_lon!]}
+                          position={[item.approximate_lat!, item.approximate_lon!]}
                           icon={item.type === 'offer' ? offerIcon : needIcon}
                           eventHandlers={{
                             click: () => handleMarkerClick(item),
@@ -437,7 +451,7 @@ const MapView = () => {
                   <Typography variant="h6" fontWeight={600}>
                     {filteredItems.length} {filteredItems.length === 1 ? 'Result' : 'Results'}
                   </Typography>
-                  {(searchQuery || selectedTags.length > 0) && (
+                  {(searchQuery || selectedTags.length > 0 || remoteOnly) && (
                     <Button size="small" onClick={handleClearFilters}>
                       Clear Filters
                     </Button>
@@ -603,6 +617,19 @@ const MapView = () => {
             <MenuItem value="popularity">Popularity</MenuItem>
           </Select>
         </FormControl>
+
+        {/* Remote Filter */}
+        <Box sx={{ mb: 3 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={remoteOnly}
+                onChange={(e) => setRemoteOnly(e.target.checked)}
+              />
+            }
+            label="Show only remote offers/needs"
+          />
+        </Box>
 
         {/* Distance Filter */}
         <Box sx={{ mb: 3 }}>

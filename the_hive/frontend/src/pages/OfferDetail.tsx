@@ -259,14 +259,40 @@ export default function OfferDetail() {
 
               {/* Creator Info */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
+                <Avatar
+                  sx={{
+                    bgcolor: 'primary.main',
+                    width: 48,
+                    height: 48,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => navigate(`/profile/${offer.creator_id}`)}
+                >
                   <PersonIcon />
                 </Avatar>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={500}>
+                <Box
+                  onClick={() => navigate(`/profile/${offer.creator_id}`)}
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': { opacity: 0.8 }
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={500}
+                    sx={{
+                      '&:hover': { color: 'primary.main' }
+                    }}
+                  >
                     {offer.creator.display_name || offer.creator.full_name || offer.creator.username}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      '&:hover': { color: 'primary.main' }
+                    }}
+                  >
                     @{offer.creator.username}
                   </Typography>
                 </Box>

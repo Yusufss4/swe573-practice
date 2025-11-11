@@ -8,6 +8,8 @@ import NeedDetail from './pages/NeedDetail'
 import CreateOffer from './pages/CreateOffer'
 import CreateNeed from './pages/CreateNeed'
 import ActiveItems from './pages/ActiveItems'
+import ProfilePage from './pages/ProfilePage'
+import MyProfile from './pages/MyProfile'
 
 // SRS: Main application component
 // Provides routing structure for all pages defined in SRS Section 3.3.1
@@ -32,8 +34,8 @@ function App() {
         <Route path="needs/create" element={<CreateNeed />} />
         
         {/* SRS FR-2: Profile Management */}
-        <Route path="profile/:id" element={<div>User Profile - To be implemented</div>} />
-        <Route path="profile/me" element={<div>My Profile - To be implemented</div>} />
+        <Route path="profile/:id" element={<ProfilePage />} />
+        <Route path="profile/me" element={<MyProfile />} />
         
         {/* SRS FR-14: Active Items Management */}
         <Route path="active-items" element={<ActiveItems />} />        {/* SRS FR-6: Messaging System */}

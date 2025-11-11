@@ -11,6 +11,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from app.schemas.auth import UserPublic
+
 
 class ParticipantCreate(BaseModel):
     """Schema for creating a new participant (offering help)."""
@@ -30,6 +32,7 @@ class ParticipantResponse(BaseModel):
     offer_id: Optional[int]
     need_id: Optional[int]
     user_id: int
+    user: UserPublic
     role: str
     status: str
     hours_contributed: float

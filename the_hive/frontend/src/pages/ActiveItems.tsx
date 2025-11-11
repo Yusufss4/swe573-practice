@@ -372,7 +372,9 @@ export default function ActiveItems() {
   }
 
   const handleViewPost = (postId: number, postType: 'offer' | 'need') => {
-    navigate(`/${postType}s/${postId}`)
+      const path = postType === 'offer' ? `/offers/${postId}` : `/needs/${postId}`
+      console.log('Navigating to:', path)
+      navigate(path)
   }
 
   const formatDate = (dateString: string) => {
@@ -489,12 +491,23 @@ export default function ActiveItems() {
                           >
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
-                                <Avatar sx={{ bgcolor: 'primary.main' }}>
+                                        <Avatar
+                                            sx={{ bgcolor: 'primary.main', cursor: 'pointer' }}
+                                            onClick={() => navigate(`/profile/${participant.user_id}`)}
+                                        >
                                   <PersonIcon />
                                 </Avatar>
                                 <Box sx={{ flex: 1 }}>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                                    <Typography variant="subtitle2" fontWeight={600}>
+                                                <Typography
+                                                    variant="subtitle2"
+                                                    fontWeight={600}
+                                                    onClick={() => navigate(`/profile/${participant.user_id}`)}
+                                                    sx={{
+                                                        cursor: 'pointer',
+                                                        '&:hover': { color: 'primary.main', textDecoration: 'underline' }
+                                                    }}
+                                                >
                                       {participant.user.display_name || participant.user.username}
                                     </Typography>
                                     <Chip
@@ -509,7 +522,17 @@ export default function ActiveItems() {
                                       }
                                     />
                                   </Box>
-                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                                display="block"
+                                                sx={{
+                                                    mb: 1,
+                                                    cursor: 'pointer',
+                                                    '&:hover': { color: 'primary.main' }
+                                                }}
+                                                onClick={() => navigate(`/profile/${participant.user_id}`)}
+                                            >
                                     @{participant.user.username}
                                   </Typography>
                                   <Typography variant="body2" sx={{ mb: 1 }}>

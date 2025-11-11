@@ -18,14 +18,48 @@ from app.core.db import get_session
 from app.models.offer import Offer, OfferStatus
 from app.models.need import Need, NeedStatus
 from app.models.participant import Participant, ParticipantStatus, ParticipantRole
+from app.models.user import User
 from app.schemas.participant import (
     ParticipantCreate,
     ParticipantAccept,
     ParticipantResponse,
     ParticipantListResponse,
 )
+from app.schemas.auth import UserPublic
 
 router = APIRouter(prefix="/participants", tags=["participants"])
+
+
+def _build_participant_response(session: Session, participant: Participant) -> ParticipantResponse:
+    """Build a ParticipantResponse with user info."""
+    # Fetch user information
+    user = session.get(User, participant.user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User not found"
+        )
+    
+    user_public = UserPublic(
+        id=user.id,
+        username=user.username,
+        display_name=user.full_name
+    )
+    
+    return ParticipantResponse(
+        id=participant.id,
+        offer_id=participant.offer_id,
+        need_id=participant.need_id,
+        user_id=participant.user_id,
+        user=user_public,
+        role=participant.role.value,
+        status=participant.status.value,
+        hours_contributed=participant.hours_contributed,
+        message=participant.message,
+        selected_slot=participant.selected_slot,
+        created_at=participant.created_at,
+        updated_at=participant.updated_at,
+    )
 
 
 @router.post("/offers/{offer_id}", response_model=ParticipantResponse, status_code=status.HTTP_201_CREATED)
@@ -97,7 +131,7 @@ def offer_help_for_offer(
     session.commit()
     session.refresh(participant)
     
-    return participant
+    return _build_participant_response(session, participant)
 
 
 @router.post("/needs/{need_id}", response_model=ParticipantResponse, status_code=status.HTTP_201_CREATED)
@@ -169,7 +203,7 @@ def offer_help_for_need(
     session.commit()
     session.refresh(participant)
     
-    return participant
+    return _build_participant_response(session, participant)
 
 
 @router.post("/offers/{offer_id}/accept", response_model=ParticipantResponse)
@@ -256,7 +290,7 @@ def accept_participant_for_offer(
     session.commit()
     session.refresh(participant)
     
-    return participant
+    return _build_participant_response(session, participant)
 
 
 @router.post("/needs/{need_id}/accept", response_model=ParticipantResponse)
@@ -343,7 +377,7 @@ def accept_participant_for_need(
     session.commit()
     session.refresh(participant)
     
-    return participant
+    return _build_participant_response(session, participant)
 
 
 @router.get("/offers/{offer_id}", response_model=ParticipantListResponse)
@@ -381,8 +415,10 @@ def list_offer_participants(
     statement = statement.offset(skip).limit(limit)
     participants = session.exec(statement).all()
     
+    items = [_build_participant_response(session, p) for p in participants]
+    
     return ParticipantListResponse(
-        items=participants,
+        items=items,
         total=total,
         skip=skip,
         limit=limit
@@ -424,8 +460,10 @@ def list_need_participants(
     statement = statement.offset(skip).limit(limit)
     participants = session.exec(statement).all()
     
+    items = [_build_participant_response(session, p) for p in participants]
+    
     return ParticipantListResponse(
-        items=participants,
+        items=items,
         total=total,
         skip=skip,
         limit=limit
