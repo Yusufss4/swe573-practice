@@ -275,9 +275,12 @@ def accept_participant_for_offer(
             detail="Offer capacity already reached"
         )
     
+    # Use hours from the offer (or override if provided)
+    hours = accept_data.hours if accept_data.hours is not None else offer.hours
+    
     # Atomic update: accept participant and increment count
     participant.status = ParticipantStatus.ACCEPTED
-    participant.hours_contributed = accept_data.hours
+    participant.hours_contributed = hours
     
     offer.accepted_count += 1
     
@@ -362,9 +365,12 @@ def accept_participant_for_need(
             detail="Need capacity already reached"
         )
     
+    # Use hours from the need (or override if provided)
+    hours = accept_data.hours if accept_data.hours is not None else need.hours
+    
     # Atomic update: accept participant and increment count
     participant.status = ParticipantStatus.ACCEPTED
-    participant.hours_contributed = accept_data.hours
+    participant.hours_contributed = hours
     
     need.accepted_count += 1
     

@@ -276,6 +276,7 @@ def seed_basic_data():
                 "description": "Offering help with Python basics, web development with Django/Flask, and data science libraries. Perfect for beginners!",
                 "is_remote": True,
                 "capacity": 3,
+                "hours": 2.0,
                 "tags": ["tutoring", "programming"],
                 "time_slots": [
                     {
@@ -301,6 +302,7 @@ def seed_basic_data():
                 "description": "Learn HTML, CSS, and JavaScript in a hands-on workshop format. Bring your laptop!",
                 "is_remote": False,
                 "capacity": 5,
+                "hours": 4.0,
                 "tags": ["tutoring", "programming"],
                 "time_slots": [
                     {
@@ -318,6 +320,7 @@ def seed_basic_data():
                 "description": "Expert help with IKEA furniture, broken chairs, wobbly tables. I bring my own tools!",
                 "is_remote": False,
                 "capacity": 2,
+                "hours": 2.0,
                 "tags": ["carpentry", "home-repair"],
             },
             {
@@ -326,6 +329,7 @@ def seed_basic_data():
                 "description": "Learn to use basic tools safely and build a simple wooden project to take home.",
                 "is_remote": False,
                 "capacity": 4,
+                "hours": 3.0,
                 "tags": ["carpentry", "tutoring"],
                 "time_slots": [
                     {
@@ -350,6 +354,7 @@ def seed_basic_data():
                 "description": "One-on-one or small group vocal coaching. All styles welcome: pop, classical, jazz.",
                 "is_remote": True,
                 "capacity": 2,
+                "hours": 1.0,
                 "tags": ["music", "tutoring"],
                 "time_slots": [
                     {
@@ -376,6 +381,7 @@ def seed_basic_data():
                 "description": "Weekly choir practice open to all. No experience necessary, just bring enthusiasm!",
                 "is_remote": False,
                 "capacity": 20,
+                "hours": 2.0,
                 "tags": ["music"],
             },
             {
@@ -384,6 +390,7 @@ def seed_basic_data():
                 "description": "Learn to make authentic pasta from scratch. Ingredients provided, bring containers for leftovers!",
                 "is_remote": False,
                 "capacity": 4,
+                "hours": 3.0,
                 "tags": ["cooking", "tutoring"],
             },
             {
@@ -392,6 +399,7 @@ def seed_basic_data():
                 "description": "I'll help you plan and prepare healthy meals for the week. Your kitchen or mine!",
                 "is_remote": False,
                 "capacity": 2,
+                "hours": 2.5,
                 "tags": ["cooking"],
             },
             {
@@ -400,6 +408,7 @@ def seed_basic_data():
                 "description": "I'll help you start a balcony or backyard garden. Advice on containers, soil, and plant selection.",
                 "is_remote": False,
                 "capacity": 3,
+                "hours": 2.0,
                 "tags": ["gardening"],
             },
             {
@@ -408,6 +417,7 @@ def seed_basic_data():
                 "description": "Learn how to compost at home and reduce kitchen waste. Small-space solutions included!",
                 "is_remote": True,
                 "capacity": 10,
+                "hours": 1.5,
                 "tags": ["gardening"],
             },
             {
@@ -416,6 +426,7 @@ def seed_basic_data():
                 "description": "Customized workout plans and motivation. Meet at the park or your home gym.",
                 "is_remote": False,
                 "capacity": 3,
+                "hours": 1.0,
                 "tags": ["fitness"],
             },
             {
@@ -424,6 +435,7 @@ def seed_basic_data():
                 "description": "Gentle yoga for flexibility and stress relief. Virtual or in-person options available.",
                 "is_remote": True,
                 "capacity": 8,
+                "hours": 1.0,
                 "tags": ["fitness"],
             },
             {
@@ -432,6 +444,7 @@ def seed_basic_data():
                 "description": "Practice conversational Spanish with a native speaker. All levels welcome!",
                 "is_remote": True,
                 "capacity": 4,
+                "hours": 1.0,
                 "tags": ["language", "tutoring"],
             },
             {
@@ -440,6 +453,7 @@ def seed_basic_data():
                 "description": "Patient help with smartphones, tablets, email, video calls. I come to you!",
                 "is_remote": False,
                 "capacity": 2,
+                "hours": 1.5,
                 "tags": ["tech-support"],
             },
             {
@@ -448,6 +462,7 @@ def seed_basic_data():
                 "description": "Basic maintenance: brakes, gears, tire pressure, chain lubrication. Bring your bike!",
                 "is_remote": False,
                 "capacity": 5,
+                "hours": 1.0,
                 "tags": ["bike-repair"],
             },
         ]
@@ -472,6 +487,7 @@ def seed_basic_data():
                 start_date=datetime.utcnow(),
                 end_date=datetime.utcnow() + timedelta(days=14),  # 2 weeks
                 capacity=offer_data["capacity"],
+                hours=offer_data.get("hours", 1.0),
                 accepted_count=0,
                 status=OfferStatus.ACTIVE,
                 available_slots=available_slots_json,
@@ -503,6 +519,7 @@ def seed_basic_data():
                 "description": "Need help moving a couch and bookshelf to my new apartment. Second floor, no elevator.",
                 "is_remote": False,
                 "capacity": 2,
+                "hours": 3.0,
                 "tags": ["home-repair", "transportation"],
                 "time_slots": [
                     {
@@ -521,6 +538,7 @@ def seed_basic_data():
                 "description": "Need someone to help design a portfolio website for my art. I have content ready!",
                 "is_remote": True,
                 "capacity": 1,
+                "hours": 4.0,
                 "tags": ["programming"],
                 "time_slots": [
                     {
@@ -545,6 +563,7 @@ def seed_basic_data():
                 "description": "Looking for someone to walk my energetic golden retriever 2-3 times per week.",
                 "is_remote": False,
                 "capacity": 1,
+                "hours": 1.0,
                 "tags": ["pet-care"],
                 "time_slots": [
                     {
@@ -571,6 +590,7 @@ def seed_basic_data():
                 "description": "Beginner looking to learn acoustic guitar. Prefer in-person lessons.",
                 "is_remote": False,
                 "capacity": 1,
+                "hours": 1.5,
                 "tags": ["music", "tutoring"],
             },
             {
@@ -579,6 +599,7 @@ def seed_basic_data():
                 "description": "Need advice on redesigning my backyard garden. What should I plant in shady areas?",
                 "is_remote": False,
                 "capacity": 1,
+                "hours": 2.0,
                 "tags": ["gardening"],
             },
             {
@@ -587,6 +608,7 @@ def seed_basic_data():
                 "description": "Looking for conversation practice in Spanish. I'm at intermediate level.",
                 "is_remote": True,
                 "capacity": 1,
+                "hours": 1.0,
                 "tags": ["language"],
             },
             {
@@ -595,6 +617,7 @@ def seed_basic_data():
                 "description": "Looking for someone to practice yoga with in the park on weekends.",
                 "is_remote": False,
                 "capacity": 2,
+                "hours": 1.0,
                 "tags": ["fitness"],
                 "time_slots": [
                     {
@@ -619,6 +642,7 @@ def seed_basic_data():
                 "description": "Career change ahead! Need help updating my resume and cover letter.",
                 "is_remote": True,
                 "capacity": 1,
+                "hours": 2.0,
                 "tags": ["tutoring"],
             },
             {
@@ -627,6 +651,7 @@ def seed_basic_data():
                 "description": "Need professional photos for my language tutoring website. Outdoor session preferred.",
                 "is_remote": False,
                 "capacity": 1,
+                "hours": 2.0,
                 "tags": ["art"],
             },
             {
@@ -635,6 +660,7 @@ def seed_basic_data():
                 "description": "My upright piano hasn't been tuned in years. Looking for an expert!",
                 "is_remote": False,
                 "capacity": 1,
+                "hours": 1.5,
                 "tags": ["music"],
             },
             {
@@ -643,6 +669,7 @@ def seed_basic_data():
                 "description": "Need someone to watch my 5-year-old while I teach evening art classes, 2 hours/session.",
                 "is_remote": False,
                 "capacity": 1,
+                "hours": 2.0,
                 "tags": ["childcare"],
             },
             {
@@ -651,6 +678,7 @@ def seed_basic_data():
                 "description": "Need a ride to the airport next week, early morning departure.",
                 "is_remote": False,
                 "capacity": 1,
+                "hours": 1.0,
                 "tags": ["transportation"],
             },
         ]
@@ -675,6 +703,7 @@ def seed_basic_data():
                 start_date=datetime.utcnow(),
                 end_date=datetime.utcnow() + timedelta(days=14),
                 capacity=need_data["capacity"],
+                hours=need_data.get("hours", 1.0),
                 accepted_count=0,
                 status=NeedStatus.ACTIVE,
                 available_slots=available_slots_json,

@@ -19,6 +19,7 @@ class OfferBase(BaseModel):
     location_lon: Optional[float] = Field(None, ge=-180, le=180)
     location_name: Optional[str] = Field(None, max_length=255)
     capacity: int = Field(default=1, ge=1)
+    hours: float = Field(default=1.0, gt=0, description="TimeBank hours for this offer")
     
     @field_validator('location_lat', 'location_lon', 'location_name')
     @classmethod
@@ -46,6 +47,7 @@ class OfferUpdate(BaseModel):
     location_lon: Optional[float] = Field(None, ge=-180, le=180)
     location_name: Optional[str] = Field(None, max_length=255)
     capacity: Optional[int] = Field(None, ge=1)
+    hours: Optional[float] = Field(None, gt=0, description="TimeBank hours for this offer")
     tags: Optional[list[str]] = Field(None, min_length=1, max_length=10)
     available_slots: Optional[list[AvailableTimeSlot]] = Field(
         None,
@@ -73,6 +75,7 @@ class OfferResponse(BaseModel):
     end_date: datetime
     capacity: int
     accepted_count: int
+    hours: float
     status: str
     available_slots: Optional[list[AvailableTimeSlot]] = None
     tags: list[str] = []

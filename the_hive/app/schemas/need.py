@@ -19,6 +19,7 @@ class NeedBase(BaseModel):
     location_lon: Optional[float] = Field(None, ge=-180, le=180)
     location_name: Optional[str] = Field(None, max_length=255)
     capacity: int = Field(default=1, ge=1)
+    hours: float = Field(default=1.0, gt=0, description="TimeBank hours for this need")
 
 
 class NeedCreate(NeedBase):
@@ -39,6 +40,7 @@ class NeedUpdate(BaseModel):
     location_lon: Optional[float] = Field(None, ge=-180, le=180)
     location_name: Optional[str] = Field(None, max_length=255)
     capacity: Optional[int] = Field(None, ge=1)
+    hours: Optional[float] = Field(None, gt=0, description="TimeBank hours for this need")
     tags: Optional[list[str]] = Field(None, min_length=1, max_length=10)
     available_slots: Optional[list[AvailableTimeSlot]] = Field(
         None,
@@ -66,6 +68,7 @@ class NeedResponse(BaseModel):
     end_date: datetime
     capacity: int
     accepted_count: int
+    hours: float
     status: str
     available_slots: Optional[list[AvailableTimeSlot]] = None
     tags: list[str] = []

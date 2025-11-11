@@ -75,6 +75,7 @@ def _build_offer_response(session: Session, offer: Offer) -> OfferResponse:
         end_date=offer.end_date,
         capacity=offer.capacity,
         accepted_count=offer.accepted_count,
+        hours=offer.hours,
         status=offer.status.value,
         available_slots=available_slots,
         tags=tags,

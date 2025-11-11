@@ -53,6 +53,9 @@ class Need(SQLModel, table=True):
     capacity: int = Field(default=1, ge=1)  # Minimum 1
     accepted_count: int = Field(default=0)
     
+    # TimeBank hours (SRS: FR-7.2 - hours for this exchange)
+    hours: float = Field(default=1.0, gt=0, description="TimeBank hours for this need")
+    
     # Status
     status: NeedStatus = Field(default=NeedStatus.ACTIVE, index=True)
     

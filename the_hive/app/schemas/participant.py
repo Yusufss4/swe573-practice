@@ -23,7 +23,7 @@ class ParticipantCreate(BaseModel):
 class ParticipantAccept(BaseModel):
     """Schema for accepting a participant."""
     participant_id: int = Field(..., description="ID of the participant to accept")
-    hours: float = Field(..., gt=0, description="Hours for this exchange")
+    hours: Optional[float] = Field(None, gt=0, description="Optional: Override hours (uses offer/need hours if not provided)")
 
 
 class ParticipantResponse(BaseModel):

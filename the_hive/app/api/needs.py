@@ -75,6 +75,7 @@ def _build_need_response(session: Session, need: Need) -> NeedResponse:
         end_date=need.end_date,
         capacity=need.capacity,
         accepted_count=need.accepted_count,
+        hours=need.hours,
         status=need.status.value,
         available_slots=available_slots,
         tags=tags,

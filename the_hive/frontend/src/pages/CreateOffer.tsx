@@ -51,6 +51,7 @@ interface CreateOfferRequest {
   location_lat?: number
   location_lon?: number
   capacity?: number
+  hours?: number
   tags: string[]
   available_slots?: TimeSlot[]
 }
@@ -78,6 +79,7 @@ export default function CreateOffer() {
     name: '',
   })
   const [capacity, setCapacity] = useState('3')
+  const [hours, setHours] = useState('1')
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
@@ -146,12 +148,19 @@ export default function CreateOffer() {
       return
     }
 
+    const hoursNum = parseFloat(hours)
+    if (isNaN(hoursNum) || hoursNum <= 0) {
+      setError('Hours must be greater than 0')
+      return
+    }
+
     // Build request
     const requestData: CreateOfferRequest = {
       title: title.trim(),
       description: description.trim(),
       is_remote: isRemote,
       capacity: capacityNum,
+      hours: hoursNum,
       tags: tags,
     }
 
@@ -298,6 +307,24 @@ export default function CreateOffer() {
                 ),
               }}
               helperText="Maximum number of people you can help with this offer"
+              sx={{ mb: 3 }}
+            />
+
+            {/* Hours */}
+            <TextField
+              fullWidth
+              required
+              label="Hours Required"
+              placeholder="How many TimeBank hours is this worth?"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              disabled={createMutation.isPending}
+              type="number"
+              inputProps={{
+                min: "0.5",
+                step: "0.5"
+              }}
+              helperText="TimeBank hours for this service (e.g., 1.0, 2.5, etc.)"
               sx={{ mb: 3 }}
             />
 

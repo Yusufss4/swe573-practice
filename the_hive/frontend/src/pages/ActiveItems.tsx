@@ -17,8 +17,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
+    DialogActions,
   Alert,
   CircularProgress,
   Divider,
@@ -89,6 +88,7 @@ interface MyPost {
   status: string
   capacity: number
   accepted_count: number
+    hours: number
   participants: Participant[]
   created_at: string
 }
@@ -137,8 +137,7 @@ export default function ActiveItems() {
   const [acceptDialogOpen, setAcceptDialogOpen] = useState(false)
     const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null)
-  const [selectedPost, setSelectedPost] = useState<MyPost | null>(null)
-  const [hours, setHours] = useState('2')
+    const [selectedPost, setSelectedPost] = useState<MyPost | null>(null)
   const [error, setError] = useState<string | null>(null)
     const [completeSuccess, setCompleteSuccess] = useState<{
         hours: number
@@ -320,8 +319,7 @@ export default function ActiveItems() {
       return response.data
     },
     onSuccess: () => {
-      setAcceptDialogOpen(false)
-      setHours('2')
+        setAcceptDialogOpen(false)
       setError(null)
       queryClient.invalidateQueries({ queryKey: ['myOffers'] })
       queryClient.invalidateQueries({ queryKey: ['myNeeds'] })
@@ -378,17 +376,12 @@ export default function ActiveItems() {
   const handleAcceptSubmit = () => {
     if (!selectedPost || !selectedParticipant) return
 
-    const hoursNum = parseFloat(hours)
-    if (isNaN(hoursNum) || hoursNum <= 0) {
-      setError('Hours must be a positive number')
-      return
-    }
-
+      // Use hours from the post - no need to validate input
     acceptMutation.mutate({
       postId: selectedPost.id,
       postType: selectedPost.type,
       participantId: selectedParticipant.id,
-      hours: hoursNum,
+        // Hours will be taken from offer/need on backend (optional parameter)
     })
   }
 
@@ -886,29 +879,21 @@ export default function ActiveItems() {
       >
         <DialogTitle>Accept Application</DialogTitle>
         <DialogContent>
-          {selectedParticipant && (
+                  {selectedParticipant && selectedPost && (
             <>
               <Typography variant="body2" color="text.secondary" paragraph>
-                Accept <strong>{selectedParticipant.user.username}</strong>'s application and specify the hours for this exchange.
+                              Accept <strong>{selectedParticipant.user.username}</strong>'s application?
               </Typography>
 
+                          <Alert severity="info" sx={{ mb: 2 }}>
+                              This exchange is for <strong>{selectedPost.hours}</strong> TimeBank hour{selectedPost.hours !== 1 ? 's' : ''}.
+                          </Alert>
+
               {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
+                              <Alert severity="error">
                   {error}
                 </Alert>
-              )}
-
-              <TextField
-                autoFocus
-                fullWidth
-                label="Hours"
-                type="number"
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-                disabled={acceptMutation.isPending}
-                inputProps={{ min: 0.5, step: 0.5 }}
-                helperText="Number of TimeBank hours for this exchange"
-              />
+                          )}
             </>
           )}
         </DialogContent>

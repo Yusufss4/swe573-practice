@@ -39,6 +39,7 @@ export interface Offer {
   location_name?: string
   capacity: number // SRS FR-3.6: Maximum participants
   accepted_count: number
+  hours: number // SRS FR-7: TimeBank hours for this offer
   status: 'ACTIVE' | 'FULL' | 'EXPIRED' | 'ARCHIVED'
   expires_at: string
   created_at: string
@@ -60,6 +61,7 @@ export interface Need {
   location_name?: string
   capacity: number
   accepted_count: number
+  hours: number // SRS FR-7: TimeBank hours for this need
   status: 'ACTIVE' | 'FULL' | 'EXPIRED' | 'ARCHIVED'
   expires_at: string
   created_at: string
