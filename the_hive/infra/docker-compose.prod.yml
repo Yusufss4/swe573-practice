@@ -1,0 +1,69 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: the_hive_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-the_hive}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ../swe573-practice/the_hive
+      dockerfile: infra/Dockerfile
+    container_name: the_hive_backend
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/the_hive}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - ADMIN_SESSION_SECRET=${ADMIN_SESSION_SECRET:-admin-session-secret-change-in-production}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      - APP_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ../swe573-practice/the_hive/frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost/api/v1}
+    container_name: the_hive_frontend
+    restart: always
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: the_hive_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    restart: always
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
