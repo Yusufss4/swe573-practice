@@ -23,14 +23,45 @@ from app.core.db import get_session
 from app.models.offer import Offer, OfferStatus
 from app.models.need import Need, NeedStatus
 from app.models.participant import Participant, ParticipantStatus, ParticipantRole
+from app.models.user import User
 from app.schemas.participant import (
     ParticipantCreate,
     ParticipantAccept,
     ParticipantResponse,
     ParticipantListResponse,
 )
+from app.schemas.auth import UserPublic
 
 router = APIRouter(prefix="/handshake", tags=["handshake"])
+
+
+def _build_participant_response(session: Session, participant: Participant) -> ParticipantResponse:
+    """Helper to build ParticipantResponse with user data."""
+    user = session.get(User, participant.user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="User not found"
+        )
+    
+    return ParticipantResponse(
+        id=participant.id,
+        offer_id=participant.offer_id,
+        need_id=participant.need_id,
+        user_id=participant.user_id,
+        user=UserPublic(
+            id=user.id,
+            username=user.username,
+            display_name=user.full_name or user.username
+        ),
+        role=participant.role.value,
+        status=participant.status.value,
+        hours_contributed=participant.hours_contributed,
+        message=participant.message,
+        selected_slot=participant.selected_slot,
+        created_at=participant.created_at,
+        updated_at=participant.updated_at,
+    )
 
 
 @router.post("/propose", response_model=ParticipantResponse, status_code=status.HTTP_201_CREATED)
@@ -174,7 +205,8 @@ def propose_help(
     session.commit()
     session.refresh(participant)
     
-    return participant
+    # Build response with user data
+    return _build_participant_response(session, participant)
 
 
 @router.post("/{handshake_id}/accept", response_model=ParticipantResponse)
@@ -310,7 +342,8 @@ def accept_handshake(
     session.commit()
     session.refresh(participant)
     
-    return participant
+    # Build response with user data
+    return _build_participant_response(session, participant)
 
 
 @router.get("/my-proposals", response_model=ParticipantListResponse)
@@ -354,8 +387,11 @@ def list_my_proposals(
     statement = statement.offset(skip).limit(limit)
     proposals = session.exec(statement).all()
     
+    # Build response items with user data
+    response_items = [_build_participant_response(session, p) for p in proposals]
+    
     return ParticipantListResponse(
-        items=proposals,
+        items=response_items,
         total=total,
         skip=skip,
         limit=limit
@@ -411,8 +447,11 @@ def list_pending_proposals_for_my_items(
     statement = statement.offset(skip).limit(limit)
     proposals = session.exec(statement).all()
     
+    # Build response items with user data
+    response_items = [_build_participant_response(session, p) for p in proposals]
+    
     return ParticipantListResponse(
-        items=proposals,
+        items=response_items,
         total=total,
         skip=skip,
         limit=limit

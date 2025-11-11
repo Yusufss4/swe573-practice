@@ -31,6 +31,17 @@ import { useMutation } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
 import LocationPicker from '@/components/LocationPicker'
+import TimeSlotPicker from '@/components/TimeSlotPicker'
+
+interface TimeRange {
+  start_time: string
+  end_time: string
+}
+
+interface TimeSlot {
+  date: string
+  time_ranges: TimeRange[]
+}
 
 interface CreateOfferRequest {
   title: string
@@ -41,6 +52,7 @@ interface CreateOfferRequest {
   location_lon?: number
   capacity?: number
   tags: string[]
+  available_slots?: TimeSlot[]
 }
 
 /**
@@ -66,6 +78,7 @@ export default function CreateOffer() {
     name: '',
   })
   const [capacity, setCapacity] = useState('3')
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -151,6 +164,11 @@ export default function CreateOffer() {
         requestData.location_lat = location.lat
         requestData.location_lon = location.lon
       }
+    }
+
+    // Add time slots if specified
+    if (timeSlots.length > 0) {
+      requestData.available_slots = timeSlots
     }
 
     createMutation.mutate(requestData)
@@ -326,6 +344,15 @@ export default function CreateOffer() {
                   ))}
                 </Box>
               )}
+            </Box>
+
+            {/* Time Slots */}
+            <Box sx={{ mb: 3 }}>
+              <TimeSlotPicker
+                value={timeSlots}
+                onChange={setTimeSlots}
+                disabled={createMutation.isPending}
+              />
             </Box>
 
             <Divider sx={{ my: 3 }} />

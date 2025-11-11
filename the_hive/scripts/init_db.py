@@ -20,6 +20,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+import json
 from datetime import datetime, timedelta
 from sqlmodel import SQLModel, Session, select, func
 
@@ -57,6 +58,19 @@ def drop_tables():
     print("Dropping all database tables...")
     SQLModel.metadata.drop_all(engine)
     print("✅ All tables dropped successfully")
+
+
+def create_time_slots_json(slots_data):
+    """Create time slots JSON string from structured data.
+    
+    Args:
+        slots_data: List of dicts with 'date' and 'time_ranges' keys
+                   Each time_range has 'start_time' and 'end_time'
+    
+    Returns:
+        JSON string representation of time slots
+    """
+    return json.dumps(slots_data)
 
 
 def seed_basic_data():
@@ -263,6 +277,23 @@ def seed_basic_data():
                 "is_remote": True,
                 "capacity": 3,
                 "tags": ["tutoring", "programming"],
+                "time_slots": [
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=2)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "10:00", "end_time": "12:00"},
+                            {"start_time": "14:00", "end_time": "16:00"}
+                        ],
+                        "timezone": "America/New_York"
+                    },
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=5)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "09:00", "end_time": "11:00"}
+                        ],
+                        "timezone": "America/New_York"
+                    }
+                ]
             },
             {
                 "creator": users[0],  # alice
@@ -271,6 +302,15 @@ def seed_basic_data():
                 "is_remote": False,
                 "capacity": 5,
                 "tags": ["tutoring", "programming"],
+                "time_slots": [
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=7)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "13:00", "end_time": "17:00"}
+                        ],
+                        "timezone": "America/New_York"
+                    }
+                ]
             },
             {
                 "creator": users[1],  # bob
@@ -287,6 +327,22 @@ def seed_basic_data():
                 "is_remote": False,
                 "capacity": 4,
                 "tags": ["carpentry", "tutoring"],
+                "time_slots": [
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=3)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "10:00", "end_time": "13:00"}
+                        ],
+                        "timezone": "America/Los_Angeles"
+                    },
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=10)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "10:00", "end_time": "13:00"}
+                        ],
+                        "timezone": "America/Los_Angeles"
+                    }
+                ]
             },
             {
                 "creator": users[2],  # carol
@@ -295,6 +351,24 @@ def seed_basic_data():
                 "is_remote": True,
                 "capacity": 2,
                 "tags": ["music", "tutoring"],
+                "time_slots": [
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "15:00", "end_time": "16:00"},
+                            {"start_time": "16:30", "end_time": "17:30"}
+                        ],
+                        "timezone": "America/Chicago"
+                    },
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=4)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "15:00", "end_time": "16:00"},
+                            {"start_time": "17:00", "end_time": "18:00"}
+                        ],
+                        "timezone": "America/Chicago"
+                    }
+                ]
             },
             {
                 "creator": users[2],  # carol
@@ -381,6 +455,12 @@ def seed_basic_data():
         offers = []
         for offer_data in offers_data:
             creator = offer_data["creator"]
+            
+            # Convert time slots to JSON if present
+            available_slots_json = None
+            if "time_slots" in offer_data:
+                available_slots_json = create_time_slots_json(offer_data["time_slots"])
+            
             offer = Offer(
                 creator_id=creator.id,
                 title=offer_data["title"],
@@ -394,6 +474,7 @@ def seed_basic_data():
                 capacity=offer_data["capacity"],
                 accepted_count=0,
                 status=OfferStatus.ACTIVE,
+                available_slots=available_slots_json,
             )
             session.add(offer)
             offers.append((offer, offer_data["tags"]))
@@ -403,7 +484,8 @@ def seed_basic_data():
         # Link offers to tags
         for offer, tag_names in offers:
             session.refresh(offer)
-            print(f"✅ Created offer: {offer.title} (ID: {offer.id}, Capacity: {offer.capacity})")
+            slots_info = f", Time Slots: {len(json.loads(offer.available_slots))}" if offer.available_slots else ""
+            print(f"✅ Created offer: {offer.title} (ID: {offer.id}, Capacity: {offer.capacity}{slots_info})")
             for tag_name in tag_names:
                 tag = next((t for t in tags if t.name == tag_name), None)
                 if tag:
@@ -422,6 +504,16 @@ def seed_basic_data():
                 "is_remote": False,
                 "capacity": 2,
                 "tags": ["home-repair", "transportation"],
+                "time_slots": [
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=6)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "09:00", "end_time": "12:00"},
+                            {"start_time": "13:00", "end_time": "16:00"}
+                        ],
+                        "timezone": "America/Denver"
+                    }
+                ]
             },
             {
                 "creator": users[8],  # iris
@@ -430,6 +522,22 @@ def seed_basic_data():
                 "is_remote": True,
                 "capacity": 1,
                 "tags": ["programming"],
+                "time_slots": [
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=2)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "18:00", "end_time": "20:00"}
+                        ],
+                        "timezone": "America/Chicago"
+                    },
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=9)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "18:00", "end_time": "20:00"}
+                        ],
+                        "timezone": "America/Chicago"
+                    }
+                ]
             },
             {
                 "creator": users[9],  # jack
@@ -438,6 +546,24 @@ def seed_basic_data():
                 "is_remote": False,
                 "capacity": 1,
                 "tags": ["pet-care"],
+                "time_slots": [
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "07:00", "end_time": "08:00"},
+                            {"start_time": "17:00", "end_time": "18:00"}
+                        ],
+                        "timezone": "America/Los_Angeles"
+                    },
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=3)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "07:00", "end_time": "08:00"},
+                            {"start_time": "17:00", "end_time": "18:00"}
+                        ],
+                        "timezone": "America/Los_Angeles"
+                    }
+                ]
             },
             {
                 "creator": users[0],  # alice
@@ -470,6 +596,22 @@ def seed_basic_data():
                 "is_remote": False,
                 "capacity": 2,
                 "tags": ["fitness"],
+                "time_slots": [
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=5)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "08:00", "end_time": "09:00"}
+                        ],
+                        "timezone": "America/Los_Angeles"
+                    },
+                    {
+                        "date": (datetime.utcnow() + timedelta(days=12)).strftime("%Y-%m-%d"),
+                        "time_ranges": [
+                            {"start_time": "08:00", "end_time": "09:00"}
+                        ],
+                        "timezone": "America/Los_Angeles"
+                    }
+                ]
             },
             {
                 "creator": users[5],  # frank
@@ -516,6 +658,12 @@ def seed_basic_data():
         needs = []
         for need_data in needs_data:
             creator = need_data["creator"]
+            
+            # Convert time slots to JSON if present
+            available_slots_json = None
+            if "time_slots" in need_data:
+                available_slots_json = create_time_slots_json(need_data["time_slots"])
+            
             need = Need(
                 creator_id=creator.id,
                 title=need_data["title"],
@@ -529,6 +677,7 @@ def seed_basic_data():
                 capacity=need_data["capacity"],
                 accepted_count=0,
                 status=NeedStatus.ACTIVE,
+                available_slots=available_slots_json,
             )
             session.add(need)
             needs.append((need, need_data["tags"]))
@@ -538,7 +687,8 @@ def seed_basic_data():
         # Link needs to tags
         for need, tag_names in needs:
             session.refresh(need)
-            print(f"✅ Created need: {need.title} (ID: {need.id}, Capacity: {need.capacity})")
+            slots_info = f", Time Slots: {len(json.loads(need.available_slots))}" if need.available_slots else ""
+            print(f"✅ Created need: {need.title} (ID: {need.id}, Capacity: {need.capacity}{slots_info})")
             for tag_name in tag_names:
                 tag = next((t for t in tags if t.name == tag_name), None)
                 if tag:
