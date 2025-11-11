@@ -423,14 +423,13 @@ def test_cannot_update_others_offer(client: TestClient, session: Session, auth_h
     assert response.status_code == 403
 
 
-def test_pagination(client: TestClient, session: Session):
+def test_pagination(client: TestClient, session: Session, test_user: User, auth_headers: dict):
     """Test pagination of offer list."""
-    user_id = 1
     
     # Create multiple offers
     for i in range(15):
         offer = Offer(
-            creator_id=user_id,
+            creator_id=test_user.id,
             title=f"Offer {i}",
             description="Test",
             is_remote=True,
@@ -440,7 +439,7 @@ def test_pagination(client: TestClient, session: Session):
     session.commit()
     
     # Test pagination
-    response = client.get("/api/v1/offers/?skip=0&limit=10")
+    response = client.get("/api/v1/offers/?skip=0&limit=10", headers=auth_headers)
     data = response.json()
     
     assert len(data["items"]) == 10
@@ -449,7 +448,7 @@ def test_pagination(client: TestClient, session: Session):
     assert data["limit"] == 10
     
     # Test second page
-    response = client.get("/api/v1/offers/?skip=10&limit=10")
+    response = client.get("/api/v1/offers/?skip=10&limit=10", headers=auth_headers)
     data = response.json()
     
     assert len(data["items"]) >= 5

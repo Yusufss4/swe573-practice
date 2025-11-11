@@ -43,3 +43,12 @@ class UserResponse(BaseModel):
     created_at: datetime
     
     model_config = {"from_attributes": True}
+
+
+class UserPublic(BaseModel):
+    """Public user information for displaying in offers/needs."""
+    id: int
+    username: str
+    display_name: str | None
+    
+    model_config = {"from_attributes": True}

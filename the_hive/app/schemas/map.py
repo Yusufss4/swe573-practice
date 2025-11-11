@@ -12,6 +12,14 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+class TagResponse(BaseModel):
+    """Schema for a tag in map responses."""
+    id: int
+    name: str
+    
+    model_config = {"from_attributes": True}
+
+
 class MapPinResponse(BaseModel):
     """Schema for a map pin (minimal data for display).
     
@@ -22,6 +30,7 @@ class MapPinResponse(BaseModel):
     id: int
     type: str = Field(..., description="'offer' or 'need'")
     title: str
+    description: Optional[str] = Field(None, description="Description of the offer or need")
     is_remote: bool
     approximate_lat: Optional[float] = Field(
         None,
@@ -35,7 +44,9 @@ class MapPinResponse(BaseModel):
         None,
         description="Approximate location name (e.g., 'Brooklyn, NY')"
     )
-    tags: list[str] = Field(default_factory=list, description="Associated tags")
+    tags: list[TagResponse] = Field(default_factory=list, description="Associated tags with id and name")
+    capacity: int = Field(..., description="Maximum number of participants")
+    accepted_count: int = Field(default=0, description="Number of accepted participants")
     distance_km: Optional[float] = Field(
         None,
         description="Distance from user location in kilometers (if user location provided)"

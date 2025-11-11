@@ -7,6 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.time_slot import AvailableTimeSlot
+from app.schemas.auth import UserPublic
 
 
 class NeedBase(BaseModel):
@@ -54,6 +55,7 @@ class NeedResponse(BaseModel):
     """Schema for Need response."""
     id: int
     creator_id: int
+    creator: UserPublic
     title: str
     description: str
     is_remote: bool

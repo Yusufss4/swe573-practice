@@ -2,6 +2,12 @@ import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import MapView from './pages/MapView'
+import OfferDetail from './pages/OfferDetail'
+import NeedDetail from './pages/NeedDetail'
+import CreateOffer from './pages/CreateOffer'
+import CreateNeed from './pages/CreateNeed'
+import ActiveItems from './pages/ActiveItems'
 
 // SRS: Main application component
 // Provides routing structure for all pages defined in SRS Section 3.3.1
@@ -10,7 +16,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Layout />}>
         {/* SRS FR-9: Map-Based Visualization - Home map view */}
-        <Route index element={<div>Home / Map View - To be implemented</div>} />
+        <Route index element={<MapView />} />
         
         {/* SRS FR-1: User Registration and Authentication */}
         <Route path="login" element={<Login />} />
@@ -18,21 +24,19 @@ function App() {
         
         {/* SRS FR-3: Offer and Need Management */}
         <Route path="offers" element={<div>Offers List - To be implemented</div>} />
-        <Route path="offers/:id" element={<div>Offer Detail - To be implemented</div>} />
-        <Route path="offers/create" element={<div>Create Offer - To be implemented</div>} />
+        <Route path="offers/:id" element={<OfferDetail />} />
+        <Route path="offers/create" element={<CreateOffer />} />
         
         <Route path="needs" element={<div>Needs List - To be implemented</div>} />
-        <Route path="needs/:id" element={<div>Need Detail - To be implemented</div>} />
-        <Route path="needs/create" element={<div>Create Need - To be implemented</div>} />
+        <Route path="needs/:id" element={<NeedDetail />} />
+        <Route path="needs/create" element={<CreateNeed />} />
         
         {/* SRS FR-2: Profile Management */}
         <Route path="profile/:id" element={<div>User Profile - To be implemented</div>} />
         <Route path="profile/me" element={<div>My Profile - To be implemented</div>} />
         
         {/* SRS FR-14: Active Items Management */}
-        <Route path="active-items" element={<div>Active Items - To be implemented</div>} />
-        
-        {/* SRS FR-6: Messaging System */}
+        <Route path="active-items" element={<ActiveItems />} />        {/* SRS FR-6: Messaging System */}
         <Route path="messages" element={<div>Messages - To be implemented</div>} />
         
         {/* SRS FR-15: Community Forum */}

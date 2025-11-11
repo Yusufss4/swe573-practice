@@ -21,6 +21,7 @@ from app.core.offers_needs import (
     update_need_tags,
 )
 from app.models.need import Need, NeedStatus
+from app.models.user import User
 from app.schemas.need import (
     NeedCreate,
     NeedExtend,
@@ -28,13 +29,28 @@ from app.schemas.need import (
     NeedResponse,
     NeedUpdate,
 )
+from app.schemas.auth import UserPublic
 
 router = APIRouter(prefix="/needs", tags=["Needs"])
 
 
 def _build_need_response(session: Session, need: Need) -> NeedResponse:
-    """Build a NeedResponse with tags."""
+    """Build a NeedResponse with tags and creator info."""
     tags = get_need_tags(session, need.id)
+    
+    # Fetch creator information
+    creator = session.get(User, need.creator_id)
+    if not creator:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Creator user not found"
+        )
+    
+    creator_public = UserPublic(
+        id=creator.id,
+        username=creator.username,
+        display_name=creator.full_name
+    )
     
     # Parse available slots if present
     available_slots = None
@@ -48,6 +64,7 @@ def _build_need_response(session: Session, need: Need) -> NeedResponse:
     return NeedResponse(
         id=need.id,
         creator_id=need.creator_id,
+        creator=creator_public,
         title=need.title,
         description=need.description,
         is_remote=need.is_remote,

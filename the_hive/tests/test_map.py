@@ -433,7 +433,9 @@ def test_map_feed_filters_by_tags(
     data = response.json()
     assert data["total"] == 1
     assert data["items"][0]["title"] == "Python Tutoring"
-    assert "python" in data["items"][0]["tags"]
+    # Tags are now objects with id and name
+    tag_names = [tag["name"] for tag in data["items"][0]["tags"]]
+    assert "python" in tag_names
 
 
 def test_map_feed_filters_by_multiple_tags(

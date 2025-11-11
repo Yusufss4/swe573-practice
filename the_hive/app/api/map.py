@@ -160,11 +160,11 @@ def get_map_feed(
     for offer in offers:
         # Get tags for this offer
         offer_tags_query = (
-            select(Tag.name)
+            select(Tag.id, Tag.name)
             .join(OfferTag, OfferTag.tag_id == Tag.id)
             .where(OfferTag.offer_id == offer.id)
         )
-        offer_tag_names = list(session.exec(offer_tags_query).all())
+        offer_tags = [{"id": tag_id, "name": tag_name} for tag_id, tag_name in session.exec(offer_tags_query).all()]
         
         # Calculate distance if user location provided and offer has location
         distance = None
@@ -184,6 +184,7 @@ def get_map_feed(
             id=offer.id,
             type="offer",
             title=offer.title,
+            description=offer.description,
             is_remote=offer.is_remote,
             approximate_lat=(
                 approximate_coordinate(offer.location_lat)
@@ -196,7 +197,9 @@ def get_map_feed(
                 else None
             ),
             location_name=offer.location_name,
-            tags=offer_tag_names,
+            tags=offer_tags,
+            capacity=offer.capacity,
+            accepted_count=offer.accepted_count,
             distance_km=round(distance, 1) if distance is not None else None,
         )
         pins.append(pin)
@@ -205,11 +208,11 @@ def get_map_feed(
     for need in needs:
         # Get tags for this need
         need_tags_query = (
-            select(Tag.name)
+            select(Tag.id, Tag.name)
             .join(NeedTag, NeedTag.tag_id == Tag.id)
             .where(NeedTag.need_id == need.id)
         )
-        need_tag_names = list(session.exec(need_tags_query).all())
+        need_tags = [{"id": tag_id, "name": tag_name} for tag_id, tag_name in session.exec(need_tags_query).all()]
         
         # Calculate distance if user location provided and need has location
         distance = None
@@ -229,6 +232,7 @@ def get_map_feed(
             id=need.id,
             type="need",
             title=need.title,
+            description=need.description,
             is_remote=need.is_remote,
             approximate_lat=(
                 approximate_coordinate(need.location_lat)
@@ -241,7 +245,9 @@ def get_map_feed(
                 else None
             ),
             location_name=need.location_name,
-            tags=need_tag_names,
+            tags=need_tags,
+            capacity=need.capacity,
+            accepted_count=need.accepted_count,
             distance_km=round(distance, 1) if distance is not None else None,
         )
         pins.append(pin)

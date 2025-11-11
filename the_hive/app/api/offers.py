@@ -21,6 +21,7 @@ from app.core.offers_needs import (
     update_offer_tags,
 )
 from app.models.offer import Offer, OfferStatus
+from app.models.user import User
 from app.schemas.offer import (
     OfferCreate,
     OfferExtend,
@@ -28,13 +29,28 @@ from app.schemas.offer import (
     OfferResponse,
     OfferUpdate,
 )
+from app.schemas.auth import UserPublic
 
 router = APIRouter(prefix="/offers", tags=["Offers"])
 
 
 def _build_offer_response(session: Session, offer: Offer) -> OfferResponse:
-    """Build an OfferResponse with tags."""
+    """Build an OfferResponse with tags and creator info."""
     tags = get_offer_tags(session, offer.id)
+    
+    # Fetch creator information
+    creator = session.get(User, offer.creator_id)
+    if not creator:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Creator user not found"
+        )
+    
+    creator_public = UserPublic(
+        id=creator.id,
+        username=creator.username,
+        display_name=creator.full_name
+    )
     
     # Parse available slots if present
     available_slots = None
@@ -48,6 +64,7 @@ def _build_offer_response(session: Session, offer: Offer) -> OfferResponse:
     return OfferResponse(
         id=offer.id,
         creator_id=offer.creator_id,
+        creator=creator_public,
         title=offer.title,
         description=offer.description,
         is_remote=offer.is_remote,
