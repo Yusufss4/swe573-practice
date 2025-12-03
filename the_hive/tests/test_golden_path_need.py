@@ -78,7 +78,6 @@ def requester_fixture(session: Session):
         full_name="Alice Smith",
         role=UserRole.USER,
         balance=5.0,  # SRS FR-7.1: Initial balance
-        timezone="America/New_York",
         location_name="Brooklyn, NY",
         location_lat=40.6782,
         location_lon=-73.9442,
@@ -102,7 +101,6 @@ def provider_fixture(session: Session):
         full_name="Bob Johnson",
         role=UserRole.USER,
         balance=5.0,  # SRS FR-7.1: Initial balance
-        timezone="America/New_York",
         location_name="Manhattan, NY",
         location_lat=40.7580,
         location_lon=-73.9855,

@@ -14,7 +14,6 @@ export interface RegisterRequest {
   email: string
   password: string
   display_name?: string
-  timezone?: string
   location_lat?: number
   location_lon?: number
   location_name?: string

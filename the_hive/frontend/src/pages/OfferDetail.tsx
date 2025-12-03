@@ -67,7 +67,6 @@ interface OfferDetail {
       start_time: string
       end_time: string
     }>
-    timezone?: string
   }>
   start_date: string
   end_date: string

@@ -44,13 +44,6 @@ class User(SQLModel, table=True):
     location_lon: Optional[float] = Field(default=None)
     location_name: Optional[str] = Field(default=None, max_length=255)  # e.g., "Brooklyn, NY"
     
-    # User's timezone for proper time slot handling
-    timezone: str = Field(
-        default="UTC",
-        max_length=50,
-        description="User's IANA timezone (e.g., 'America/New_York', 'Europe/Istanbul')"
-    )
-    
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

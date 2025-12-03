@@ -12,7 +12,6 @@ export interface User {
   location_lat?: number
   location_lon?: number
   location_name?: string
-  timezone: string
   role: 'user' | 'moderator' | 'admin'
   is_active: boolean
   created_at: string

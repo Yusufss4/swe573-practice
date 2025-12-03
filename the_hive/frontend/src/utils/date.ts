@@ -1,11 +1,10 @@
 // SRS: Date and time utilities
-// Handles timezone-aware date formatting per SRS requirements
+// Handles date formatting
 
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 
 /**
  * Format ISO datetime string to readable format
- * SRS: Users have timezone field (IANA format)
  */
 export const formatDateTime = (isoString: string): string => {
   try {

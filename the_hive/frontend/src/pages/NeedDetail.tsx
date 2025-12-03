@@ -59,13 +59,12 @@ interface NeedDetail {
   accepted_count: number
   status: string
   tags: string[]
-    available_slots?: Array<{
-        date: string
-        time_ranges: Array<{
-            start_time: string
-            end_time: string
+  available_slots?: Array<{
+    date: string
+    time_ranges: Array<{
+      start_time: string
+      end_time: string
     }>
-      timezone?: string
   }>
   start_date: string
   end_date: string

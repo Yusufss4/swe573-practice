@@ -104,7 +104,6 @@ def seed_basic_data():
                 "location_lat": 40.7128,
                 "location_lon": -74.0060,
                 "location_name": "New York, NY",
-                "timezone": "America/New_York",
             },
             {
                 "email": "bob@example.com",
@@ -114,7 +113,6 @@ def seed_basic_data():
                 "location_lat": 34.0522,
                 "location_lon": -118.2437,
                 "location_name": "Los Angeles, CA",
-                "timezone": "America/Los_Angeles",
             },
             {
                 "email": "carol@example.com",
@@ -124,7 +122,6 @@ def seed_basic_data():
                 "location_lat": 41.8781,
                 "location_lon": -87.6298,
                 "location_name": "Chicago, IL",
-                "timezone": "America/Chicago",
             },
             {
                 "email": "david@example.com",
@@ -134,7 +131,6 @@ def seed_basic_data():
                 "location_lat": 37.7749,
                 "location_lon": -122.4194,
                 "location_name": "San Francisco, CA",
-                "timezone": "America/Los_Angeles",
             },
             {
                 "email": "emma@example.com",
@@ -144,7 +140,6 @@ def seed_basic_data():
                 "location_lat": 47.6062,
                 "location_lon": -122.3321,
                 "location_name": "Seattle, WA",
-                "timezone": "America/Los_Angeles",
             },
             {
                 "email": "frank@example.com",
@@ -154,7 +149,6 @@ def seed_basic_data():
                 "location_lat": 25.7617,
                 "location_lon": -80.1918,
                 "location_name": "Miami, FL",
-                "timezone": "America/New_York",
             },
             {
                 "email": "grace@example.com",
@@ -164,7 +158,6 @@ def seed_basic_data():
                 "location_lat": 42.3601,
                 "location_lon": -71.0589,
                 "location_name": "Boston, MA",
-                "timezone": "America/New_York",
             },
             {
                 "email": "henry@example.com",
@@ -174,7 +167,6 @@ def seed_basic_data():
                 "location_lat": 39.7392,
                 "location_lon": -104.9903,
                 "location_name": "Denver, CO",
-                "timezone": "America/Denver",
             },
             {
                 "email": "iris@example.com",
@@ -184,7 +176,6 @@ def seed_basic_data():
                 "location_lat": 30.2672,
                 "location_lon": -97.7431,
                 "location_name": "Austin, TX",
-                "timezone": "America/Chicago",
             },
             {
                 "email": "jack@example.com",
@@ -194,7 +185,6 @@ def seed_basic_data():
                 "location_lat": 45.5152,
                 "location_lon": -122.6784,
                 "location_name": "Portland, OR",
-                "timezone": "America/Los_Angeles",
             },
         ]
         
@@ -211,7 +201,6 @@ def seed_basic_data():
                 location_lat=user_data["location_lat"],
                 location_lon=user_data["location_lon"],
                 location_name=user_data["location_name"],
-                timezone=user_data.get("timezone", "UTC"),
             )
             session.add(user)
             users.append(user)
@@ -285,14 +274,12 @@ def seed_basic_data():
                             {"start_time": "10:00", "end_time": "12:00"},
                             {"start_time": "14:00", "end_time": "16:00"}
                         ],
-                        "timezone": "America/New_York"
                     },
                     {
                         "date": (datetime.utcnow() + timedelta(days=5)).strftime("%Y-%m-%d"),
                         "time_ranges": [
                             {"start_time": "09:00", "end_time": "11:00"}
                         ],
-                        "timezone": "America/New_York"
                     }
                 ]
             },
@@ -310,7 +297,6 @@ def seed_basic_data():
                         "time_ranges": [
                             {"start_time": "13:00", "end_time": "17:00"}
                         ],
-                        "timezone": "America/New_York"
                     }
                 ]
             },
@@ -337,14 +323,12 @@ def seed_basic_data():
                         "time_ranges": [
                             {"start_time": "10:00", "end_time": "13:00"}
                         ],
-                        "timezone": "America/Los_Angeles"
                     },
                     {
                         "date": (datetime.utcnow() + timedelta(days=10)).strftime("%Y-%m-%d"),
                         "time_ranges": [
                             {"start_time": "10:00", "end_time": "13:00"}
                         ],
-                        "timezone": "America/Los_Angeles"
                     }
                 ]
             },
@@ -363,7 +347,6 @@ def seed_basic_data():
                             {"start_time": "15:00", "end_time": "16:00"},
                             {"start_time": "16:30", "end_time": "17:30"}
                         ],
-                        "timezone": "America/Chicago"
                     },
                     {
                         "date": (datetime.utcnow() + timedelta(days=4)).strftime("%Y-%m-%d"),
@@ -371,7 +354,6 @@ def seed_basic_data():
                             {"start_time": "15:00", "end_time": "16:00"},
                             {"start_time": "17:00", "end_time": "18:00"}
                         ],
-                        "timezone": "America/Chicago"
                     }
                 ]
             },
@@ -528,7 +510,6 @@ def seed_basic_data():
                             {"start_time": "09:00", "end_time": "12:00"},
                             {"start_time": "13:00", "end_time": "16:00"}
                         ],
-                        "timezone": "America/Denver"
                     }
                 ]
             },
@@ -546,14 +527,12 @@ def seed_basic_data():
                         "time_ranges": [
                             {"start_time": "18:00", "end_time": "20:00"}
                         ],
-                        "timezone": "America/Chicago"
                     },
                     {
                         "date": (datetime.utcnow() + timedelta(days=9)).strftime("%Y-%m-%d"),
                         "time_ranges": [
                             {"start_time": "18:00", "end_time": "20:00"}
                         ],
-                        "timezone": "America/Chicago"
                     }
                 ]
             },
@@ -572,7 +551,6 @@ def seed_basic_data():
                             {"start_time": "07:00", "end_time": "08:00"},
                             {"start_time": "17:00", "end_time": "18:00"}
                         ],
-                        "timezone": "America/Los_Angeles"
                     },
                     {
                         "date": (datetime.utcnow() + timedelta(days=3)).strftime("%Y-%m-%d"),
@@ -580,7 +558,6 @@ def seed_basic_data():
                             {"start_time": "07:00", "end_time": "08:00"},
                             {"start_time": "17:00", "end_time": "18:00"}
                         ],
-                        "timezone": "America/Los_Angeles"
                     }
                 ]
             },
@@ -625,14 +602,12 @@ def seed_basic_data():
                         "time_ranges": [
                             {"start_time": "08:00", "end_time": "09:00"}
                         ],
-                        "timezone": "America/Los_Angeles"
                     },
                     {
                         "date": (datetime.utcnow() + timedelta(days=12)).strftime("%Y-%m-%d"),
                         "time_ranges": [
                             {"start_time": "08:00", "end_time": "09:00"}
                         ],
-                        "timezone": "America/Los_Angeles"
                     }
                 ]
             },

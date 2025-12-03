@@ -1,9 +1,25 @@
 # The Hive - AI Coding Agent Instructions
 
 ## Project Overview
-**The Hive** is a FastAPI-based time-banking platform where users exchange services tracked in hours. Built on double-entry bookkeeping principles with strict SRS requirements traceability.
+**The Hive** is a full-stack time-banking platform where users exchange services tracked in hours. FastAPI backend + React/TypeScript frontend, built on double-entry bookkeeping principles with strict SRS requirements traceability.
+
+**Tech Stack:**
+- Backend: FastAPI, SQLModel, PostgreSQL, JWT auth, pytest
+- Frontend: React 18, TypeScript, Vite, Material-UI, TanStack Query, Leaflet maps
+- Infrastructure: Docker Compose, nginx
 
 ## Architecture Philosophy
+
+### Monorepo Structure
+```
+the_hive/
+├── app/              # FastAPI backend
+├── frontend/         # React TypeScript frontend
+├── tests/            # Backend pytest suite
+├── scripts/          # Utility scripts (init_db.py)
+├── infra/            # Docker orchestration
+└── pyproject.toml    # Backend dependencies
+```
 
 ### Core Domain Models (app/models/)
 - **Users** start with 5.0h balance, can go -10.0h (reciprocity limit)
@@ -16,14 +32,34 @@
 - Always preserve these when editing
 - Add new ones when implementing features
 - Reference format: `FR-X.Y` (functional) or `NFR-X` (non-functional)
+- See `tests/test_golden_path_need.py` for comprehensive SRS validation example
 
-### API Architecture Pattern
+### Backend API Architecture Pattern
 ```
 app/api/{resource}.py      # Endpoints with SRS doc comments
 app/models/{resource}.py   # SQLModel with validation
 app/schemas/{resource}.py  # Pydantic request/response DTOs
 app/core/{domain}.py       # Business logic (ledger, auth, moderation)
 ```
+
+### Frontend Architecture Pattern
+```
+frontend/src/
+├── components/      # Reusable UI (Layout, LocationPicker, TimeSlotPicker, ProtectedRoute)
+├── pages/           # Route pages (Login, Register, CreateOffer, OfferDetail, MapView, etc.)
+├── services/        # API clients (api.ts: axios config, auth.ts: auth methods)
+├── contexts/        # React contexts (AuthContext: global auth state)
+├── types/           # TypeScript types matching backend schemas
+├── utils/           # Helpers (config, date formatting, location)
+└── theme.ts         # Material-UI theme (orange primary, blue secondary)
+```
+
+**Frontend Conventions:**
+- TanStack Query for API state management (caching, optimistic updates)
+- Axios interceptors auto-attach JWT tokens, handle 401 redirects
+- Environment config via `.env` with `VITE_` prefix
+- React Router v6 for navigation
+- Leaflet + OpenStreetMap for maps (no exact addresses per NFR-7)
 
 ## Critical Patterns
 
@@ -95,10 +131,10 @@ Auth headers fixture creates JWT tokens with `create_access_token()`.
 
 ### Running Locally
 ```bash
-# Start database + app
+# Start database + backend + frontend (RECOMMENDED)
 cd infra && docker-compose up
 
-# OR local development
+# OR local backend development
 python scripts/init_db.py  # Initialize database
 uvicorn app.main:app --reload
 
@@ -106,7 +142,25 @@ uvicorn app.main:app --reload
 make run          # Start dev server
 make test         # Run tests
 make test-cov     # With coverage
+make format       # Black + Ruff auto-fix
+make lint         # Run ruff linter
 ```
+
+**Frontend Development:**
+```bash
+cd frontend
+npm install           # Install dependencies
+cp .env.example .env  # Configure environment
+npm run dev           # Start Vite dev server (http://localhost:5173)
+npm run build         # Production build (TypeScript check + bundle)
+npm run lint          # ESLint
+```
+
+### Docker Services (from infra/)
+- **Database**: PostgreSQL on port 5432 (postgres/postgres)
+- **Backend**: FastAPI on port 8000 (http://localhost:8000/docs for Swagger)
+- **Frontend**: Vite dev server on port 5173
+- **Health check**: http://localhost:8000/healthz
 
 ### Testing
 ```bash
@@ -135,6 +189,22 @@ settings.SECRET_KEY
 settings.CORS_ORIGINS  # Comma-separated string auto-parsed to list
 ```
 
+**Backend .env:**
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/the_hive
+SECRET_KEY=your-secret-key-here
+ADMIN_SESSION_SECRET=admin-secret-key
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+```
+
+**Frontend .env:**
+```env
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_MAP_DEFAULT_LAT=41.0082
+VITE_MAP_DEFAULT_LNG=28.9784
+VITE_MAP_DEFAULT_ZOOM=12
+```
+
 ## Common Operations
 
 ### Adding New Endpoint
@@ -153,11 +223,6 @@ settings.CORS_ORIGINS  # Comma-separated string auto-parsed to list
 - **Never store exact addresses** (NFR-7 privacy requirement)
 - Use approximate coordinates: `location_lat`, `location_lon`, `location_name`
 - Required for non-remote offers/needs
-
-### Timezone Awareness
-- Users have `timezone` field (IANA format: "America/New_York")
-- Use for scheduling time slots in offers/needs
-- Store UTC in database, convert for display
 
 ## Code Quality
 
@@ -189,6 +254,8 @@ Don't rely on SQLModel relationships - fetch explicitly for control.
 - `app/core/ledger.py` - TimeBank double-entry logic
 - `app/core/moderation.py` - Content filtering for comments
 - `app/models/associations.py` - Many-to-many tables (OfferTag, NeedTag)
+- `frontend/src/services/api.ts` - Axios config with JWT interceptors
+- `frontend/src/contexts/AuthContext.tsx` - Global auth state management
 
 ## Gotchas
 - Session commit/refresh required after inserts for auto-generated IDs
@@ -196,3 +263,4 @@ Don't rely on SQLModel relationships - fetch explicitly for control.
 - Database URL needs `postgresql+psycopg://` prefix (auto-converted in `app/core/db.py`)
 - Tests need `app.dependency_overrides.clear()` in teardown
 - Expired offers/needs currently require manual archiving (no background scheduler yet)
+- Frontend uses `localStorage` for JWT tokens - cleared on 401 responses

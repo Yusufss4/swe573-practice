@@ -1,14 +1,12 @@
 from datetime import datetime, date, time
 from typing import Optional
-from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class TimeRange(BaseModel):
-    """Represents a time range with timezone awareness.
+    """Represents a time range for availability.
     
-    Times are stored as strings in HH:MM format for simplicity,
-    but are always interpreted in the context of the user's timezone.
+    Times are stored as strings in HH:MM format for simplicity.
     """
     start_time: str = Field(
         ..., 
@@ -31,33 +29,6 @@ class TimeRange(BaseModel):
                 raise ValueError("end_time must be after start_time")
         return v
     
-    def to_datetime_range(self, date_obj: date, timezone: str = "UTC") -> tuple[datetime, datetime]:
-        """Convert time range to datetime objects with timezone.
-        
-        Args:
-            date_obj: The date for this time range
-            timezone: IANA timezone (e.g., "America/New_York", "Europe/Istanbul")
-        
-        Returns:
-            Tuple of (start_datetime, end_datetime) with timezone info
-        """
-        tz = ZoneInfo(timezone)
-        start_hour, start_min = map(int, self.start_time.split(':'))
-        end_hour, end_min = map(int, self.end_time.split(':'))
-        
-        start_dt = datetime(
-            date_obj.year, date_obj.month, date_obj.day,
-            start_hour, start_min,
-            tzinfo=tz
-        )
-        end_dt = datetime(
-            date_obj.year, date_obj.month, date_obj.day,
-            end_hour, end_min,
-            tzinfo=tz
-        )
-        
-        return start_dt, end_dt
-    
     def duration_minutes(self) -> int:
         """Calculate duration in minutes."""
         start_hour, start_min = map(int, self.start_time.split(':'))
@@ -74,9 +45,7 @@ class AvailableTimeSlot(BaseModel):
     
     Best Practices:
     - Store date as YYYY-MM-DD string for simplicity
-    - Store times in user's local timezone context
-    - Frontend should send user's timezone separately
-    - Backend converts to UTC for storage/comparison if needed
+    - Store times in HH:MM format
     """
     date: str = Field(
         ..., 
@@ -87,10 +56,6 @@ class AvailableTimeSlot(BaseModel):
         ..., 
         min_length=1, 
         description="Available time ranges for this date"
-    )
-    timezone: Optional[str] = Field(
-        None,
-        description="IANA timezone (e.g., 'America/New_York', 'Europe/Istanbul'). Defaults to UTC."
     )
     
     @field_validator('date')
@@ -107,17 +72,6 @@ class AvailableTimeSlot(BaseModel):
             
         except ValueError as e:
             raise ValueError(f"Invalid date format: {v}") from e
-        return v
-    
-    @field_validator('timezone')
-    @classmethod
-    def validate_timezone(cls, v):
-        """Validate timezone string."""
-        if v is not None:
-            try:
-                ZoneInfo(v)
-            except Exception as e:
-                raise ValueError(f"Invalid timezone: {v}. Use IANA timezone names like 'America/New_York'") from e
         return v
     
     @model_validator(mode='after')
