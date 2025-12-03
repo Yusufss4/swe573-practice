@@ -19,7 +19,7 @@ services:
 
   backend:
     build:
-      context: ../swe573-practice/the_hive
+      context: ..
       dockerfile: infra/Dockerfile
     container_name: the_hive_backend
     environment:
@@ -37,12 +37,16 @@ services:
 
   frontend:
     build:
-      context: ../swe573-practice/the_hive/frontend
+      context: ../frontend
       dockerfile: Dockerfile
       target: production
       args:
         - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost/api/v1}
     container_name: the_hive_frontend
+    environment:
+      - VITE_MAP_DEFAULT_LAT=${VITE_MAP_DEFAULT_LAT:-41.0082}
+      - VITE_MAP_DEFAULT_LNG=${VITE_MAP_DEFAULT_LNG:-28.9784}
+      - VITE_MAP_DEFAULT_ZOOM=${VITE_MAP_DEFAULT_ZOOM:-12}
     restart: always
     networks:
       - app-network
