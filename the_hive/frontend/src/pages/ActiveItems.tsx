@@ -124,9 +124,8 @@ interface MyApplication {
  * Backend APIs:
  * - GET /api/v1/participants/offers/{id} - Get participants for an offer
  * - GET /api/v1/participants/needs/{id} - Get participants for a need
- * - POST /api/v1/participants/offers/{id}/accept - Accept participant
- * - POST /api/v1/participants/needs/{id}/accept - Accept participant
- * - DELETE /api/v1/participants/{id} - Withdraw/decline
+ * - POST /api/v1/handshake/{handshake_id}/accept - Accept participant (via handshake API)
+ * - POST /api/v1/participants/exchange/{participant_id}/complete - Complete exchange
  */
 export default function ActiveItems() {
   const navigate = useNavigate()
@@ -303,18 +302,13 @@ export default function ActiveItems() {
 
   // Accept participant mutation
   const acceptMutation = useMutation({
-    mutationFn: async ({ postId, postType, participantId, hours }: {
-      postId: number
-      postType: 'offer' | 'need'
+    mutationFn: async ({ participantId, hours }: {
       participantId: number
       hours: number
     }) => {
-      const endpoint = postType === 'offer'
-        ? `/participants/offers/${postId}/accept`
-        : `/participants/needs/${postId}/accept`
-      const response = await apiClient.post(endpoint, {
-        participant_id: participantId,
-        hours: hours,
+      // Use handshake API to accept the participant
+      const response = await apiClient.post(`/handshake/${participantId}/accept`, null, {
+        params: { hours }
       })
       return response.data
     },
@@ -376,12 +370,10 @@ export default function ActiveItems() {
   const handleAcceptSubmit = () => {
     if (!selectedPost || !selectedParticipant) return
 
-      // Use hours from the post - no need to validate input
+    // Use handshake API - pass participant ID (which is the handshake ID) and hours
     acceptMutation.mutate({
-      postId: selectedPost.id,
-      postType: selectedPost.type,
       participantId: selectedParticipant.id,
-        // Hours will be taken from offer/need on backend (optional parameter)
+      hours: selectedPost.hours,
     })
   }
 

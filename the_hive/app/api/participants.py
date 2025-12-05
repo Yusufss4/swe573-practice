@@ -1,27 +1,25 @@
 """
-API endpoints for managing participants in offers and needs.
+API endpoints for viewing participants in offers and needs.
+
+Note: Participant creation and acceptance has been moved to /api/v1/handshake/* endpoints
+for better semantic clarity. This module now focuses on listing and completion functionality.
 
 SRS Requirements:
 - FR-5: Handshake mechanism
-- FR-5.5: May accept multiple participants up to capacity
-- FR-5.6: Offer/Need marked FULL when capacity reached
-- FR-3.6: Creator can accept/decline offers of help
-- FR-3.7: Prevent over-acceptance
+- FR-7: TimeBank ledger management
 """
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import Session, select, and_
+from sqlmodel import Session, select
 
 from app.core.auth import CurrentUser
 from app.core.db import get_session
-from app.models.offer import Offer, OfferStatus
-from app.models.need import Need, NeedStatus
-from app.models.participant import Participant, ParticipantStatus, ParticipantRole
+from app.models.offer import Offer
+from app.models.need import Need
+from app.models.participant import Participant, ParticipantStatus
 from app.models.user import User
 from app.schemas.participant import (
-    ParticipantCreate,
-    ParticipantAccept,
     ParticipantResponse,
     ParticipantListResponse,
 )
@@ -62,23 +60,16 @@ def _build_participant_response(session: Session, participant: Participant) -> P
     )
 
 
-@router.post("/offers/{offer_id}", response_model=ParticipantResponse, status_code=status.HTTP_201_CREATED)
-def offer_help_for_offer(
+@router.get("/offers/{offer_id}", response_model=ParticipantListResponse)
+def list_offer_participants(
     offer_id: int,
-    participant_data: ParticipantCreate,
-    current_user: CurrentUser,
     session: Annotated[Session, Depends(get_session)],
-) -> ParticipantResponse:
-    """
-    Offer help for an Offer (user wants to provide the service).
-    
-    SRS Requirements:
-    - FR-5.1: User can offer help with optional message
-    - FR-5.2: Offer marked as PENDING until explicitly accepted/rejected
-    
-    The participant status is PENDING until the offer creator accepts it.
-    """
-    # Get the offer
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    status_filter: str = Query(None, description="Filter by status: pending, accepted, all"),
+) -> ParticipantListResponse:
+    """List all participants for an offer."""
+    # Verify offer exists
     offer = session.get(Offer, offer_id)
     if not offer:
         raise HTTPException(
@@ -86,71 +77,44 @@ def offer_help_for_offer(
             detail="Offer not found"
         )
     
-    # Check offer is active
-    if offer.status != OfferStatus.ACTIVE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Offer is {offer.status}, cannot offer help"
-        )
+    # Build query
+    statement = select(Participant).where(Participant.offer_id == offer_id)
     
-    # Cannot offer help to own offer
-    if offer.creator_id == current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot offer help to your own offer"
-        )
+    # Apply status filter
+    if status_filter == "pending":
+        statement = statement.where(Participant.status == ParticipantStatus.PENDING)
+    elif status_filter == "accepted":
+        statement = statement.where(Participant.status == ParticipantStatus.ACCEPTED)
     
-    # Check if user already offered help
-    existing = session.exec(
-        select(Participant).where(
-            and_(
-                Participant.offer_id == offer_id,
-                Participant.user_id == current_user.id,
-                Participant.status.in_([ParticipantStatus.PENDING, ParticipantStatus.ACCEPTED])
-            )
-        )
-    ).first()
+    statement = statement.order_by(Participant.created_at.desc())
     
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You have already offered help for this offer"
-        )
+    # Get total count
+    total = len(session.exec(statement).all())
     
-    # Create participant record
-    participant = Participant(
-        offer_id=offer_id,
-        user_id=current_user.id,
-        role=ParticipantRole.PROVIDER,
-        status=ParticipantStatus.PENDING,
-        message=participant_data.message,
-        selected_slot=participant_data.selected_slot,
+    # Apply pagination
+    statement = statement.offset(skip).limit(limit)
+    participants = session.exec(statement).all()
+    
+    items = [_build_participant_response(session, p) for p in participants]
+    
+    return ParticipantListResponse(
+        items=items,
+        total=total,
+        skip=skip,
+        limit=limit
     )
-    
-    session.add(participant)
-    session.commit()
-    session.refresh(participant)
-    
-    return _build_participant_response(session, participant)
 
 
-@router.post("/needs/{need_id}", response_model=ParticipantResponse, status_code=status.HTTP_201_CREATED)
-def offer_help_for_need(
+@router.get("/needs/{need_id}", response_model=ParticipantListResponse)
+def list_need_participants(
     need_id: int,
-    participant_data: ParticipantCreate,
-    current_user: CurrentUser,
     session: Annotated[Session, Depends(get_session)],
-) -> ParticipantResponse:
-    """
-    Offer help for a Need (user wants to fulfill the service request).
-    
-    SRS Requirements:
-    - FR-5.1: User can offer help with optional message
-    - FR-5.2: Offer marked as PENDING until explicitly accepted/rejected
-    
-    The participant status is PENDING until the need creator accepts it.
-    """
-    # Get the need
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    status_filter: str = Query(None, description="Filter by status: pending, accepted, all"),
+) -> ParticipantListResponse:
+    """List all participants for a need."""
+    # Verify need exists
     need = session.get(Need, need_id)
     if not need:
         raise HTTPException(
@@ -158,232 +122,95 @@ def offer_help_for_need(
             detail="Need not found"
         )
     
-    # Check need is active
-    if need.status != NeedStatus.ACTIVE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Need is {need.status}, cannot offer help"
-        )
+    # Build query
+    statement = select(Participant).where(Participant.need_id == need_id)
     
-    # Cannot offer help to own need
-    if need.creator_id == current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot offer help to your own need"
-        )
+    # Apply status filter
+    if status_filter == "pending":
+        statement = statement.where(Participant.status == ParticipantStatus.PENDING)
+    elif status_filter == "accepted":
+        statement = statement.where(Participant.status == ParticipantStatus.ACCEPTED)
     
-    # Check if user already offered help
-    existing = session.exec(
-        select(Participant).where(
-            and_(
-                Participant.need_id == need_id,
-                Participant.user_id == current_user.id,
-                Participant.status.in_([ParticipantStatus.PENDING, ParticipantStatus.ACCEPTED])
-            )
-        )
-    ).first()
+    statement = statement.order_by(Participant.created_at.desc())
     
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You have already offered help for this need"
-        )
+    # Get total count
+    total = len(session.exec(statement).all())
     
-    # Create participant record
-    participant = Participant(
-        need_id=need_id,
-        user_id=current_user.id,
-        role=ParticipantRole.PROVIDER,
-        status=ParticipantStatus.PENDING,
-        message=participant_data.message,
-        selected_slot=participant_data.selected_slot,
+    # Apply pagination
+    statement = statement.offset(skip).limit(limit)
+    participants = session.exec(statement).all()
+    
+    items = [_build_participant_response(session, p) for p in participants]
+    
+    return ParticipantListResponse(
+        items=items,
+        total=total,
+        skip=skip,
+        limit=limit
+    )
+
+
+@router.post("/exchange/{participant_id}/complete", status_code=status.HTTP_200_OK)
+def complete_exchange_endpoint(
+    participant_id: int,
+    current_user: CurrentUser,
+    session: Annotated[Session, Depends(get_session)],
+):
+    """
+    Complete an exchange and update TimeBank ledger.
+    
+    SRS Requirements:
+    - FR-7.1: TimeBank system tracks time exchanges
+    - FR-7.2: Provider gains hours (credit), requester loses hours (debit)
+    - FR-7.4: Enforce reciprocity limit (10 hours)
+    - FR-7.5: All transactions logged for auditability
+    - FR-7.6: Separate transaction per participant
+    
+    Creates double-entry ledger entries:
+    - Provider: CREDIT (earning hours)
+    - Requester: DEBIT (spending hours)
+    
+    Updates both user balances and creates audit trail.
+    
+    Args:
+        participant_id: ID of the participant/exchange to complete
+        current_user: User completing the exchange (must be provider or requester)
+        session: Database session
+        
+    Returns:
+        ExchangeCompleteResponse with details and balances
+    """
+    from app.core.ledger import complete_exchange, check_reciprocity_limit
+    from app.schemas.ledger import ExchangeCompleteResponse
+    from app.models.user import User
+    
+    # Complete the exchange (creates ledger entries)
+    provider_entry, requester_entry, transfer = complete_exchange(
+        session=session,
+        participant_id=participant_id,
+        completing_user_id=current_user.id,
     )
     
-    session.add(participant)
-    session.commit()
-    session.refresh(participant)
+    # Get updated balances
+    provider = session.get(User, provider_entry.user_id)
+    requester = session.get(User, requester_entry.user_id)
     
-    return _build_participant_response(session, participant)
-
-
-@router.post("/offers/{offer_id}/accept", response_model=ParticipantResponse)
-def accept_participant_for_offer(
-    offer_id: int,
-    accept_data: ParticipantAccept,
-    current_user: CurrentUser,
-    session: Annotated[Session, Depends(get_session)],
-) -> ParticipantResponse:
-    """
-    Accept a participant for an Offer.
+    # Check if there was a warning about reciprocity limit
+    _, warning_message = check_reciprocity_limit(
+        session, requester.id, 0  # Check current state
+    )
     
-    SRS Requirements:
-    - FR-3.6: Creator can accept offers of help
-    - FR-3.7: Prevent over-acceptance (atomic check)
-    - FR-5.3: Once accepted, exchange marked as confirmed/active
-    - FR-5.5: May accept multiple participants up to capacity
-    - FR-5.6: Offer marked FULL when capacity reached
-    
-    Uses atomic database transaction to prevent race conditions.
-    Constraint: accepted_count < capacity
-    """
-    # Get the offer WITH row-level locking
-    offer = session.exec(
-        select(Offer)
-        .where(Offer.id == offer_id)
-        .with_for_update()
-    ).first()
-    
-    if not offer:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Offer not found"
-        )
-    
-    # Only creator can accept participants
-    if offer.creator_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the offer creator can accept participants"
-        )
-    
-    # Get the participant
-    participant = session.get(Participant, accept_data.participant_id)
-    if not participant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Participant not found"
-        )
-    
-    # Verify participant is for this offer
-    if participant.offer_id != offer_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Participant is not associated with this offer"
-        )
-    
-    # Check participant is pending
-    if participant.status != ParticipantStatus.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Participant is already {participant.status}"
-        )
-    
-    # CRITICAL: Check capacity constraint (FR-3.7)
-    if offer.accepted_count >= offer.capacity:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Offer capacity already reached"
-        )
-    
-    # Use hours from the offer (or override if provided)
-    hours = accept_data.hours if accept_data.hours is not None else offer.hours
-    
-    # Atomic update: accept participant and increment count
-    participant.status = ParticipantStatus.ACCEPTED
-    participant.hours_contributed = hours
-    
-    offer.accepted_count += 1
-    
-    # Mark as FULL if capacity reached (FR-5.6)
-    if offer.accepted_count >= offer.capacity:
-        offer.status = OfferStatus.FULL
-    
-    session.add(participant)
-    session.add(offer)
-    session.commit()
-    session.refresh(participant)
-    
-    return _build_participant_response(session, participant)
-
-
-@router.post("/needs/{need_id}/accept", response_model=ParticipantResponse)
-def accept_participant_for_need(
-    need_id: int,
-    accept_data: ParticipantAccept,
-    current_user: CurrentUser,
-    session: Annotated[Session, Depends(get_session)],
-) -> ParticipantResponse:
-    """
-    Accept a participant for a Need.
-    
-    SRS Requirements:
-    - FR-3.6: Creator can accept offers of help
-    - FR-3.7: Prevent over-acceptance (atomic check)
-    - FR-5.3: Once accepted, exchange marked as confirmed/active
-    - FR-5.5: May accept multiple participants up to capacity
-    - FR-5.6: Need marked FULL when capacity reached
-    
-    Uses atomic database transaction to prevent race conditions.
-    Constraint: accepted_count < capacity
-    """
-    # Get the need WITH row-level locking
-    need = session.exec(
-        select(Need)
-        .where(Need.id == need_id)
-        .with_for_update()
-    ).first()
-    
-    if not need:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Need not found"
-        )
-    
-    # Only creator can accept participants
-    if need.creator_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the need creator can accept participants"
-        )
-    
-    # Get the participant
-    participant = session.get(Participant, accept_data.participant_id)
-    if not participant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Participant not found"
-        )
-    
-    # Verify participant is for this need
-    if participant.need_id != need_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Participant is not associated with this need"
-        )
-    
-    # Check participant is pending
-    if participant.status != ParticipantStatus.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Participant is already {participant.status}"
-        )
-    
-    # CRITICAL: Check capacity constraint (FR-3.7)
-    if need.accepted_count >= need.capacity:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Need capacity already reached"
-        )
-    
-    # Use hours from the need (or override if provided)
-    hours = accept_data.hours if accept_data.hours is not None else need.hours
-    
-    # Atomic update: accept participant and increment count
-    participant.status = ParticipantStatus.ACCEPTED
-    participant.hours_contributed = hours
-    
-    need.accepted_count += 1
-    
-    # Mark as FULL if capacity reached (FR-5.6)
-    if need.accepted_count >= need.capacity:
-        need.status = NeedStatus.FULL
-    
-    session.add(participant)
-    session.add(need)
-    session.commit()
-    session.refresh(participant)
-    
-    return _build_participant_response(session, participant)
+    return ExchangeCompleteResponse(
+        participant_id=participant_id,
+        provider_id=provider.id,
+        requester_id=requester.id,
+        hours=transfer.amount,
+        provider_new_balance=provider.balance,
+        requester_new_balance=requester.balance,
+        transfer_id=transfer.id,
+        warning=warning_message if warning_message else None,
+        completed_at=transfer.timestamp,
+    )
 
 
 @router.get("/offers/{offer_id}", response_model=ParticipantListResponse)

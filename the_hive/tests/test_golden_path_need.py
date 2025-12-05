@@ -217,10 +217,12 @@ def test_golden_path_complete_need_workflow(
     print("\n=== STEP 3: Bob proposes to help with the Need ===")
     
     propose_response = client.post(
-        f"/api/v1/participants/needs/{need_id}",
+        "/api/v1/handshake/propose",
         headers=provider_auth,
-        json={
-            "message": "Hi Alice! I love gardening and would be happy to help. I have 3 hours free this Saturday.",
+        params={
+            "item_type": "need",
+            "item_id": need_id,
+            "message": "Hi Alice! I love gardening and would be happy to help. I have 3 hours free this Saturday."
         }
     )
     
@@ -258,15 +260,11 @@ def test_golden_path_complete_need_workflow(
     # SRS FR-5.3: Once accepted, exchange marked as confirmed/active
     # SRS FR-3.6: Creator can accept/decline offers of help
     # Note: Hours are specified during acceptance, not during proposal
-    print("\n=== STEP 5: Alice accepts Bob's proposal (specifying 3 hours) ===")
+    print("\n=== STEP 5: Alice accepts Bob's proposal ===")
     
     accept_response = client.post(
-        f"/api/v1/participants/needs/{need_id}/accept",
-        headers=requester_auth,
-        json={
-            "participant_id": participant_id,
-            "hours": 3.0,  # Hours are set when accepting
-        }
+        f"/api/v1/handshake/{participant_id}/accept?hours=3.0",
+        headers=requester_auth
     )
     
     assert accept_response.status_code == 200, f"Failed to accept: {accept_response.json()}"
@@ -509,10 +507,12 @@ def test_golden_path_with_reciprocity_limit_check(
     
     # Bob proposes 12 hours of work
     propose_response = client.post(
-        f"/api/v1/participants/needs/{need_id}",
+        "/api/v1/handshake/propose",
         headers=provider_auth,
-        json={
-            "message": "I can help with renovation!",
+        params={
+            "item_type": "need",
+            "item_id": need_id,
+            "message": "I can help with renovation!"
         }
     )
     
@@ -520,12 +520,8 @@ def test_golden_path_with_reciprocity_limit_check(
     
     # Alice accepts with 12 hours
     accept_response = client.post(
-        f"/api/v1/participants/needs/{need_id}/accept",
-        headers=requester_auth,
-        json={
-            "participant_id": participant_id,
-            "hours": 12.0,
-        }
+        f"/api/v1/handshake/{participant_id}/accept?hours=12.0",
+        headers=requester_auth
     )
     
     # Complete exchange - should succeed (within reciprocity limit)

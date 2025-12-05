@@ -160,7 +160,7 @@ def helper3_headers(client: TestClient, helper3_user: User):
 
 
 def test_offer_help_for_offer(client: TestClient, creator_headers: dict, helper_headers: dict):
-    """Test offering help for an offer."""
+    """Test offering help for an offer via handshake API."""
     # Create an offer
     response = client.post("/api/v1/offers/", headers=creator_headers, json={
         "title": "Python Tutoring",
@@ -172,11 +172,11 @@ def test_offer_help_for_offer(client: TestClient, creator_headers: dict, helper_
     assert response.status_code == 201
     offer_id = response.json()["id"]
     
-    # Helper offers to help
+    # Helper offers to help via handshake API
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper_headers,
-        json={"message": "I'd love to help!"}
+        json={"offer_id": offer_id, "message": "I'd love to help!"}
     )
     assert response.status_code == 201
     data = response.json()
@@ -186,7 +186,7 @@ def test_offer_help_for_offer(client: TestClient, creator_headers: dict, helper_
 
 
 def test_offer_help_for_need(client: TestClient, creator_headers: dict, helper_headers: dict):
-    """Test offering help for a need."""
+    """Test offering help for a need via handshake API."""
     # Create a need
     response = client.post("/api/v1/needs/", headers=creator_headers, json={
         "title": "Need Python Help",
@@ -198,11 +198,11 @@ def test_offer_help_for_need(client: TestClient, creator_headers: dict, helper_h
     assert response.status_code == 201
     need_id = response.json()["id"]
     
-    # Helper offers to help
+    # Helper offers to help via handshake API
     response = client.post(
-        f"/api/v1/participants/needs/{need_id}",
+        "/api/v1/handshake/propose",
         headers=helper_headers,
-        json={"message": "I can help with that!"}
+        json={"need_id": need_id, "message": "I can help with that!"}
     )
     assert response.status_code == 201
     data = response.json()
@@ -222,14 +222,14 @@ def test_cannot_offer_help_to_own_offer(client: TestClient, creator_headers: dic
     })
     offer_id = response.json()["id"]
     
-    # Try to offer help to own offer
+    # Try to offer help to own offer via handshake API
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=creator_headers,
-        json={"message": "Helping myself"}
+        json={"offer_id": offer_id, "message": "Helping myself"}
     )
     assert response.status_code == 400
-    assert "your own offer" in response.json()["detail"]
+    assert "your own" in response.json()["detail"]
 
 
 def test_accept_participant_for_offer(client: TestClient, creator_headers: dict, helper_headers: dict):
@@ -244,17 +244,17 @@ def test_accept_participant_for_offer(client: TestClient, creator_headers: dict,
     })
     offer_id = response.json()["id"]
     
-    # Helper offers to help
+    # Helper offers to help via handshake API
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper_headers,
-        json={"message": "I can help"}
+        json={"offer_id": offer_id, "message": "I can help"}
     )
     participant_id = response.json()["id"]
     
-    # Creator accepts the participant
+    # Creator accepts the participant via handshake API
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}/accept",
+        "/api/v1/handshake/accept",
         headers=creator_headers,
         json={"participant_id": participant_id, "hours": 2.0}
     )
@@ -286,25 +286,25 @@ def test_offer_marked_full_when_capacity_reached(
     })
     offer_id = response.json()["id"]
     
-    # First helper offers
+    # First helper proposes via handshake API
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper_headers,
-        json={"message": "Helper 1"}
+        json={"offer_id": offer_id, "message": "Helper 1"}
     )
     participant1_id = response.json()["id"]
     
-    # Second helper offers
+    # Second helper proposes via handshake API
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper2_headers,
-        json={"message": "Helper 2"}
+        json={"offer_id": offer_id, "message": "Helper 2"}
     )
     participant2_id = response.json()["id"]
     
-    # Accept first participant
+    # Accept first participant via handshake API
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}/accept",
+        "/api/v1/handshake/accept",
         headers=creator_headers,
         json={"participant_id": participant1_id, "hours": 1.5}
     )
@@ -317,7 +317,7 @@ def test_offer_marked_full_when_capacity_reached(
     
     # Accept second participant - should mark as FULL
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}/accept",
+        "/api/v1/handshake/accept",
         headers=creator_headers,
         json={"participant_id": participant2_id, "hours": 2.0}
     )
@@ -347,43 +347,43 @@ def test_cannot_exceed_capacity(
     })
     offer_id = response.json()["id"]
     
-    # Three helpers offer to help
+    # Three helpers propose via handshake API
     response1 = client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper_headers,
-        json={"message": "Helper 1"}
+        json={"offer_id": offer_id, "message": "Helper 1"}
     )
     participant1_id = response1.json()["id"]
     
     response2 = client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper2_headers,
-        json={"message": "Helper 2"}
+        json={"offer_id": offer_id, "message": "Helper 2"}
     )
     participant2_id = response2.json()["id"]
     
     response3 = client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper3_headers,
-        json={"message": "Helper 3"}
+        json={"offer_id": offer_id, "message": "Helper 3"}
     )
     participant3_id = response3.json()["id"]
     
-    # Accept first two participants
+    # Accept first two participants via handshake API
     client.post(
-        f"/api/v1/participants/offers/{offer_id}/accept",
+        "/api/v1/handshake/accept",
         headers=creator_headers,
         json={"participant_id": participant1_id, "hours": 1.0}
     )
     client.post(
-        f"/api/v1/participants/offers/{offer_id}/accept",
+        "/api/v1/handshake/accept",
         headers=creator_headers,
         json={"participant_id": participant2_id, "hours": 1.0}
     )
     
     # Try to accept third participant - should fail
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}/accept",
+        "/api/v1/handshake/accept",
         headers=creator_headers,
         json={"participant_id": participant3_id, "hours": 1.0}
     )
@@ -521,17 +521,17 @@ def test_only_creator_can_accept_participants(
     })
     offer_id = response.json()["id"]
     
-    # Helper offers to help
+    # Helper proposes via handshake API
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper_headers,
-        json={"message": "I can help"}
+        json={"offer_id": offer_id, "message": "I can help"}
     )
     participant_id = response.json()["id"]
     
-    # Helper2 tries to accept (not the creator)
+    # Helper2 tries to accept (not the creator) via handshake API
     response = client.post(
-        f"/api/v1/participants/offers/{offer_id}/accept",
+        "/api/v1/handshake/accept",
         headers=helper2_headers,
         json={"participant_id": participant_id, "hours": 1.0}
     )
@@ -556,16 +556,16 @@ def test_list_offer_participants(
     })
     offer_id = response.json()["id"]
     
-    # Two helpers offer to help
+    # Two helpers propose via handshake API
     client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper_headers,
-        json={"message": "Helper 1"}
+        json={"offer_id": offer_id, "message": "Helper 1"}
     )
     client.post(
-        f"/api/v1/participants/offers/{offer_id}",
+        "/api/v1/handshake/propose",
         headers=helper2_headers,
-        json={"message": "Helper 2"}
+        json={"offer_id": offer_id, "message": "Helper 2"}
     )
     
     # List participants
@@ -592,17 +592,17 @@ def test_need_acceptance_flow(
     })
     need_id = response.json()["id"]
     
-    # Helper offers to help
+    # Helper proposes via handshake API
     response = client.post(
-        f"/api/v1/participants/needs/{need_id}",
+        "/api/v1/handshake/propose",
         headers=helper_headers,
-        json={"message": "I can help"}
+        json={"need_id": need_id, "message": "I can help"}
     )
     participant_id = response.json()["id"]
     
-    # Accept participant
+    # Accept participant via handshake API
     response = client.post(
-        f"/api/v1/participants/needs/{need_id}/accept",
+        "/api/v1/handshake/accept",
         headers=creator_headers,
         json={"participant_id": participant_id, "hours": 3.0}
     )
