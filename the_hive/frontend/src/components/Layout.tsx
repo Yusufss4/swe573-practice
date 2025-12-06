@@ -209,6 +209,24 @@ const Layout = () => {
                       </Box>
                     </Box>
                   </MenuItem>
+                  <MenuItem 
+                    onClick={() => { 
+                      handleCreateMenuClose(); 
+                      navigate('/forum/create'); 
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AddIcon fontSize="small" sx={{ color: 'info.main' }} />
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          Create Forum Post
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Start a discussion or event
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </MenuItem>
                 </Menu>
 
                 {/* Active Items Link */}

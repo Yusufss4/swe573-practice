@@ -11,6 +11,9 @@ import ActiveItems from './pages/ActiveItems'
 import ProfilePage from './pages/ProfilePage'
 import MyProfile from './pages/MyProfile'
 import Search from './pages/Search'
+import Forum from './pages/Forum'
+import ForumTopicDetail from './pages/ForumTopicDetail'
+import CreateForumTopic from './pages/CreateForumTopic'
 
 // SRS: Main application component
 // Provides routing structure for all pages defined in SRS Section 3.3.1
@@ -46,9 +49,11 @@ function App() {
         <Route path="messages" element={<div>Messages - To be implemented</div>} />
         
         {/* SRS FR-15: Community Forum */}
-        <Route path="forum" element={<div>Forum - To be implemented</div>} />
-        <Route path="forum/discussions" element={<div>Discussions - To be implemented</div>} />
-        <Route path="forum/events" element={<div>Events - To be implemented</div>} />
+        <Route path="forum" element={<Forum />} />
+        <Route path="forum/topic/:topicId" element={<ForumTopicDetail />} />
+        <Route path="forum/create" element={<CreateForumTopic />} />
+        <Route path="forum/discussions" element={<Forum />} />
+        <Route path="forum/events" element={<Forum />} />
         
         {/* SRS FR-8: Tagging and Search */}
         <Route path="search" element={<Search />} />

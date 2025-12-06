@@ -95,6 +95,9 @@ class ForumTopicResponse(BaseModel):
     topic_type: str
     creator_id: int
     creator_username: Optional[str] = None
+    creator_display_name: Optional[str] = None
+    creator_profile_image: Optional[str] = None
+    creator_profile_image_type: Optional[str] = None
     title: str
     content: str
     tags: list[str] = []
@@ -165,6 +168,9 @@ class ForumCommentResponse(BaseModel):
     topic_id: int
     author_id: int
     author_username: Optional[str] = None
+    author_display_name: Optional[str] = None
+    author_profile_image: Optional[str] = None
+    author_profile_image_type: Optional[str] = None
     content: str
     is_approved: bool
     is_visible: bool

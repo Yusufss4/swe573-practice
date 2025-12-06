@@ -45,6 +45,7 @@ from app.models import (
 )
 from app.models.user import UserTag
 from app.models.rating import Rating, RatingVisibility
+from app.models.forum import ForumTopic, ForumComment, ForumTopicTag, TopicType
 
 
 def create_tables():
@@ -1167,6 +1168,326 @@ def seed_basic_data():
         session.commit()
         print(f"✅ Created 10 ratings for 5 completed exchanges (mutual ratings)")
         
+        # ============================================================
+        # Create Forum Topics (FR-15: Community Forum)
+        # ============================================================
+        
+        # Discussion 1: Welcome topic
+        topic1 = ForumTopic(
+            topic_type=TopicType.DISCUSSION,
+            creator_id=users[0].id,  # Alice
+            title="Welcome to The Hive Community!",
+            content="""Hello everyone! 🐝
+
+Welcome to The Hive - our community time-banking platform! This is the place to discuss community topics, share ideas, and connect with fellow members.
+
+A few tips for getting started:
+- Browse the Map to see available offers and needs in your area
+- Create an Offer to share your skills with the community
+- Post a Need if you're looking for help with something
+- Use tags to make your posts discoverable
+
+Looking forward to building this community together!
+
+Alice""",
+            is_approved=True,
+            is_visible=True,
+            is_pinned=True,  # Pin the welcome message
+            view_count=42,
+            comment_count=3,
+        )
+        session.add(topic1)
+        session.flush()
+        
+        # Add tags to topic1
+        for tag_name in ["welcome", "community", "getting-started"]:
+            tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
+            if not tag:
+                tag = Tag(name=tag_name)
+                session.add(tag)
+                session.flush()
+            topic_tag = ForumTopicTag(topic_id=topic1.id, tag_id=tag.id)
+            session.add(topic_tag)
+        
+        print(f"✅ Created forum topic: {topic1.title} (ID: {topic1.id})")
+        
+        # Discussion 2: Tips for new members
+        topic2 = ForumTopic(
+            topic_type=TopicType.DISCUSSION,
+            creator_id=users[1].id,  # Bob
+            title="Tips for a Successful Exchange",
+            content="""Hi everyone!
+
+After completing several exchanges, I wanted to share some tips that helped me have great experiences:
+
+**Before the Exchange:**
+- Read the offer/need description carefully
+- Check the other person's profile and ratings
+- Communicate clearly about expectations
+
+**During the Exchange:**
+- Be punctual and respectful
+- Take your time - quality matters more than speed
+- Ask questions if anything is unclear
+
+**After the Exchange:**
+- Leave a thoughtful rating
+- Thank the other person
+- Keep in touch if you'd like!
+
+What tips would you add?""",
+            is_approved=True,
+            is_visible=True,
+            view_count=28,
+            comment_count=0,  # Will be updated after adding comments
+        )
+        session.add(topic2)
+        session.flush()
+        
+        for tag_name in ["tips", "community"]:
+            tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
+            if not tag:
+                tag = Tag(name=tag_name)
+                session.add(tag)
+                session.flush()
+            topic_tag = ForumTopicTag(topic_id=topic2.id, tag_id=tag.id)
+            session.add(topic_tag)
+        
+        print(f"✅ Created forum topic: {topic2.title} (ID: {topic2.id})")
+        
+        # Discussion 3: Programming discussion
+        topic3 = ForumTopic(
+            topic_type=TopicType.DISCUSSION,
+            creator_id=users[0].id,  # Alice
+            title="Best Practices for Teaching Programming",
+            content="""Fellow tutors! 👩‍💻
+
+I've been teaching Python for a while now and wanted to discuss effective teaching methods.
+
+What I've found works well:
+- Start with practical examples, not theory
+- Use pair programming for hands-on learning
+- Build small projects instead of isolated exercises
+- Celebrate small wins!
+
+What teaching approaches have worked for you? Any tools or resources you recommend?""",
+            is_approved=True,
+            is_visible=True,
+            view_count=19,
+            comment_count=0,  # Will be updated after adding comments
+        )
+        session.add(topic3)
+        session.flush()
+        
+        for tag_name in ["programming", "tutoring", "education"]:
+            tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
+            if not tag:
+                tag = Tag(name=tag_name)
+                session.add(tag)
+                session.flush()
+            topic_tag = ForumTopicTag(topic_id=topic3.id, tag_id=tag.id)
+            session.add(topic_tag)
+        
+        print(f"✅ Created forum topic: {topic3.title} (ID: {topic3.id})")
+        
+        # Event 1: Community gardening day
+        event1 = ForumTopic(
+            topic_type=TopicType.EVENT,
+            creator_id=users[4].id,  # Emma
+            title="🌱 Community Garden Day - All Welcome!",
+            content="""Join us for a fun day of gardening in our community space!
+
+**What we'll do:**
+- Plant new vegetables and herbs
+- Learn composting basics
+- Share gardening tips
+- Enjoy homemade refreshments
+
+No experience necessary - everyone is welcome, from beginners to green thumbs!
+
+Please bring:
+- Comfortable clothes that can get dirty
+- A water bottle
+- Enthusiasm! 🌻
+
+See you there!""",
+            event_start_time=datetime.utcnow() + timedelta(days=7),
+            event_end_time=datetime.utcnow() + timedelta(days=7, hours=4),
+            event_location="Community Garden, Kadıköy",
+            is_approved=True,
+            is_visible=True,
+            view_count=35,
+            comment_count=0,  # Will be updated after adding comments
+        )
+        session.add(event1)
+        session.flush()
+        
+        for tag_name in ["gardening", "community", "event"]:
+            tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
+            if not tag:
+                tag = Tag(name=tag_name)
+                session.add(tag)
+                session.flush()
+            topic_tag = ForumTopicTag(topic_id=event1.id, tag_id=tag.id)
+            session.add(topic_tag)
+        
+        print(f"✅ Created forum event: {event1.title} (ID: {event1.id})")
+        
+        # Event 2: Cooking workshop
+        topic5 = ForumTopic(
+            topic_type=TopicType.EVENT,
+            creator_id=users[2].id,  # Carol
+            title="🍳 Turkish Cooking Workshop",
+            content="""Learn to make traditional Turkish dishes!
+
+**Menu:**
+- Mercimek Çorbası (Red Lentil Soup)
+- Yaprak Sarma (Stuffed Grape Leaves)
+- İmam Bayıldı (Stuffed Eggplant)
+
+**What's included:**
+- All ingredients
+- Recipe cards to take home
+- Leftovers to share!
+
+Space is limited to 6 people to ensure hands-on participation.
+
+Requirements:
+- No cooking experience needed
+- Please inform me of any allergies
+
+Afiyet olsun! 😋""",
+            event_start_time=datetime.utcnow() + timedelta(days=14),
+            event_end_time=datetime.utcnow() + timedelta(days=14, hours=3),
+            event_location="Carol's Kitchen, Beşiktaş",
+            is_approved=True,
+            is_visible=True,
+            view_count=48,
+            comment_count=0,  # Will be updated after adding comments
+        )
+        session.add(topic5)
+        session.flush()
+        
+        for tag_name in ["cooking", "workshop", "turkish-cuisine"]:
+            tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
+            if not tag:
+                tag = Tag(name=tag_name)
+                session.add(tag)
+                session.flush()
+            topic_tag = ForumTopicTag(topic_id=topic5.id, tag_id=tag.id)
+            session.add(topic_tag)
+        
+        print(f"✅ Created forum event: {topic5.title} (ID: {topic5.id})")
+        
+        # Event 3: Fitness meetup
+        topic6 = ForumTopic(
+            topic_type=TopicType.EVENT,
+            creator_id=users[5].id,  # Frank
+            title="🏃 Morning Run & Stretch Session",
+            content="""Rise and shine! Join our weekly morning run.
+
+**Schedule:**
+- 7:00 - Warm-up stretches
+- 7:15 - 5K run along the Bosphorus
+- 8:00 - Cool-down and yoga
+- 8:30 - Coffee (optional)
+
+**All fitness levels welcome!**
+We maintain a supportive pace - walk, jog, or run at your own speed.
+
+Meet at the Ortaköy Mosque steps. Look for me in the orange shirt!
+
+Rain or shine - we're doing this! ☀️🌧️""",
+            event_start_time=datetime.utcnow() + timedelta(days=3),
+            event_end_time=datetime.utcnow() + timedelta(days=3, hours=2),
+            event_location="Ortaköy, Istanbul",
+            is_approved=True,
+            is_visible=True,
+            view_count=22,
+            comment_count=0,  # Will be updated after adding comments
+        )
+        session.add(topic6)
+        session.flush()
+        
+        for tag_name in ["fitness", "running", "yoga"]:
+            tag = session.exec(select(Tag).where(Tag.name == tag_name)).first()
+            if not tag:
+                tag = Tag(name=tag_name)
+                session.add(tag)
+                session.flush()
+            topic_tag = ForumTopicTag(topic_id=topic6.id, tag_id=tag.id)
+            session.add(topic_tag)
+        
+        print(f"✅ Created forum event: {topic6.title} (ID: {topic6.id})")
+        
+        # Add some comments to topics
+        comment1 = ForumComment(
+            topic_id=topic1.id,
+            author_id=users[1].id,  # Bob
+            content="Welcome everyone! Excited to be part of this community. Looking forward to learning and sharing skills!",
+            is_approved=True,
+            is_visible=True,
+        )
+        session.add(comment1)
+        
+        comment2 = ForumComment(
+            topic_id=topic1.id,
+            author_id=users[2].id,  # Carol
+            content="This is such a great initiative! The time-banking concept really resonates with me.",
+            is_approved=True,
+            is_visible=True,
+        )
+        session.add(comment2)
+        
+        comment3 = ForumComment(
+            topic_id=topic1.id,
+            author_id=users[3].id,  # David
+            content="Happy to be here! 👋 If anyone needs help with home repairs or carpentry, check out my offers!",
+            is_approved=True,
+            is_visible=True,
+        )
+        session.add(comment3)
+        
+        comment4 = ForumComment(
+            topic_id=topic2.id,
+            author_id=users[4].id,  # Emma
+            content="Great tips! I'd add: take photos during the exchange (with permission) - they help with ratings and make nice memories!",
+            is_approved=True,
+            is_visible=True,
+        )
+        session.add(comment4)
+        
+        comment5 = ForumComment(
+            topic_id=event1.id,
+            author_id=users[6].id,  # Grace
+            content="I'll be there! Should I bring any specific tools?",
+            is_approved=True,
+            is_visible=True,
+        )
+        session.add(comment5)
+        
+        comment6 = ForumComment(
+            topic_id=event1.id,
+            author_id=users[4].id,  # Emma (reply)
+            content="@Grace No need! We have all the tools. Just bring yourself and some enthusiasm! 🌱",
+            is_approved=True,
+            is_visible=True,
+        )
+        session.add(comment6)
+        
+        session.flush()
+        
+        # Update comment_count for each topic based on actual comments
+        topic1.comment_count = 3  # comment1, comment2, comment3
+        topic2.comment_count = 1  # comment4
+        topic3.comment_count = 0  # no comments
+        event1.comment_count = 2  # comment5, comment6
+        topic5.comment_count = 0  # no comments
+        topic6.comment_count = 0  # no comments
+        
+        session.commit()
+        print(f"✅ Created 6 forum topics (3 discussions, 3 events) with 6 comments")
+        
     print("\n✅ Comprehensive seed data created successfully")
     print(f"   - 10 users with unique profiles and locations")
     print(f"   - 15 tags across various service categories")
@@ -1175,6 +1496,7 @@ def seed_basic_data():
     print(f"   - 9 participant records (5 completed, 4 pending)")
     print(f"   - 20 ledger entries (10 initial + 10 from exchanges)")
     print(f"   - 10 ratings (mutual ratings for 5 completed exchanges)")
+    print(f"   - 6 forum topics with comments")
 
 
 def validate_schema():
@@ -1241,6 +1563,18 @@ def validate_schema():
         if len(ledger_entries) < 20:
             raise ValueError(f"❌ Expected at least 20 ledger entries, found {len(ledger_entries)}")
         print(f"✅ Found {len(ledger_entries)} ledger entries")
+        
+        # Check forum topics
+        forum_topics = session.exec(select(ForumTopic)).all()
+        if len(forum_topics) < 6:
+            raise ValueError(f"❌ Expected at least 6 forum topics, found {len(forum_topics)}")
+        print(f"✅ Found {len(forum_topics)} forum topics")
+        
+        # Check forum comments
+        forum_comments = session.exec(select(ForumComment)).all()
+        if len(forum_comments) < 6:
+            raise ValueError(f"❌ Expected at least 6 forum comments, found {len(forum_comments)}")
+        print(f"✅ Found {len(forum_comments)} forum comments")
         
         # Validate FK constraints by checking a few relationships
         alice = session.exec(select(User).where(User.username == "alice")).first()

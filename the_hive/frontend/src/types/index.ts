@@ -175,31 +175,74 @@ export interface LedgerEntry {
 }
 
 // SRS FR-15: Forum types
-export interface ForumPost {
+export interface ForumTopic {
   id: number
-  type: 'discussion' | 'event'
+  topic_type: 'discussion' | 'event'
+  creator_id: number
+  creator_username?: string
+  creator_profile_image?: string
+  creator_profile_image_type?: string
   title: string
   content: string
-  author_id: number
-  author?: User
-  event_date?: string // For event type
+  tags: string[]
+  
+  // Event-specific fields
+  event_start_time?: string
+  event_end_time?: string
   event_location?: string
-  is_remote?: boolean
+  
+  // Linked items
   linked_offer_id?: number
   linked_need_id?: number
-  tags?: Tag[]
+  linked_item?: {
+    id: number
+    type: 'offer' | 'need'
+    title: string
+    creator_id: number
+    creator_username?: string
+  }
+  
+  // Moderation
+  is_approved: boolean
+  is_visible: boolean
+  is_pinned: boolean
+  
+  // Engagement
+  view_count: number
+  comment_count: number
+  
+  // Timestamps
   created_at: string
   updated_at: string
-  comments_count: number
 }
+
+// Legacy alias for backward compatibility
+export interface ForumPost extends ForumTopic {}
 
 export interface ForumComment {
   id: number
-  post_id: number
+  topic_id: number
   author_id: number
-  author?: User
+  author_username?: string
+  author_profile_image?: string
+  author_profile_image_type?: string
   content: string
+  is_approved: boolean
+  is_visible: boolean
   created_at: string
+  updated_at: string
+}
+
+export interface ForumTopicCreate {
+  topic_type: 'discussion' | 'event'
+  title: string
+  content: string
+  tags?: string[]
+  event_start_time?: string
+  event_end_time?: string
+  event_location?: string
+  linked_offer_id?: number
+  linked_need_id?: number
 }
 
 // SRS FR-11: Report types
