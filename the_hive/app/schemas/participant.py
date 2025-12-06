@@ -38,6 +38,8 @@ class ParticipantResponse(BaseModel):
     hours_contributed: float
     message: Optional[str]
     selected_slot: Optional[datetime]
+    provider_confirmed: bool = False
+    requester_confirmed: bool = False
     created_at: datetime
     updated_at: datetime
     

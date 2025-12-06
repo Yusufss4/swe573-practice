@@ -144,16 +144,27 @@ def test_complete_exchange_offer_double_entry_bookkeeping(
     offer_with_accepted_participant: Participant,
 ):
     """
-    Test FR-7.1: Double-entry bookkeeping.
+    Test FR-7.1: Double-entry bookkeeping with mutual confirmation.
     
+    Both provider and requester must confirm completion.
     Provider should get CREDIT entry (earning hours).
     Requester should get DEBIT entry (spending hours).
     """
     participant = offer_with_accepted_participant
     hours = participant.hours_contributed
     
+    # First confirmation (provider) - should return None (waiting for other party)
+    result = complete_exchange(session, participant.id, provider.id)
+    assert result == (None, None, None)
+    
+    # Verify provider_confirmed is set
+    session.refresh(participant)
+    assert participant.provider_confirmed is True
+    assert participant.requester_confirmed is False
+    
+    # Second confirmation (requester) - should complete the exchange
     provider_entry, requester_entry, transfer = complete_exchange(
-        session, participant.id, provider.id
+        session, participant.id, requester.id
     )
     
     # Provider gets CREDIT (earning)
@@ -181,12 +192,17 @@ def test_complete_exchange_need_double_entry_bookkeeping(
     requester: User,
     need_with_accepted_participant: Participant,
 ):
-    """Test double-entry bookkeeping for Need completion."""
+    """Test double-entry bookkeeping for Need completion with mutual confirmation."""
     participant = need_with_accepted_participant
     hours = participant.hours_contributed
     
+    # First confirmation (provider) - should return None
+    result = complete_exchange(session, participant.id, provider.id)
+    assert result == (None, None, None)
+    
+    # Second confirmation (requester) - should complete
     provider_entry, requester_entry, transfer = complete_exchange(
-        session, participant.id, provider.id
+        session, participant.id, requester.id
     )
     
     # Provider gets CREDIT (earning)
@@ -207,7 +223,7 @@ def test_complete_exchange_balance_updates(
     offer_with_accepted_participant: Participant,
 ):
     """
-    Test FR-7.2: Balance updates on both sides.
+    Test FR-7.2: Balance updates on both sides with mutual confirmation.
     
     Provider balance should increase by hours.
     Requester balance should decrease by hours.
@@ -218,7 +234,15 @@ def test_complete_exchange_balance_updates(
     initial_provider_balance = provider.balance
     initial_requester_balance = requester.balance
     
+    # First confirmation - no balance changes yet
     complete_exchange(session, participant.id, provider.id)
+    session.refresh(provider)
+    session.refresh(requester)
+    assert provider.balance == initial_provider_balance
+    assert requester.balance == initial_requester_balance
+    
+    # Second confirmation - balance updates happen
+    complete_exchange(session, participant.id, requester.id)
     
     # Refresh to get updated balances
     session.refresh(provider)
@@ -238,7 +262,7 @@ def test_complete_exchange_creates_transfer_record(
     offer_with_accepted_participant: Participant,
 ):
     """
-    Test FR-7.5: Audit trail via Transfer record.
+    Test FR-7.5: Audit trail via Transfer record with mutual confirmation.
     
     Every exchange should create a Transfer record linking
     sender and receiver with amount and notes.
@@ -246,7 +270,12 @@ def test_complete_exchange_creates_transfer_record(
     participant = offer_with_accepted_participant
     hours = participant.hours_contributed
     
-    _, _, transfer = complete_exchange(session, participant.id, provider.id)
+    # First confirmation - no transfer yet
+    result = complete_exchange(session, participant.id, provider.id)
+    assert result == (None, None, None)
+    
+    # Second confirmation - transfer created
+    _, _, transfer = complete_exchange(session, participant.id, requester.id)
     
     # Transfer record created
     assert transfer.id is not None
@@ -270,18 +299,78 @@ def test_complete_exchange_marks_participant_completed(
     offer_with_accepted_participant: Participant,
 ):
     """
-    Test FR-7.6: Participant status updated to COMPLETED.
+    Test FR-7.6: Participant status updated to COMPLETED after mutual confirmation.
     """
     participant = offer_with_accepted_participant
     assert participant.status == ParticipantStatus.ACCEPTED
     
+    # First confirmation - status still ACCEPTED
     complete_exchange(session, participant.id, provider.id)
+    session.refresh(participant)
+    assert participant.status == ParticipantStatus.ACCEPTED
+    assert participant.provider_confirmed is True
+    assert participant.requester_confirmed is False
     
-    # Refresh to get updated status
+    # Second confirmation - status changes to COMPLETED
+    complete_exchange(session, participant.id, requester.id)
     session.refresh(participant)
     
     assert participant.status == ParticipantStatus.COMPLETED
+    assert participant.provider_confirmed is True
+    assert participant.requester_confirmed is True
     assert participant.updated_at is not None
+
+
+def test_complete_exchange_partial_confirmation(
+    session: Session,
+    provider: User,
+    requester: User,
+    offer_with_accepted_participant: Participant,
+):
+    """
+    Test that partial confirmation doesn't create ledger entries.
+    
+    Only one party confirming should NOT:
+    - Create ledger entries
+    - Update balances
+    - Change status to COMPLETED
+    
+    But it SHOULD:
+    - Record the confirmation flag
+    - Keep status as ACCEPTED
+    """
+    participant = offer_with_accepted_participant
+    initial_provider_balance = provider.balance
+    initial_requester_balance = requester.balance
+    
+    # First confirmation - provider confirms
+    result = complete_exchange(session, participant.id, provider.id)
+    
+    # Should return None indicating partial confirmation
+    assert result == (None, None, None)
+    
+    # Refresh participant to get updated fields
+    session.refresh(participant)
+    
+    # Provider should be confirmed, requester not yet
+    assert participant.provider_confirmed is True
+    assert participant.requester_confirmed is False
+    
+    # Status should still be ACCEPTED (not COMPLETED)
+    assert participant.status == ParticipantStatus.ACCEPTED
+    
+    # Balances should NOT have changed
+    session.refresh(provider)
+    session.refresh(requester)
+    assert provider.balance == initial_provider_balance
+    assert requester.balance == initial_requester_balance
+    
+    # No ledger entries should exist yet
+    statement = select(LedgerEntry).where(
+        LedgerEntry.participant_id == participant.id
+    )
+    entries = session.exec(statement).all()
+    assert len(entries) == 0
 
 
 def test_complete_exchange_ledger_audit_trail(
@@ -297,7 +386,9 @@ def test_complete_exchange_ledger_audit_trail(
     """
     participant = offer_with_accepted_participant
     
+    # Both parties must confirm
     complete_exchange(session, participant.id, provider.id)
+    complete_exchange(session, participant.id, requester.id)
     
     # Query all ledger entries
     statement = select(LedgerEntry).where(
@@ -435,8 +526,9 @@ def test_verify_balance_integrity_valid(
     offer_with_accepted_participant: Participant,
 ):
     """Test balance integrity verification for valid state."""
-    # Complete an exchange
+    # Complete an exchange (both parties confirm)
     complete_exchange(session, offer_with_accepted_participant.id, provider.id)
+    complete_exchange(session, offer_with_accepted_participant.id, requester.id)
     
     # Verify both users' balance integrity
     is_valid_provider, msg_provider = verify_balance_integrity(session, provider.id)
@@ -484,19 +576,21 @@ def test_complete_exchange_prevents_concurrent_completion(
     """
     Test that completing the same exchange twice fails gracefully.
     
-    The second attempt should fail because status is already COMPLETED.
+    After both parties confirm, trying to complete again should fail
+    because status is already COMPLETED.
     """
     participant = offer_with_accepted_participant
     
-    # Complete once
+    # Both parties confirm (mutual confirmation)
     complete_exchange(session, participant.id, provider.id)
+    complete_exchange(session, participant.id, requester.id)
     
-    # Try to complete again
+    # Try to complete again - should fail as already completed
     with pytest.raises(HTTPException) as exc_info:
         complete_exchange(session, participant.id, provider.id)
     
     assert exc_info.value.status_code == 400
-    assert "accepted" in exc_info.value.detail.lower()
+    assert "accepted" in exc_info.value.detail.lower() or "completed" in exc_info.value.detail.lower()
 
 
 def test_complete_exchange_multiple_exchanges_cumulative_balance(
@@ -538,7 +632,9 @@ def test_complete_exchange_multiple_exchanges_cumulative_balance(
         session.add(participant)
         session.commit()
         
+        # Both parties confirm (mutual confirmation)
         complete_exchange(session, participant.id, provider.id)
+        complete_exchange(session, participant.id, requester.id)
     
     # Refresh to get final balances
     session.refresh(provider)
@@ -564,8 +660,9 @@ def test_ledger_history_endpoint_integration(
     """
     from app.core.ledger import get_user_ledger
     
-    # Complete an exchange
+    # Complete an exchange (both parties confirm)
     complete_exchange(session, offer_with_accepted_participant.id, provider.id)
+    complete_exchange(session, offer_with_accepted_participant.id, requester.id)
     
     # Get provider's ledger history
     entries, total = get_user_ledger(session, provider.id, skip=0, limit=10)
@@ -612,7 +709,9 @@ def test_ledger_pagination(
         session.add(participant)
         session.commit()
         
+        # Both parties confirm (mutual confirmation)
         complete_exchange(session, participant.id, provider.id)
+        complete_exchange(session, participant.id, requester.id)
     
     # Get first page (limit 3)
     entries_page1, total = get_user_ledger(session, provider.id, skip=0, limit=3)

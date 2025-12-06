@@ -76,6 +76,8 @@ interface Participant {
   status: 'pending' | 'accepted' | 'completed' | 'declined'
   message: string
   hours_contributed?: number
+  provider_confirmed?: boolean
+  requester_confirmed?: boolean
   created_at: string
 }
 
@@ -107,6 +109,8 @@ interface MyApplication {
   status: 'pending' | 'accepted' | 'completed' | 'declined'
   message: string
   hours_contributed?: number
+  provider_confirmed?: boolean
+  requester_confirmed?: boolean
   created_at: string
 }
 
@@ -151,6 +155,7 @@ export default function ActiveItems() {
     const [completeSuccess, setCompleteSuccess] = useState<{
         hours: number
         newBalance: number
+        isPartial?: boolean
     } | null>(null)
 
   // Fetch user's offers with participants
@@ -279,6 +284,8 @@ export default function ActiveItems() {
                   status: proposal.status,
                   message: proposal.message || '',
                   hours_contributed: proposal.hours_contributed,
+                  provider_confirmed: proposal.provider_confirmed,
+                  requester_confirmed: proposal.requester_confirmed,
                   created_at: proposal.created_at,
               }
           } catch (error) {
@@ -297,6 +304,8 @@ export default function ActiveItems() {
                   status: proposal.status,
                   message: proposal.message || '',
                   hours_contributed: proposal.hours_contributed,
+                  provider_confirmed: proposal.provider_confirmed,
+                  requester_confirmed: proposal.requester_confirmed,
                   created_at: proposal.created_at,
               }
           }
@@ -354,12 +363,22 @@ export default function ActiveItems() {
             return response.data
         },
         onSuccess: (data) => {
-            // Store success data to show in dialog
-            const isProvider = data.provider_id === user?.id
-            setCompleteSuccess({
-                hours: data.hours,
-                newBalance: isProvider ? data.provider_new_balance : data.requester_new_balance,
-            })
+            // Check if this is a partial confirmation (only one party confirmed)
+            if (data.status === 'pending_confirmation') {
+                setCompleteSuccess({
+                    hours: 0,
+                    newBalance: 0,
+                    isPartial: true,
+                })
+            } else {
+                // Full completion - show balance update
+                const isProvider = data.provider_id === user?.id
+                setCompleteSuccess({
+                    hours: data.hours,
+                    newBalance: isProvider ? data.provider_new_balance : data.requester_new_balance,
+                    isPartial: false,
+                })
+            }
             queryClient.invalidateQueries({ queryKey: ['myOffers'] })
             queryClient.invalidateQueries({ queryKey: ['myNeeds'] })
             queryClient.invalidateQueries({ queryKey: ['myApplications'] })
@@ -626,18 +645,35 @@ export default function ActiveItems() {
 
                                     {/* Action Button for Accepted - Complete Exchange */}
                                     {participant.status === 'accepted' && (
-                                        <Tooltip title="Mark as Complete">
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                size="small"
-                                                startIcon={<CompleteIcon />}
-                                                onClick={() => handleCompleteClick(participant)}
-                                                disabled={completeMutation.isPending}
-                                            >
-                                                Complete
-                                            </Button>
-                                        </Tooltip>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end' }}>
+                                            {/* Show confirmation status */}
+                                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                                <Chip
+                                                    label={participant.provider_confirmed ? "Provider ✓" : "Provider ○"}
+                                                    size="small"
+                                                    color={participant.provider_confirmed ? "success" : "default"}
+                                                    variant={participant.provider_confirmed ? "filled" : "outlined"}
+                                                />
+                                                <Chip
+                                                    label={participant.requester_confirmed ? "Requester ✓" : "Requester ○"}
+                                                    size="small"
+                                                    color={participant.requester_confirmed ? "success" : "default"}
+                                                    variant={participant.requester_confirmed ? "filled" : "outlined"}
+                                                />
+                                            </Box>
+                                            <Tooltip title="Confirm completion">
+                                                <Button
+                                                    variant="contained"
+                                                    color="primary"
+                                                    size="small"
+                                                    startIcon={<CompleteIcon />}
+                                                    onClick={() => handleCompleteClick(participant)}
+                                                    disabled={completeMutation.isPending}
+                                                >
+                                                    Confirm Complete
+                                                </Button>
+                                            </Tooltip>
+                                        </Box>
                                     )}
                             </Box>
                           </Box>
@@ -758,19 +794,36 @@ export default function ActiveItems() {
                         </Button>
                       )}
                       {application.status === 'accepted' && (
-                                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: '100%' }}>
-                                        <Alert severity="success" sx={{ flex: 1 }}>
-                                            Accepted! Arrange the exchange with the creator, then mark as complete.
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+                                        <Alert severity="success">
+                                            Accepted! Both parties must confirm completion to finalize the exchange.
                                         </Alert>
-                                        <Button
-                                            variant="contained"
-                                            color="primary"
-                                            startIcon={<CompleteIcon />}
-                                            onClick={() => handleCompleteClick(application)}
-                                            disabled={completeMutation.isPending}
-                                        >
-                                            Complete
-                                        </Button>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            {/* Show confirmation status */}
+                                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                                <Chip
+                                                    label={application.provider_confirmed ? "Provider ✓" : "Provider ○"}
+                                                    size="small"
+                                                    color={application.provider_confirmed ? "success" : "default"}
+                                                    variant={application.provider_confirmed ? "filled" : "outlined"}
+                                                />
+                                                <Chip
+                                                    label={application.requester_confirmed ? "Requester ✓" : "Requester ○"}
+                                                    size="small"
+                                                    color={application.requester_confirmed ? "success" : "default"}
+                                                    variant={application.requester_confirmed ? "filled" : "outlined"}
+                                                />
+                                            </Box>
+                                            <Button
+                                                variant="contained"
+                                                color="primary"
+                                                startIcon={<CompleteIcon />}
+                                                onClick={() => handleCompleteClick(application)}
+                                                disabled={completeMutation.isPending}
+                                            >
+                                                Confirm Complete
+                                            </Button>
+                                        </Box>
                                     </Box>
                       )}
                       {application.status === 'completed' && (
@@ -787,7 +840,6 @@ export default function ActiveItems() {
         )}
       </TabPanel>
 
-          {/* Complete Exchange Dialog */}
           <Dialog
               open={completeDialogOpen}
               onClose={() => !completeMutation.isPending && handleCompleteDialogClose()}
@@ -795,41 +847,57 @@ export default function ActiveItems() {
               fullWidth
           >
               <DialogTitle>
-                  {completeSuccess ? 'Exchange Completed!' : 'Complete Exchange'}
+                  {completeSuccess 
+                      ? (completeSuccess.isPartial ? 'Confirmation Recorded!' : 'Exchange Completed!')
+                      : 'Confirm Exchange Completion'}
               </DialogTitle>
               <DialogContent>
                   {completeSuccess ? (
-                      <>
-                          <Alert severity="success" sx={{ mb: 2 }}>
-                              The exchange has been successfully completed!
-                          </Alert>
-                          <Typography variant="body2" color="text.secondary" paragraph>
-                              <strong>{completeSuccess.hours}</strong> hours have been transferred.
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" paragraph>
-                              Your new balance: <strong>{completeSuccess.newBalance.toFixed(1)}</strong> hours
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                              You can now leave feedback for the other participant on their profile page.
-                          </Typography>
-                      </>
+                      completeSuccess.isPartial ? (
+                          <>
+                              <Alert severity="info" sx={{ mb: 2 }}>
+                                  Your confirmation has been recorded!
+                              </Alert>
+                              <Typography variant="body2" color="text.secondary" paragraph>
+                                  The exchange will be finalized once the other party also confirms completion.
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                  TimeBank hours will be transferred after both parties confirm.
+                              </Typography>
+                          </>
+                      ) : (
+                          <>
+                              <Alert severity="success" sx={{ mb: 2 }}>
+                                  The exchange has been successfully completed!
+                              </Alert>
+                              <Typography variant="body2" color="text.secondary" paragraph>
+                                  <strong>{completeSuccess.hours}</strong> hours have been transferred.
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" paragraph>
+                                  Your new balance: <strong>{completeSuccess.newBalance.toFixed(1)}</strong> hours
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                  You can now leave feedback for the other participant on their profile page.
+                              </Typography>
+                          </>
+                      )
                   ) : (
                       <>
                           <Typography variant="body2" color="text.secondary" paragraph>
-                              Mark this exchange as complete? This will:
+                              Confirm that this exchange has been completed. Both parties must confirm.
                           </Typography>
                           <Box component="ul" sx={{ pl: 2, mb: 2 }}>
                               <Typography component="li" variant="body2" color="text.secondary">
-                                  Transfer the agreed hours via TimeBank
+                                  Both provider and requester must confirm
                               </Typography>
                               <Typography component="li" variant="body2" color="text.secondary">
-                                  Update both participants' balances
+                                  TimeBank hours transfer when both confirm
                               </Typography>
                               <Typography component="li" variant="body2" color="text.secondary">
-                                  Mark the exchange as completed (cannot be undone)
+                                  Exchange marked complete (cannot be undone)
                               </Typography>
                               <Typography component="li" variant="body2" color="text.secondary">
-                                  Allow both parties to leave feedback
+                                  Both parties can leave feedback after completion
                               </Typography>
                           </Box>
 
@@ -840,7 +908,7 @@ export default function ActiveItems() {
                           )}
 
                           <Alert severity="info">
-                              Make sure the real-world exchange has happened before marking as complete.
+                              Make sure the real-world exchange has happened before confirming.
                           </Alert>
                       </>
                   )}
@@ -865,7 +933,7 @@ export default function ActiveItems() {
                               disabled={completeMutation.isPending}
                               startIcon={completeMutation.isPending ? <CircularProgress size={20} /> : <CompleteIcon />}
                           >
-                              {completeMutation.isPending ? 'Completing...' : 'Mark as Complete'}
+                              {completeMutation.isPending ? 'Confirming...' : 'Confirm Completion'}
                           </Button>
                       </>
                   )}

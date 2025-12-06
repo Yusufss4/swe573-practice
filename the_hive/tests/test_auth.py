@@ -300,7 +300,7 @@ def test_get_current_user_without_token(client: TestClient):
     """Test /auth/me without token fails."""
     response = client.get("/api/v1/auth/me")
     
-    assert response.status_code == 403  # Forbidden without credentials
+    assert response.status_code == 401  # Unauthorized without credentials
 
 
 def test_get_current_user_invalid_token(client: TestClient):

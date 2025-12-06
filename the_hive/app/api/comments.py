@@ -358,7 +358,10 @@ def get_user_comments_by_username(
         total=total,
         skip=skip,
         limit=limit
-    )@router.get("/my-comments", response_model=CommentListResponse)
+    )
+
+
+@router.get("/my-comments", response_model=CommentListResponse)
 def get_my_comments(
     current_user: CurrentUser,
     session: Annotated[Session, Depends(get_session)],

@@ -59,6 +59,8 @@ def _build_participant_response(session: Session, participant: Participant) -> P
         hours_contributed=participant.hours_contributed,
         message=participant.message,
         selected_slot=participant.selected_slot,
+        provider_confirmed=participant.provider_confirmed,
+        requester_confirmed=participant.requester_confirmed,
         created_at=participant.created_at,
         updated_at=participant.updated_at,
     )

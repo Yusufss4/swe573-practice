@@ -147,9 +147,13 @@ def complete_exchange(
     session: Session,
     participant_id: int,
     completing_user_id: int,
-) -> tuple[LedgerEntry, LedgerEntry, Transfer]:
+) -> tuple[LedgerEntry | None, LedgerEntry | None, Transfer | None]:
     """
     Complete an exchange and create ledger entries (double-entry bookkeeping).
+    
+    Requires mutual confirmation - both provider and requester must call this
+    endpoint before the exchange is finalized. Returns (None, None, None) if
+    only one party has confirmed and waiting for the other.
     
     SRS Requirements:
     - FR-7.1: TimeBank system tracks time exchanges
@@ -228,6 +232,35 @@ def complete_exchange(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the provider or requester can complete this exchange"
         )
+    
+    # Track which party is confirming completion
+    if completing_user_id == provider_id:
+        if participant.provider_confirmed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You have already confirmed completion. Waiting for the other party."
+            )
+        participant.provider_confirmed = True
+    else:  # completing_user_id == requester_id
+        if participant.requester_confirmed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You have already confirmed completion. Waiting for the other party."
+            )
+        participant.requester_confirmed = True
+    
+    participant.updated_at = datetime.utcnow()
+    
+    # If both parties haven't confirmed yet, save and return early
+    if not (participant.provider_confirmed and participant.requester_confirmed):
+        session.add(participant)
+        session.commit()
+        session.refresh(participant)
+        
+        # Return None to indicate partial confirmation (waiting for other party)
+        return None, None, None
+    
+    # Both parties confirmed - proceed with exchange completion
     
     # Check reciprocity limit for requester (FR-7.4)
     can_proceed, message = check_reciprocity_limit(session, requester_id, hours)

@@ -55,6 +55,8 @@ def _build_participant_response(session: Session, participant: Participant) -> P
         hours_contributed=participant.hours_contributed,
         message=participant.message,
         selected_slot=participant.selected_slot,
+        provider_confirmed=participant.provider_confirmed,
+        requester_confirmed=participant.requester_confirmed,
         created_at=participant.created_at,
         updated_at=participant.updated_at,
     )
@@ -157,7 +159,10 @@ def complete_exchange_endpoint(
     session: Annotated[Session, Depends(get_session)],
 ):
     """
-    Complete an exchange and update TimeBank ledger.
+    Confirm completion of an exchange. Requires mutual confirmation.
+    
+    Both the provider and requester must call this endpoint before the 
+    exchange is finalized and TimeBank balances are updated.
     
     SRS Requirements:
     - FR-7.1: TimeBank system tracks time exchanges
@@ -166,7 +171,7 @@ def complete_exchange_endpoint(
     - FR-7.5: All transactions logged for auditability
     - FR-7.6: Separate transaction per participant
     
-    Creates double-entry ledger entries:
+    Creates double-entry ledger entries (only after both confirm):
     - Provider: CREDIT (earning hours)
     - Requester: DEBIT (spending hours)
     
@@ -178,172 +183,35 @@ def complete_exchange_endpoint(
         session: Database session
         
     Returns:
-        ExchangeCompleteResponse with details and balances
+        ExchangeCompleteResponse with details and balances, or
+        ConfirmationPendingResponse if waiting for other party
     """
     from app.core.ledger import complete_exchange, check_reciprocity_limit
     from app.schemas.ledger import ExchangeCompleteResponse
     from app.models.user import User
     
-    # Complete the exchange (creates ledger entries)
-    provider_entry, requester_entry, transfer = complete_exchange(
+    # Complete the exchange (creates ledger entries or returns None if waiting)
+    result = complete_exchange(
         session=session,
         participant_id=participant_id,
         completing_user_id=current_user.id,
     )
     
-    # Get updated balances
-    provider = session.get(User, provider_entry.user_id)
-    requester = session.get(User, requester_entry.user_id)
+    # If returns all None, one party confirmed but waiting for the other
+    if result[0] is None:
+        participant = session.get(Participant, participant_id)
+        return {
+            "status": "pending_confirmation",
+            "message": "Your confirmation has been recorded. Waiting for the other party to confirm.",
+            "participant_id": participant_id,
+            "provider_confirmed": participant.provider_confirmed,
+            "requester_confirmed": participant.requester_confirmed,
+        }
     
-    # Check if there was a warning about reciprocity limit
-    _, warning_message = check_reciprocity_limit(
-        session, requester.id, 0  # Check current state
-    )
+    # Both confirmed - exchange completed
+    provider_entry, requester_entry, transfer = result
     
-    return ExchangeCompleteResponse(
-        participant_id=participant_id,
-        provider_id=provider.id,
-        requester_id=requester.id,
-        hours=transfer.amount,
-        provider_new_balance=provider.balance,
-        requester_new_balance=requester.balance,
-        transfer_id=transfer.id,
-        warning=warning_message if warning_message else None,
-        completed_at=transfer.timestamp,
-    )
-
-
-@router.get("/offers/{offer_id}", response_model=ParticipantListResponse)
-def list_offer_participants(
-    offer_id: int,
-    session: Annotated[Session, Depends(get_session)],
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
-    status_filter: str = Query(None, description="Filter by status: pending, accepted, all"),
-) -> ParticipantListResponse:
-    """List all participants for an offer."""
-    # Verify offer exists
-    offer = session.get(Offer, offer_id)
-    if not offer:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Offer not found"
-        )
-    
-    # Build query
-    statement = select(Participant).where(Participant.offer_id == offer_id)
-    
-    # Apply status filter
-    if status_filter == "pending":
-        statement = statement.where(Participant.status == ParticipantStatus.PENDING)
-    elif status_filter == "accepted":
-        statement = statement.where(Participant.status == ParticipantStatus.ACCEPTED)
-    
-    statement = statement.order_by(Participant.created_at.desc())
-    
-    # Get total count
-    total = len(session.exec(statement).all())
-    
-    # Apply pagination
-    statement = statement.offset(skip).limit(limit)
-    participants = session.exec(statement).all()
-    
-    items = [_build_participant_response(session, p) for p in participants]
-    
-    return ParticipantListResponse(
-        items=items,
-        total=total,
-        skip=skip,
-        limit=limit
-    )
-
-
-@router.get("/needs/{need_id}", response_model=ParticipantListResponse)
-def list_need_participants(
-    need_id: int,
-    session: Annotated[Session, Depends(get_session)],
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
-    status_filter: str = Query(None, description="Filter by status: pending, accepted, all"),
-) -> ParticipantListResponse:
-    """List all participants for a need."""
-    # Verify need exists
-    need = session.get(Need, need_id)
-    if not need:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Need not found"
-        )
-    
-    # Build query
-    statement = select(Participant).where(Participant.need_id == need_id)
-    
-    # Apply status filter
-    if status_filter == "pending":
-        statement = statement.where(Participant.status == ParticipantStatus.PENDING)
-    elif status_filter == "accepted":
-        statement = statement.where(Participant.status == ParticipantStatus.ACCEPTED)
-    
-    statement = statement.order_by(Participant.created_at.desc())
-    
-    # Get total count
-    total = len(session.exec(statement).all())
-    
-    # Apply pagination
-    statement = statement.offset(skip).limit(limit)
-    participants = session.exec(statement).all()
-    
-    items = [_build_participant_response(session, p) for p in participants]
-    
-    return ParticipantListResponse(
-        items=items,
-        total=total,
-        skip=skip,
-        limit=limit
-    )
-
-
-@router.post("/exchange/{participant_id}/complete", status_code=status.HTTP_200_OK)
-def complete_exchange_endpoint(
-    participant_id: int,
-    current_user: CurrentUser,
-    session: Annotated[Session, Depends(get_session)],
-):
-    """
-    Complete an exchange and update TimeBank ledger.
-    
-    SRS Requirements:
-    - FR-7.1: TimeBank system tracks time exchanges
-    - FR-7.2: Provider gains hours (credit), requester loses hours (debit)
-    - FR-7.4: Enforce reciprocity limit (10 hours)
-    - FR-7.5: All transactions logged for auditability
-    - FR-7.6: Separate transaction per participant
-    
-    Creates double-entry ledger entries:
-    - Provider: CREDIT (earning hours)
-    - Requester: DEBIT (spending hours)
-    
-    Updates both user balances and creates audit trail.
-    
-    Args:
-        participant_id: ID of the participant/exchange to complete
-        current_user: User completing the exchange (must be provider or requester)
-        session: Database session
-        
-    Returns:
-        ExchangeCompleteResponse with details and balances
-    """
-    from app.core.ledger import complete_exchange, check_reciprocity_limit
-    from app.schemas.ledger import ExchangeCompleteResponse
-    from app.models.user import User
-    
-    # Complete the exchange (creates ledger entries)
-    provider_entry, requester_entry, transfer = complete_exchange(
-        session=session,
-        participant_id=participant_id,
-        completing_user_id=current_user.id,
-    )
-    
+    # Both confirmed - exchange completed
     # Get updated balances
     provider = session.get(User, provider_entry.user_id)
     requester = session.get(User, requester_entry.user_id)

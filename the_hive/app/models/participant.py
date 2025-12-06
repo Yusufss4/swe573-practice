@@ -60,5 +60,10 @@ class Participant(SQLModel, table=True):
     # Selected time slot (if applicable)
     selected_slot: Optional[datetime] = Field(default=None)
     
+    # Mutual completion confirmation flags
+    # Both must be True for exchange to complete
+    provider_confirmed: bool = Field(default=False)
+    requester_confirmed: bool = Field(default=False)
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

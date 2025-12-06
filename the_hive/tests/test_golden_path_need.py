@@ -296,7 +296,8 @@ def test_golden_path_complete_need_workflow(
     # SRS FR-7: TimeBank balance tracking
     # SRS FR-7.2: Provider gains hours (credit), requester loses hours (debit)
     # SRS FR-7.5: All transactions logged for auditability
-    print("\n=== STEP 7: Alice marks the exchange as complete ===")
+    # SRS FR-7.6: Both parties must confirm completion (mutual confirmation)
+    print("\n=== STEP 7: Both parties mark the exchange as complete ===")
     
     # Check balances before completion
     session.refresh(requester)
@@ -308,15 +309,34 @@ def test_golden_path_complete_need_workflow(
     print(f"    Alice (requester): {requester_balance_before} hours")
     print(f"    Bob (provider): {provider_balance_before} hours")
     
+    # First confirmation: Alice (requester) marks complete
+    first_complete_response = client.post(
+        f"/api/v1/participants/exchange/{participant_id}/complete",
+        headers=requester_auth,
+    )
+    
+    assert first_complete_response.status_code == 200, f"Failed to complete: {first_complete_response.json()}"
+    first_complete_data = first_complete_response.json()
+    
+    print(f"\n✓ Alice confirmed completion (awaiting Bob's confirmation)")
+    print(f"  Status: partial_confirmation")
+    
+    # Verify balances haven't changed yet (partial confirmation)
+    session.refresh(requester)
+    session.refresh(provider)
+    assert requester.balance == requester_balance_before
+    assert provider.balance == provider_balance_before
+    
+    # Second confirmation: Bob (provider) marks complete - triggers actual ledger update
     complete_response = client.post(
         f"/api/v1/participants/exchange/{participant_id}/complete",
-        headers=requester_auth,  # Either party can complete
+        headers=provider_auth,
     )
     
     assert complete_response.status_code == 200, f"Failed to complete: {complete_response.json()}"
     complete_data = complete_response.json()
     
-    print(f"\n✓ Exchange completed!")
+    print(f"\n✓ Bob confirmed - Exchange fully completed!")
     print(f"  Hours exchanged: {complete_data['hours']}")
     print(f"  Balances AFTER completion:")
     print(f"    Alice (requester): {complete_data['requester_new_balance']} hours")
@@ -454,7 +474,7 @@ def test_golden_path_complete_need_workflow(
     print("3. ✓ Bob proposed to help via handshake mechanism")
     print("4. ✓ Alice reviewed and accepted Bob's proposal")
     print("5. ✓ Real-world exchange occurred (3 hours of work)")
-    print("6. ✓ Exchange marked complete in system")
+    print("6. ✓ Both parties confirmed completion (mutual confirmation)")
     print("7. ✓ TimeBank balances updated correctly:")
     print(f"     - Bob (provider) gained 3h: 5.0h → 8.0h")
     print(f"     - Alice (requester) lost 3h: 5.0h → 2.0h")
@@ -524,10 +544,17 @@ def test_golden_path_with_reciprocity_limit_check(
         headers=requester_auth
     )
     
-    # Complete exchange - should succeed (within reciprocity limit)
-    complete_response = client.post(
+    # Complete exchange - both parties must confirm (mutual confirmation)
+    # First: requester confirms
+    client.post(
         f"/api/v1/participants/exchange/{participant_id}/complete",
         headers=requester_auth,
+    )
+    
+    # Second: provider confirms - triggers actual ledger update
+    complete_response = client.post(
+        f"/api/v1/participants/exchange/{participant_id}/complete",
+        headers=provider_auth,
     )
     
     assert complete_response.status_code == 200
