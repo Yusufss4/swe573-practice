@@ -39,11 +39,11 @@ from app.models import (
     NeedTag,
     LedgerEntry,
     TransactionType,
-    Comment,
     Participant,
     ParticipantStatus,
     ParticipantRole,
 )
+from app.models.rating import Rating, RatingVisibility
 
 
 def create_tables():
@@ -81,8 +81,8 @@ def seed_basic_data():
     - 15 tags across various categories
     - 15 active offers with various configurations
     - 12 needs with various configurations
-    - Comments on offers and needs
     - Participants/applications for handshake workflow
+    - Ratings for completed exchanges
     """
     print("\nSeeding comprehensive test data...")
     
@@ -703,19 +703,82 @@ def seed_basic_data():
         
         session.commit()
         
+        # =================================================================
         # Create participants/applications for some offers and needs
-        # Alice applies to Bob's carpentry workshop (Alice is PROVIDER in Bob's offer)
+        # =================================================================
+        
+        # ===== COMPLETED EXCHANGES (with ratings and ledger entries) =====
+        
+        # 1. Alice completed Bob's carpentry workshop (Alice REQUESTER, Bob PROVIDER)
+        # Bob offered to teach carpentry, Alice learned from him
         participant1 = Participant(
-            user_id=users[0].id,
-            offer_id=offers[3][0].id,  # Basic Carpentry Skills Workshop
+            user_id=users[0].id,  # Alice
+            offer_id=offers[3][0].id,  # Basic Carpentry Skills Workshop (Bob's offer)
             role=ParticipantRole.REQUESTER,  # Alice is requesting to learn
-            status=ParticipantStatus.ACCEPTED,
+            status=ParticipantStatus.COMPLETED,
             message="I'd love to learn basic carpentry! I'm free on weekends.",
             hours_contributed=2.0,
+            provider_confirmed=True,
+            requester_confirmed=True,
         )
         session.add(participant1)
         
-        # Carol applies to David's cooking class
+        # 2. Frank completed Emma's composting workshop (Frank REQUESTER, Emma PROVIDER)
+        participant3 = Participant(
+            user_id=users[5].id,  # Frank
+            offer_id=offers[9][0].id,  # Composting Workshop (Emma's offer)
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.COMPLETED,
+            message="Perfect timing! I've been wanting to start composting.",
+            hours_contributed=1.5,
+            provider_confirmed=True,
+            requester_confirmed=True,
+        )
+        session.add(participant3)
+        
+        # 3. Bob helped Henry move furniture (Bob PROVIDER, Henry REQUESTER)
+        participant5 = Participant(
+            user_id=users[1].id,  # Bob
+            need_id=needs[0][0].id,  # Help Moving Furniture (Henry's need)
+            role=ParticipantRole.PROVIDER,
+            status=ParticipantStatus.COMPLETED,
+            message="I can help with the move! I have experience and a dolly for heavy items.",
+            hours_contributed=3.0,
+            provider_confirmed=True,
+            requester_confirmed=True,
+        )
+        session.add(participant5)
+        
+        # 4. Carol learned Spanish from Grace (Carol REQUESTER, Grace PROVIDER)
+        # Carol completed Grace's Spanish Conversation Practice offer
+        participant_spanish = Participant(
+            user_id=users[2].id,  # Carol
+            offer_id=offers[12][0].id,  # Spanish Conversation Practice (Grace's offer)
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.COMPLETED,
+            message="I'd love to improve my Spanish conversation skills!",
+            hours_contributed=1.0,
+            provider_confirmed=True,
+            requester_confirmed=True,
+        )
+        session.add(participant_spanish)
+        
+        # 5. Alice helped Iris with website design (Alice PROVIDER, Iris REQUESTER)
+        participant_web = Participant(
+            user_id=users[0].id,  # Alice
+            need_id=needs[1][0].id,  # Website Design Help (Iris's need)
+            role=ParticipantRole.PROVIDER,
+            status=ParticipantStatus.COMPLETED,
+            message="I'd be happy to help with your portfolio site! I have web dev experience.",
+            hours_contributed=4.0,
+            provider_confirmed=True,
+            requester_confirmed=True,
+        )
+        session.add(participant_web)
+        
+        # ===== PENDING/ACCEPTED EXCHANGES (not yet completed) =====
+        
+        # Carol applies to David's cooking class (PENDING)
         participant2 = Participant(
             user_id=users[2].id,
             offer_id=offers[6][0].id,  # Turkish Cooking Class
@@ -725,18 +788,7 @@ def seed_basic_data():
         )
         session.add(participant2)
         
-        # Frank applies to Emma's composting workshop
-        participant3 = Participant(
-            user_id=users[5].id,
-            offer_id=offers[9][0].id,  # Composting Workshop
-            role=ParticipantRole.REQUESTER,
-            status=ParticipantStatus.ACCEPTED,
-            message="Perfect timing! I've been wanting to start composting.",
-            hours_contributed=1.5,
-        )
-        session.add(participant3)
-        
-        # Grace applies to Alice's Python tutoring
+        # Grace applies to Alice's Python tutoring (PENDING)
         participant4 = Participant(
             user_id=users[6].id,
             offer_id=offers[0][0].id,  # Python Programming Tutoring
@@ -746,28 +798,7 @@ def seed_basic_data():
         )
         session.add(participant4)
         
-        # Bob applies to Henry's "Help Moving Furniture" need (Bob is PROVIDER)
-        participant5 = Participant(
-            user_id=users[1].id,
-            need_id=needs[0][0].id,
-            role=ParticipantRole.PROVIDER,
-            status=ParticipantStatus.ACCEPTED,
-            message="I can help with the move! I have experience and a dolly for heavy items.",
-            hours_contributed=2.0,
-        )
-        session.add(participant5)
-        
-        # Alice applies to Iris's "Website Design Help" need (Alice is PROVIDER)
-        participant6 = Participant(
-            user_id=users[0].id,
-            need_id=needs[1][0].id,
-            role=ParticipantRole.PROVIDER,
-            status=ParticipantStatus.PENDING,
-            message="I'd be happy to help with your portfolio site! I have web dev experience.",
-        )
-        session.add(participant6)
-        
-        # Carol applies to Alice's "Guitar Lessons Needed" (Carol is PROVIDER)
+        # Carol applies to Alice's "Guitar Lessons Needed" (Carol is PROVIDER) - PENDING
         participant7 = Participant(
             user_id=users[2].id,
             need_id=needs[3][0].id,
@@ -777,79 +808,329 @@ def seed_basic_data():
         )
         session.add(participant7)
         
-        session.commit()
-        print(f"✅ Created {7} participant applications")
-        
-        # Update accepted_count for offers and needs with accepted participants
-        # Offer ID 4 (Basic Carpentry Skills Workshop) has 1 accepted participant
-        offers[3][0].accepted_count = 1
-        session.add(offers[3][0])
-        
-        # Offer ID 10 (Composting Workshop) has 1 accepted participant
-        offers[9][0].accepted_count = 1
-        session.add(offers[9][0])
-        
-        # Need ID 1 (Help Moving Furniture) has 1 accepted participant
-        needs[0][0].accepted_count = 1
-        session.add(needs[0][0])
+        # David applies to Jack's dog walking need (David is PROVIDER) - PENDING
+        participant8 = Participant(
+            user_id=users[3].id,  # David
+            need_id=needs[2][0].id,  # Dog Walking Partner (Jack's need)
+            role=ParticipantRole.PROVIDER,
+            status=ParticipantStatus.PENDING,
+            message="I'd be happy to help walk your dog! I love animals and could use the exercise.",
+        )
+        session.add(participant8)
         
         session.commit()
-        print(f"✅ Updated accepted_count for items with accepted participants")
+        print(f"✅ Created 9 participant records (5 completed, 4 pending)")
         
-        # Create user-to-user comments/feedback on completed exchanges
-        # These are only for completed participants (FR-10.1)
-        # For simplicity, we'll create comments for the accepted participants
+        # Refresh participants to get IDs
+        session.refresh(participant1)
+        session.refresh(participant3)
+        session.refresh(participant5)
+        session.refresh(participant_spanish)
+        session.refresh(participant_web)
         
-        # Bob (provider) gives feedback to Henry (requester) after moving furniture
-        comment1 = Comment(
-            from_user_id=users[1].id,  # bob
-            to_user_id=users[7].id,  # henry
-            content="Henry was very helpful with preparing for the move. Everything went smoothly!",
-            participant_id=participant5.id,
-            is_approved=True,
-        )
-        session.add(comment1)
-        
-        # Henry (requester) gives feedback to Bob (provider)
-        comment2 = Comment(
-            from_user_id=users[7].id,  # henry
-            to_user_id=users[1].id,  # bob
-            content="Bob was amazing! Very strong and efficient. Made the move stress-free. Highly recommend!",
-            participant_id=participant5.id,
-            is_approved=True,
-        )
-        session.add(comment2)
-        
-        # Alice gives feedback to Bob after carpentry workshop
-        comment3 = Comment(
-            from_user_id=users[0].id,  # alice
-            to_user_id=users[1].id,  # bob
-            content="Great teacher! Bob explained everything clearly and was very patient with beginners.",
+        # =================================================================
+        # Create ledger entries for COMPLETED exchanges
+        # =================================================================
+        # Completed exchange 1: Alice learned carpentry from Bob (2 hours)
+        # Bob (provider) gains 2 hours, Alice (requester) loses 2 hours
+        users[1].balance += 2.0
+        ledger_bob_earn1 = LedgerEntry(
+            user_id=users[1].id,  # Bob
+            credit=2.0,
+            debit=0.0,
+            balance=users[1].balance,
+            description="Earned: Basic Carpentry Skills Workshop with Alice",
+            transaction_type=TransactionType.EXCHANGE,
             participant_id=participant1.id,
-            is_approved=True,
         )
-        session.add(comment3)
+        session.add(ledger_bob_earn1)
         
-        # Frank gives feedback to Emma after composting workshop
-        comment4 = Comment(
-            from_user_id=users[5].id,  # frank
-            to_user_id=users[4].id,  # emma
-            content="Emma's composting workshop was fantastic! I learned so much and feel confident starting my own compost bin.",
-            participant_id=participant3.id,
-            is_approved=True,
+        users[0].balance -= 2.0
+        ledger_alice_spend1 = LedgerEntry(
+            user_id=users[0].id,  # Alice
+            credit=0.0,
+            debit=2.0,
+            balance=users[0].balance,
+            description="Spent: Basic Carpentry Skills Workshop with Bob",
+            transaction_type=TransactionType.EXCHANGE,
+            participant_id=participant1.id,
         )
-        session.add(comment4)
+        session.add(ledger_alice_spend1)
+        
+        # Completed exchange 2: Frank learned composting from Emma (1.5 hours)
+        # Emma (provider) gains 1.5 hours, Frank (requester) loses 1.5 hours
+        users[4].balance += 1.5
+        ledger_emma_earn = LedgerEntry(
+            user_id=users[4].id,  # Emma
+            credit=1.5,
+            debit=0.0,
+            balance=users[4].balance,
+            description="Earned: Composting Workshop with Frank",
+            transaction_type=TransactionType.EXCHANGE,
+            participant_id=participant3.id,
+        )
+        session.add(ledger_emma_earn)
+        
+        users[5].balance -= 1.5
+        ledger_frank_spend = LedgerEntry(
+            user_id=users[5].id,  # Frank
+            credit=0.0,
+            debit=1.5,
+            balance=users[5].balance,
+            description="Spent: Composting Workshop with Emma",
+            transaction_type=TransactionType.EXCHANGE,
+            participant_id=participant3.id,
+        )
+        session.add(ledger_frank_spend)
+        
+        # Completed exchange 3: Bob helped Henry move furniture (3 hours)
+        # Bob (provider) gains 3 hours, Henry (requester) loses 3 hours
+        users[1].balance += 3.0
+        ledger_bob_earn2 = LedgerEntry(
+            user_id=users[1].id,  # Bob
+            credit=3.0,
+            debit=0.0,
+            balance=users[1].balance,
+            description="Earned: Help Moving Furniture for Henry",
+            transaction_type=TransactionType.EXCHANGE,
+            participant_id=participant5.id,
+        )
+        session.add(ledger_bob_earn2)
+        
+        users[7].balance -= 3.0
+        ledger_henry_spend = LedgerEntry(
+            user_id=users[7].id,  # Henry
+            credit=0.0,
+            debit=3.0,
+            balance=users[7].balance,
+            description="Spent: Help Moving Furniture with Bob",
+            transaction_type=TransactionType.EXCHANGE,
+            participant_id=participant5.id,
+        )
+        session.add(ledger_henry_spend)
+        
+        # Completed exchange 4: Carol learned Spanish from Grace (1 hour)
+        # Grace (provider) gains 1 hour, Carol (requester) loses 1 hour
+        users[6].balance += 1.0
+        ledger_grace_earn = LedgerEntry(
+            user_id=users[6].id,  # Grace
+            credit=1.0,
+            debit=0.0,
+            balance=users[6].balance,
+            description="Earned: Spanish Conversation Practice with Carol",
+            transaction_type=TransactionType.EXCHANGE,
+            participant_id=participant_spanish.id,
+        )
+        session.add(ledger_grace_earn)
+        
+        users[2].balance -= 1.0
+        ledger_carol_spend = LedgerEntry(
+            user_id=users[2].id,  # Carol
+            credit=0.0,
+            debit=1.0,
+            balance=users[2].balance,
+            description="Spent: Spanish Conversation Practice with Grace",
+            transaction_type=TransactionType.EXCHANGE,
+            participant_id=participant_spanish.id,
+        )
+        session.add(ledger_carol_spend)
+        
+        # Completed exchange 5: Alice helped Iris with website (4 hours)
+        # Alice (provider) gains 4 hours, Iris (requester) loses 4 hours
+        users[0].balance += 4.0
+        ledger_alice_earn = LedgerEntry(
+            user_id=users[0].id,  # Alice
+            credit=4.0,
+            debit=0.0,
+            balance=users[0].balance,
+            description="Earned: Website Design Help for Iris",
+            transaction_type=TransactionType.EXCHANGE,
+            participant_id=participant_web.id,
+        )
+        session.add(ledger_alice_earn)
+        
+        users[8].balance -= 4.0
+        ledger_iris_spend = LedgerEntry(
+            user_id=users[8].id,  # Iris
+            credit=0.0,
+            debit=4.0,
+            balance=users[8].balance,
+            description="Spent: Website Design Help with Alice",
+            transaction_type=TransactionType.EXCHANGE,
+            participant_id=participant_web.id,
+        )
+        session.add(ledger_iris_spend)
         
         session.commit()
-        print(f"✅ Created {4} user feedback comments")
+        print(f"✅ Created 10 ledger entries for 5 completed exchanges")
+        print(f"   - Bob: {users[1].balance}h, Alice: {users[0].balance}h, Emma: {users[4].balance}h")
+        print(f"   - Frank: {users[5].balance}h, Henry: {users[7].balance}h, Grace: {users[6].balance}h")
+        print(f"   - Carol: {users[2].balance}h, Iris: {users[8].balance}h")
+        
+        # Update accepted_count for offers and needs with completed/accepted participants
+        offers[3][0].accepted_count = 1  # Carpentry workshop
+        offers[9][0].accepted_count = 1  # Composting workshop
+        offers[12][0].accepted_count = 1  # Spanish conversation
+        needs[0][0].accepted_count = 1  # Help Moving Furniture
+        needs[1][0].accepted_count = 1  # Website Design Help
+        session.commit()
+        print(f"✅ Updated accepted_count for items with completed participants")
+        
+        # =================================================================
+        # Create RATINGS for completed exchanges (FR-10.4)
+        # =================================================================
+        
+        # Rating 1a: Alice rates Bob for carpentry workshop (Bob was provider)
+        rating1a = Rating(
+            from_user_id=users[0].id,  # Alice
+            to_user_id=users[1].id,  # Bob
+            participant_id=participant1.id,
+            reliability_rating=5,
+            kindness_rating=5,
+            helpfulness_rating=5,
+            general_rating=5,  # avg of (5+5+5)/3 = 5
+            public_comment="Bob is an excellent teacher! Very patient and knowledgeable about carpentry.",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating1a)
+        
+        # Rating 1b: Bob rates Alice (Alice was requester/learner)
+        rating1b = Rating(
+            from_user_id=users[1].id,  # Bob
+            to_user_id=users[0].id,  # Alice
+            participant_id=participant1.id,
+            reliability_rating=5,
+            kindness_rating=5,
+            helpfulness_rating=4,
+            general_rating=5,  # avg of (5+5+4)/3 = 4.67 → 5
+            public_comment="Alice was a great student - eager to learn and asked great questions!",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating1b)
+        
+        # Rating 2a: Frank rates Emma for composting workshop
+        rating2a = Rating(
+            from_user_id=users[5].id,  # Frank
+            to_user_id=users[4].id,  # Emma
+            participant_id=participant3.id,
+            reliability_rating=5,
+            kindness_rating=5,
+            helpfulness_rating=5,
+            general_rating=5,
+            public_comment="Emma's workshop was incredibly informative! I feel confident starting my own compost now.",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating2a)
+        
+        # Rating 2b: Emma rates Frank
+        rating2b = Rating(
+            from_user_id=users[4].id,  # Emma
+            to_user_id=users[5].id,  # Frank
+            participant_id=participant3.id,
+            reliability_rating=5,
+            kindness_rating=4,
+            helpfulness_rating=4,
+            general_rating=4,  # avg of (5+4+4)/3 = 4.33 → 4
+            public_comment="Frank was enthusiastic and brought great energy to the workshop!",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating2b)
+        
+        # Rating 3a: Henry rates Bob for moving help
+        rating3a = Rating(
+            from_user_id=users[7].id,  # Henry
+            to_user_id=users[1].id,  # Bob
+            participant_id=participant5.id,
+            reliability_rating=5,
+            kindness_rating=5,
+            helpfulness_rating=5,
+            general_rating=5,
+            public_comment="Bob was amazing! Strong, efficient, and made my move stress-free. Highly recommend!",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating3a)
+        
+        # Rating 3b: Bob rates Henry
+        rating3b = Rating(
+            from_user_id=users[1].id,  # Bob
+            to_user_id=users[7].id,  # Henry
+            participant_id=participant5.id,
+            reliability_rating=4,
+            kindness_rating=5,
+            helpfulness_rating=4,
+            general_rating=4,  # avg of (4+5+4)/3 = 4.33 → 4
+            public_comment="Henry was well-prepared for the move. Everything went smoothly!",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating3b)
+        
+        # Rating 4a: Carol rates Grace for Spanish conversation
+        rating4a = Rating(
+            from_user_id=users[2].id,  # Carol
+            to_user_id=users[6].id,  # Grace
+            participant_id=participant_spanish.id,
+            reliability_rating=5,
+            kindness_rating=5,
+            helpfulness_rating=5,
+            general_rating=5,
+            public_comment="Grace is a fantastic Spanish conversation partner! Very encouraging and helpful with corrections.",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating4a)
+        
+        # Rating 4b: Grace rates Carol
+        rating4b = Rating(
+            from_user_id=users[6].id,  # Grace
+            to_user_id=users[2].id,  # Carol
+            participant_id=participant_spanish.id,
+            reliability_rating=5,
+            kindness_rating=5,
+            helpfulness_rating=4,
+            general_rating=5,  # avg of (5+5+4)/3 = 4.67 → 5
+            public_comment="Carol is making great progress! Always comes prepared and is a joy to practice with.",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating4b)
+        
+        # Rating 5a: Iris rates Alice for website help
+        rating5a = Rating(
+            from_user_id=users[8].id,  # Iris
+            to_user_id=users[0].id,  # Alice
+            participant_id=participant_web.id,
+            reliability_rating=5,
+            kindness_rating=5,
+            helpfulness_rating=5,
+            general_rating=5,
+            public_comment="Alice created the perfect portfolio website for my art! She understood exactly what I needed.",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating5a)
+        
+        # Rating 5b: Alice rates Iris
+        rating5b = Rating(
+            from_user_id=users[0].id,  # Alice
+            to_user_id=users[8].id,  # Iris
+            participant_id=participant_web.id,
+            reliability_rating=5,
+            kindness_rating=5,
+            helpfulness_rating=4,
+            general_rating=5,  # avg of (5+5+4)/3 = 4.67 → 5
+            public_comment="Iris had beautiful art content ready and gave clear feedback. Great collaboration!",
+            visibility=RatingVisibility.VISIBLE,
+        )
+        session.add(rating5b)
+        
+        session.commit()
+        print(f"✅ Created 10 ratings for 5 completed exchanges (mutual ratings)")
         
     print("\n✅ Comprehensive seed data created successfully")
     print(f"   - 10 users with unique profiles and locations")
     print(f"   - 15 tags across various service categories")
     print(f"   - 15 offers with remote and in-person options")
     print(f"   - 12 needs with diverse requirements")
-    print(f"   - 7 participants/applications in various states")
-    print(f"   - 4 user feedback comments on completed exchanges")
+    print(f"   - 9 participant records (5 completed, 4 pending)")
+    print(f"   - 20 ledger entries (10 initial + 10 from exchanges)")
+    print(f"   - 10 ratings (mutual ratings for 5 completed exchanges)")
 
 
 def validate_schema():
@@ -895,20 +1176,26 @@ def validate_schema():
         
         # Check participants
         participants = session.exec(select(Participant)).all()
-        if len(participants) < 7:
-            raise ValueError(f"❌ Expected at least 7 participants, found {len(participants)}")
+        if len(participants) < 9:
+            raise ValueError(f"❌ Expected at least 9 participants, found {len(participants)}")
         print(f"✅ Found {len(participants)} participants/applications")
         
-        # Check comments
-        comments = session.exec(select(Comment)).all()
-        if len(comments) < 4:
-            raise ValueError(f"❌ Expected at least 4 comments, found {len(comments)}")
-        print(f"✅ Found {len(comments)} user feedback comments")
+        # Check completed participants
+        completed_participants = [p for p in participants if p.status == ParticipantStatus.COMPLETED]
+        if len(completed_participants) < 5:
+            raise ValueError(f"❌ Expected at least 5 completed participants, found {len(completed_participants)}")
+        print(f"✅ Found {len(completed_participants)} completed participants")
         
-        # Check ledger entries
+        # Check ratings
+        ratings = session.exec(select(Rating)).all()
+        if len(ratings) < 10:
+            raise ValueError(f"❌ Expected at least 10 ratings, found {len(ratings)}")
+        print(f"✅ Found {len(ratings)} ratings")
+        
+        # Check ledger entries (10 initial + 10 from 5 completed exchanges)
         ledger_entries = session.exec(select(LedgerEntry)).all()
-        if len(ledger_entries) < 10:
-            raise ValueError(f"❌ Expected at least 10 ledger entries, found {len(ledger_entries)}")
+        if len(ledger_entries) < 20:
+            raise ValueError(f"❌ Expected at least 20 ledger entries, found {len(ledger_entries)}")
         print(f"✅ Found {len(ledger_entries)} ledger entries")
         
         # Validate FK constraints by checking a few relationships
@@ -919,18 +1206,6 @@ def validate_schema():
         alice_offers = session.exec(select(Offer).where(Offer.creator_id == alice.id)).all()
         if len(alice_offers) == 0:
             raise ValueError("❌ No offers found for alice - FK constraint may be broken")
-        
-        # Check that comments are properly linked to users and participants
-        comment_count = session.exec(select(func.count()).select_from(Comment)).one()
-        if comment_count == 0:
-            raise ValueError("❌ No comments found")
-        
-        # Verify all comments have valid user references
-        for comment in comments:
-            from_user = session.get(User, comment.from_user_id)
-            to_user = session.get(User, comment.to_user_id)
-            if not from_user or not to_user:
-                raise ValueError(f"❌ Comment {comment.id} has invalid user references")
         
     print("✅ Schema validation passed - all FK constraints and data integrity checks valid")
 

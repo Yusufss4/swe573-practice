@@ -1,4 +1,4 @@
-// SRS FR-2 & FR-10: User Profile with Stats, Badges, and Comments
+// SRS FR-2 & FR-10: User Profile with Stats, Badges, and Ratings
 // Public profile view displaying user info, TimeBank stats, and feedback
 
 import { useState } from 'react'
@@ -19,6 +19,7 @@ import {
   IconButton,
   Divider,
   Paper,
+  Rating as MuiRating,
 } from '@mui/material'
 import {
   ArrowBack as ArrowBackIcon,
@@ -27,12 +28,17 @@ import {
   CalendarToday as CalendarIcon,
   AccountBalance as BalanceIcon,
   TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
   EmojiEvents as TrophyIcon,
   Star as StarIcon,
   Verified as VerifiedIcon,
+  Schedule as ScheduleIcon,
+  Favorite as FavoriteIcon,
+  Support as SupportIcon,
 } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/services/api'
+import { RatingsList } from '@/components/RatingDisplay'
 
 // SRS FR-2: User profile data structure
 interface UserProfile {
@@ -52,24 +58,16 @@ interface UserProfile {
   created_at: string
 }
 
-// SRS FR-10: Comment structure
-interface Comment {
-  id: number
-  from_user_id: number
-  from_username: string
-  to_user_id: number
-  to_username: string
-  participant_id: number
-  content: string
-  is_approved: boolean
-  timestamp: string
-}
-
-interface CommentsResponse {
-  items: Comment[]
-  total: number
-  skip: number
-  limit: number
+// Rating summary for category averages
+interface RatingSummary {
+  user_id: number
+  total_ratings: number
+  average_general: number | null
+  average_reliability: number | null
+  average_kindness: number | null
+  average_helpfulness: number | null
+  overall_average: number | null
+  rating_distribution: Record<number, number>
 }
 
 // Completed exchange structure
@@ -167,14 +165,6 @@ const getBadges = (profile: UserProfile): Badge[] => {
       description: 'Given 50+ hours',
       earned: profile.stats.hours_given >= 50,
     },
-    {
-      id: 'community',
-      name: 'Community Star',
-      icon: <StarIcon />,
-      color: '#E91E63',
-      description: 'Received 10+ positive comments',
-      earned: profile.stats.comments_received >= 10,
-    },
   ]
 
   return badges
@@ -184,15 +174,16 @@ const getBadges = (profile: UserProfile): Badge[] => {
  * ProfilePage Component
  * 
  * SRS FR-2: Profile Management
- * SRS FR-10: Comments and Feedback System
+ * SRS FR-10: Ratings and Feedback System
  * 
  * Features:
  * - Display user profile information (avatar, name, bio, location)
  * - Show badge collection based on achievements
  * - Display TimeBank statistics (balance, hours given/received)
+ * - Show rating category averages in stats section
  * - Two tabs:
- *   1. Completed Exchanges - summary of user's activity
- *   2. Comments - feedback from other users
+ *   1. Activities - completed exchanges
+ *   2. Recent Ratings - feedback from other users
  */
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>()
@@ -208,14 +199,14 @@ export default function ProfilePage() {
     },
   })
 
-  // Fetch comments by username
-  const { data: commentsData, isLoading: commentsLoading } = useQuery<CommentsResponse>({
-    queryKey: ['userComments', username],
+  // Fetch rating summary for category averages
+  const { data: ratingSummary } = useQuery<RatingSummary>({
+    queryKey: ['rating-summary', profile?.id],
     queryFn: async () => {
-      const response = await apiClient.get(`/comments/username/${username}`)
+      const response = await apiClient.get(`/ratings/summary/${profile!.id}`)
       return response.data
     },
-    enabled: !!username && activeTab === 1, // Only fetch when on comments tab
+    enabled: !!profile?.id,
   })
 
   // Fetch completed exchanges by username
@@ -339,7 +330,7 @@ export default function ProfilePage() {
                 </Typography>
                 <Grid container spacing={2}>
                   {/* Balance */}
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={6} sm={4}>
                     <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <BalanceIcon color="primary" />
@@ -353,11 +344,26 @@ export default function ProfilePage() {
                     </Paper>
                   </Grid>
 
+                  {/* Hours Given */}
+                  <Grid item xs={6} sm={4}>
+                    <Paper elevation={0} sx={{ p: 2, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <TrendingUpIcon color="success" />
+                        <Typography variant="caption" color="text.secondary">
+                          Hours Given
+                        </Typography>
+                      </Box>
+                      <Typography variant="h4" fontWeight={600} color="success.main">
+                        {profile.stats.hours_given.toFixed(1)}h
+                      </Typography>
+                    </Paper>
+                  </Grid>
+
                   {/* Hours Received */}
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={6} sm={4}>
                     <Paper elevation={0} sx={{ p: 2, bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <TrendingUpIcon color="info" />
+                        <TrendingDownIcon color="info" />
                         <Typography variant="caption" color="text.secondary">
                           Hours Received
                         </Typography>
@@ -368,13 +374,91 @@ export default function ProfilePage() {
                     </Paper>
                   </Grid>
                 </Grid>
+
+                {/* Rating Categories under TimeBank Stats */}
+                {ratingSummary && ratingSummary.total_ratings > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Rating Averages ({ratingSummary.total_ratings} rating{ratingSummary.total_ratings !== 1 ? 's' : ''})
+                    </Typography>
+                    <Grid container spacing={2}>
+                      {/* Overall */}
+                      <Grid item xs={6} sm={3}>
+                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                            <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+                            <Typography variant="caption" color="text.secondary">
+                              Overall
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="h6" fontWeight={600}>
+                              {ratingSummary.overall_average?.toFixed(1) || '-'}
+                            </Typography>
+                            <MuiRating value={ratingSummary.overall_average || 0} readOnly precision={0.1} size="small" max={1} />
+                          </Box>
+                        </Paper>
+                      </Grid>
+                      {/* Reliability */}
+                      <Grid item xs={6} sm={3}>
+                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                            <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="caption" color="text.secondary">
+                              Reliability
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="h6" fontWeight={600}>
+                              {ratingSummary.average_reliability?.toFixed(1) || '-'}
+                            </Typography>
+                            <MuiRating value={ratingSummary.average_reliability || 0} readOnly precision={0.1} size="small" max={1} />
+                          </Box>
+                        </Paper>
+                      </Grid>
+                      {/* Kindness */}
+                      <Grid item xs={6} sm={3}>
+                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                            <FavoriteIcon sx={{ fontSize: 16, color: 'error.light' }} />
+                            <Typography variant="caption" color="text.secondary">
+                              Kindness
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="h6" fontWeight={600}>
+                              {ratingSummary.average_kindness?.toFixed(1) || '-'}
+                            </Typography>
+                            <MuiRating value={ratingSummary.average_kindness || 0} readOnly precision={0.1} size="small" max={1} />
+                          </Box>
+                        </Paper>
+                      </Grid>
+                      {/* Helpfulness */}
+                      <Grid item xs={6} sm={3}>
+                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                            <SupportIcon sx={{ fontSize: 16, color: 'primary.light' }} />
+                            <Typography variant="caption" color="text.secondary">
+                              Helpfulness
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="h6" fontWeight={600}>
+                              {ratingSummary.average_helpfulness?.toFixed(1) || '-'}
+                            </Typography>
+                            <MuiRating value={ratingSummary.average_helpfulness || 0} readOnly precision={0.1} size="small" max={1} />
+                          </Box>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                )}
               </Box>
 
               {/* Activities */}
               <Box>
                 <Typography variant="body2" color="text.secondary">
-                  <strong>{profile.stats.completed_exchanges}</strong> completed exchanges •{' '}
-                  <strong>{profile.stats.comments_received}</strong> comments received
+                  <strong>{profile.stats.completed_exchanges}</strong> completed exchanges
                 </Typography>
               </Box>
             </Grid>
@@ -441,7 +525,7 @@ export default function ProfilePage() {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
             <Tab label="Activities" />
-            <Tab label={`Comments (${profile.stats.comments_received})`} />
+            <Tab label="Recent Ratings" />
           </Tabs>
         </Box>
 
@@ -535,44 +619,9 @@ export default function ProfilePage() {
           )}
         </TabPanel>
 
-        {/* Tab 2: Comments */}
+        {/* Tab 2: Recent Ratings */}
         <TabPanel value={activeTab} index={1}>
-          {commentsLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : !commentsData || commentsData.items.length === 0 ? (
-            <Alert severity="info">
-              No comments yet. Comments will appear here after completed exchanges.
-            </Alert>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {commentsData.items.map((comment) => (
-                <Card key={comment.id} variant="outlined">
-                  <CardContent>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                        {comment.from_username[0].toUpperCase()}
-                      </Avatar>
-                      <Box sx={{ flex: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="subtitle2" fontWeight={600}>
-                            @{comment.from_username}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {formatCommentDate(comment.timestamp)}
-                          </Typography>
-                        </Box>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                          {comment.content}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          )}
+          <RatingsList userId={profile.id} limit={10} />
         </TabPanel>
       </Card>
     </Container>

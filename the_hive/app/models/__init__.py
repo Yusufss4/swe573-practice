@@ -7,7 +7,7 @@ Models are organized by domain:
 - Tag: Semantic categorization
 - Participant: Handshake mechanism and exchange tracking
 - Ledger/Transfer: TimeBank accounting
-- Comment: User feedback
+- Rating: User feedback after exchanges
 - Report: Moderation system
 """
 
@@ -18,7 +18,7 @@ from app.models.need import Need, NeedStatus
 from app.models.associations import OfferTag, NeedTag
 from app.models.participant import Participant, ParticipantRole, ParticipantStatus
 from app.models.ledger import LedgerEntry, Transfer, TransactionType
-from app.models.comment import Comment
+from app.models.rating import Rating, RatingVisibility
 from app.models.report import Report, ReportReason, ReportStatus, ReportAction
 from app.models.forum import ForumTopic, ForumComment, ForumTopicTag, TopicType
 
@@ -44,8 +44,9 @@ __all__ = [
     "LedgerEntry",
     "Transfer",
     "TransactionType",
-    # Comments
-    "Comment",
+    # Ratings
+    "Rating",
+    "RatingVisibility",
     # Reports
     "Report",
     "ReportReason",

@@ -4,7 +4,7 @@ API endpoints for user profiles.
 SRS Requirements:
 - FR-2: Profile Management
 - FR-2.4: Profile includes description, skills, location
-- FR-10.3: Comments visible on profiles
+- FR-10.3: Ratings visible on profiles
 """
 from typing import Annotated, Optional
 
@@ -15,7 +15,7 @@ from app.core.auth import CurrentUser
 from app.core.db import get_session
 from app.models.user import User
 from app.models.ledger import LedgerEntry
-from app.models.comment import Comment
+from app.models.rating import Rating
 from app.schemas.auth import UserPublic
 from pydantic import BaseModel
 
@@ -28,7 +28,7 @@ class UserStats(BaseModel):
     hours_given: float
     hours_received: float
     completed_exchanges: int
-    comments_received: int
+    ratings_received: int
 
 
 class UserProfileResponse(BaseModel):
@@ -87,12 +87,10 @@ def get_user_profile(
         )
     ).one() or 0
     
-    # Comments received count
-    comments_count = session.exec(
-        select(func.count(Comment.id)).where(
-            Comment.to_user_id == user_id,
-            Comment.is_visible == True,
-            Comment.is_approved == True
+    # Ratings received count
+    ratings_count = session.exec(
+        select(func.count(Rating.id)).where(
+            Rating.to_user_id == user_id
         )
     ).one() or 0
     
@@ -101,7 +99,7 @@ def get_user_profile(
         hours_given=debit_sum,
         hours_received=credit_sum,
         completed_exchanges=completed_count,
-        comments_received=comments_count
+        ratings_received=ratings_count
     )
     
     return UserProfileResponse(
@@ -158,12 +156,10 @@ def get_user_profile_by_username(
         )
     ).one() or 0
     
-    # Comments received count
-    comments_count = session.exec(
-        select(func.count(Comment.id)).where(
-            Comment.to_user_id == user.id,
-            Comment.is_visible == True,
-            Comment.is_approved == True
+    # Ratings received count
+    ratings_count = session.exec(
+        select(func.count(Rating.id)).where(
+            Rating.to_user_id == user.id
         )
     ).one() or 0
     
@@ -172,7 +168,7 @@ def get_user_profile_by_username(
         hours_given=debit_sum,
         hours_received=credit_sum,
         completed_exchanges=completed_count,
-        comments_received=comments_count
+        ratings_received=ratings_count
     )
     
     return UserProfileResponse(

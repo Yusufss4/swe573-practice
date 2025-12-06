@@ -14,9 +14,7 @@ Complete Flow:
 7. Either party marks the exchange as complete
 8. TimeBank ledger updates: Provider gains hours, Requester loses hours
 9. Both view their transaction history
-10. User A leaves a comment for User B
-11. User B leaves a comment for User A
-12. Both profiles show comments and updated balances
+10. Both profiles show updated balances
 
 SRS Requirements Validated:
 - FR-3: Offer and Need Management
@@ -26,7 +24,6 @@ SRS Requirements Validated:
 - FR-7.4: Reciprocity limit enforcement
 - FR-7.5: Transaction audit trail
 - FR-8: Semantic tagging for discovery
-- FR-10: Comments after completed exchange
 - FR-11: Search and filter by tags
 """
 import pytest
@@ -385,53 +382,9 @@ def test_golden_path_complete_need_workflow(
     assert bob_transactions["total"] >= 1
     
     # ============================================================================
-    # STEP 9: Alice leaves a comment for Bob
+    # STEP 9: View user profiles with updated balances
     # ============================================================================
-    # SRS FR-10.1: Comments only after completed exchange
-    # SRS FR-10.2: Basic content moderation
-    print("\n=== STEP 9: Alice leaves a comment for Bob (provider) ===")
-    
-    alice_comment_response = client.post(
-        "/api/v1/comments",
-        headers=requester_auth,
-        json={
-            "content": "Bob did an amazing job with the garden! Very professional and friendly. Highly recommend!",
-            "recipient_id": provider.id,
-            "participant_id": participant_id,
-        }
-    )
-    
-    assert alice_comment_response.status_code == 201, f"Failed to post comment: {alice_comment_response.json()}"
-    alice_comment_data = alice_comment_response.json()
-    
-    print(f"✓ Alice's comment posted (ID: {alice_comment_data['id']})")
-    print(f"  Content: {alice_comment_data['content'][:60]}...")
-    
-    # ============================================================================
-    # STEP 10: Bob leaves a comment for Alice
-    # ============================================================================
-    print("\n=== STEP 10: Bob leaves a comment for Alice (requester) ===")
-    
-    bob_comment_response = client.post(
-        "/api/v1/comments",
-        headers=provider_auth,
-        json={
-            "content": "Alice was very welcoming and provided all the tools needed. Great experience working with her!",
-            "recipient_id": requester.id,
-            "participant_id": participant_id,
-        }
-    )
-    
-    assert bob_comment_response.status_code == 201, f"Failed to post comment: {bob_comment_response.json()}"
-    bob_comment_data = bob_comment_response.json()
-    
-    print(f"✓ Bob's comment posted (ID: {bob_comment_data['id']})")
-    print(f"  Content: {bob_comment_data['content'][:60]}...")
-    
-    # ============================================================================
-    # STEP 11: View user profiles with updated balances and comments
-    # ============================================================================
-    print("\n=== STEP 11: View updated user profiles with comments ===")
+    print("\n=== STEP 9: View updated user profiles ===")
     
     alice_profile = client.get("/api/v1/auth/me", headers=requester_auth)
     bob_profile = client.get("/api/v1/auth/me", headers=provider_auth)
@@ -450,18 +403,6 @@ def test_golden_path_complete_need_workflow(
     assert alice_data["balance"] == 2.0
     assert bob_data["balance"] == 8.0
     
-    # Check Bob's profile has Alice's comment
-    bob_comments_response = client.get(f"/api/v1/comments/user/{provider.id}", headers=provider_auth)
-    bob_comments = bob_comments_response.json()
-    print(f"\n  Bob has {bob_comments['total']} comment(s) on his profile")
-    assert bob_comments["total"] >= 1
-    
-    # Check Alice's profile has Bob's comment  
-    alice_comments_response = client.get(f"/api/v1/comments/user/{requester.id}", headers=requester_auth)
-    alice_comments = alice_comments_response.json()
-    print(f"  Alice has {alice_comments['total']} comment(s) on her profile")
-    assert alice_comments["total"] >= 1
-    
     # ============================================================================
     # CONCLUSION
     # ============================================================================
@@ -479,7 +420,6 @@ def test_golden_path_complete_need_workflow(
     print(f"     - Bob (provider) gained 3h: 5.0h → 8.0h")
     print(f"     - Alice (requester) lost 3h: 5.0h → 2.0h")
     print("8. ✓ Full audit trail maintained in ledger")
-    print("9. ✓ Both users left comments for each other")
     print("\nThe Hive time-banking system is working as designed! 🐝")
     print("=" * 70 + "\n")
 

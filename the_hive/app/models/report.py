@@ -62,7 +62,7 @@ class Report(SQLModel, table=True):
     reported_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
     reported_offer_id: Optional[int] = Field(default=None, foreign_key="offers.id")
     reported_need_id: Optional[int] = Field(default=None, foreign_key="needs.id")
-    reported_comment_id: Optional[int] = Field(default=None, foreign_key="comments.id")
+    reported_rating_id: Optional[int] = Field(default=None, foreign_key="ratings.id")
     
     # Report details
     reason: ReportReason = Field(index=True)

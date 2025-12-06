@@ -35,10 +35,12 @@ import {
   ExitToApp as WithdrawIcon,
   Visibility as ViewIcon,
     CheckCircle as CompleteIcon,
+  Star as StarIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
+import RatingSubmitDialog from '@/components/RatingSubmitDialog'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -157,6 +159,23 @@ export default function ActiveItems() {
         newBalance: number
         isPartial?: boolean
     } | null>(null)
+
+  // Rating dialog state
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false)
+  const [ratingData, setRatingData] = useState<{
+    participantId: number
+    recipientId: number
+    recipientName: string
+    exchangeTitle: string
+  } | null>(null)
+
+  // Exchange context for rating after completion
+  const [completionContext, setCompletionContext] = useState<{
+    participantId: number
+    otherUserId: number
+    otherUserName: string
+    exchangeTitle: string
+  } | null>(null)
 
   // Fetch user's offers with participants
   const { data: myOffers, isLoading: offersLoading } = useQuery({
@@ -418,14 +437,26 @@ export default function ActiveItems() {
     }
   }
 
-    const handleCompleteClick = (item: Participant | MyApplication) => {
+  const handleCompleteClick = (item: Participant | MyApplication, post?: MyPost) => {
         // For MyApplication, we only need the id for completion
         if ('item_id' in item) {
-            // It's a MyApplication
+          // It's a MyApplication - the other user is the item creator
             setSelectedParticipant({ id: item.id } as Participant)
+          setCompletionContext({
+            participantId: item.id,
+            otherUserId: item.item_creator.id,
+            otherUserName: item.item_creator.display_name || item.item_creator.username,
+            exchangeTitle: item.item_title,
+          })
         } else {
-            // It's a Participant
+          // It's a Participant from My Posts - the other user is the participant
             setSelectedParticipant(item)
+          setCompletionContext({
+            participantId: item.id,
+            otherUserId: item.user_id,
+            otherUserName: item.user?.display_name || item.user?.username || 'User',
+            exchangeTitle: post?.title || 'Exchange',
+          })
         }
         setCompleteDialogOpen(true)
         setError(null)
@@ -437,11 +468,24 @@ export default function ActiveItems() {
         completeMutation.mutate(selectedParticipant.id)
     }
 
-    const handleCompleteDialogClose = () => {
+  const handleCompleteDialogClose = (openRating: boolean = false) => {
         setCompleteDialogOpen(false)
         setSelectedParticipant(null)
         setError(null)
+
+      // User can rate as soon as they confirm (even for partial confirmation)
+      if (openRating && completeSuccess && completionContext) {
+        setRatingData({
+          participantId: completionContext.participantId,
+          recipientId: completionContext.otherUserId,
+          recipientName: completionContext.otherUserName,
+          exchangeTitle: completionContext.exchangeTitle,
+        })
+        setRatingDialogOpen(true)
+      }
+
         setCompleteSuccess(null)
+      setCompletionContext(null)
     }
 
   const handleViewPost = (postId: number, postType: 'offer' | 'need') => {
@@ -661,18 +705,68 @@ export default function ActiveItems() {
                                                     variant={participant.requester_confirmed ? "filled" : "outlined"}
                                                 />
                                             </Box>
-                                            <Tooltip title="Confirm completion">
+                                            {/* Show Rate button if current user (requester/post owner) has confirmed */}
+                                            {participant.requester_confirmed ? (
                                                 <Button
-                                                    variant="contained"
+                                                    variant="outlined"
                                                     color="primary"
                                                     size="small"
-                                                    startIcon={<CompleteIcon />}
-                                                    onClick={() => handleCompleteClick(participant)}
-                                                    disabled={completeMutation.isPending}
+                                                    startIcon={<StarIcon />}
+                                                    onClick={() => {
+                                                        setRatingData({
+                                                            participantId: participant.id,
+                                                            recipientId: participant.user_id,
+                                                            recipientName: participant.user?.display_name || participant.user?.username || 'User',
+                                                            exchangeTitle: post.title,
+                                                        })
+                                                        setRatingDialogOpen(true)
+                                                    }}
                                                 >
-                                                    Confirm Complete
+                                                    Rate User
                                                 </Button>
-                                            </Tooltip>
+                                            ) : (
+                                                <Tooltip title="Confirm completion">
+                                                    <Button
+                                                        variant="contained"
+                                                        color="primary"
+                                                        size="small"
+                                                        startIcon={<CompleteIcon />}
+                                                        onClick={() => handleCompleteClick(participant, post)}
+                                                        disabled={completeMutation.isPending}
+                                                    >
+                                                        Confirm Complete
+                                                    </Button>
+                                                </Tooltip>
+                                            )}
+                                        </Box>
+                                    )}
+
+                                    {/* Action Button for Completed - Rate User */}
+                                    {participant.status === 'completed' && (
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end' }}>
+                                            <Chip
+                                                label="Completed"
+                                                size="small"
+                                                color="success"
+                                                icon={<CompleteIcon />}
+                                            />
+                                            <Button
+                                                variant="outlined"
+                                                color="primary"
+                                                size="small"
+                                                startIcon={<StarIcon />}
+                                                onClick={() => {
+                                                    setRatingData({
+                                                        participantId: participant.id,
+                                                        recipientId: participant.user_id,
+                                                        recipientName: participant.user?.display_name || participant.user?.username || 'User',
+                                                        exchangeTitle: post.title,
+                                                    })
+                                                    setRatingDialogOpen(true)
+                                                }}
+                                            >
+                                                Rate User
+                                            </Button>
                                         </Box>
                                     )}
                             </Box>
@@ -814,22 +908,62 @@ export default function ActiveItems() {
                                                     variant={application.requester_confirmed ? "filled" : "outlined"}
                                                 />
                                             </Box>
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                startIcon={<CompleteIcon />}
-                                                onClick={() => handleCompleteClick(application)}
-                                                disabled={completeMutation.isPending}
-                                            >
-                                                Confirm Complete
-                                            </Button>
+                                            {/* Show Rate button if current user (provider/applicant) has confirmed */}
+                                            {application.provider_confirmed ? (
+                                                <Button
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    startIcon={<StarIcon />}
+                                                    onClick={() => {
+                                                        setRatingData({
+                                                            participantId: application.id,
+                                                            recipientId: application.item_creator.id,
+                                                            recipientName: application.item_creator.display_name || application.item_creator.username,
+                                                            exchangeTitle: application.item_title,
+                                                        })
+                                                        setRatingDialogOpen(true)
+                                                    }}
+                                                >
+                                                    Rate User
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    variant="contained"
+                                                    color="primary"
+                                                    startIcon={<CompleteIcon />}
+                                                    onClick={() => handleCompleteClick(application)}
+                                                    disabled={completeMutation.isPending}
+                                                >
+                                                    Confirm Complete
+                                                </Button>
+                                            )}
                                         </Box>
                                     </Box>
                       )}
                       {application.status === 'completed' && (
-                        <Alert severity="info" sx={{ width: '100%' }}>
-                          This exchange has been completed. Check your TimeBank balance for the hours earned.
-                        </Alert>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+                          <Alert severity="info">
+                            This exchange has been completed. Check your TimeBank balance for the hours earned.
+                          </Alert>
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button
+                              variant="outlined"
+                              color="primary"
+                              startIcon={<StarIcon />}
+                              onClick={() => {
+                                setRatingData({
+                                  participantId: application.id,
+                                  recipientId: application.item_creator.id,
+                                  recipientName: application.item_creator.display_name || application.item_creator.username,
+                                  exchangeTitle: application.item_title,
+                                })
+                                setRatingDialogOpen(true)
+                              }}
+                            >
+                              Rate User
+                            </Button>
+                          </Box>
+                        </Box>
                       )}
                     </Box>
                   </CardContent>
@@ -861,9 +995,14 @@ export default function ActiveItems() {
                               <Typography variant="body2" color="text.secondary" paragraph>
                                   The exchange will be finalized once the other party also confirms completion.
                               </Typography>
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography variant="body2" color="text.secondary" paragraph>
                                   TimeBank hours will be transferred after both parties confirm.
                               </Typography>
+                              <Alert severity="info" sx={{ mt: 2 }}>
+                                  <Typography variant="body2">
+                                      TimeBank hours will be transferred once the other party also confirms.
+                                  </Typography>
+                              </Alert>
                           </>
                       ) : (
                           <>
@@ -876,15 +1015,12 @@ export default function ActiveItems() {
                               <Typography variant="body2" color="text.secondary" paragraph>
                                   Your new balance: <strong>{completeSuccess.newBalance.toFixed(1)}</strong> hours
                               </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                  You can now leave feedback for the other participant on their profile page.
-                              </Typography>
                           </>
                       )
                   ) : (
                       <>
                           <Typography variant="body2" color="text.secondary" paragraph>
-                              Confirm that this exchange has been completed. Both parties must confirm.
+                              Confirm that this exchange has been completed. Both parties must confirm for hours to transfer.
                           </Typography>
                           <Box component="ul" sx={{ pl: 2, mb: 2 }}>
                               <Typography component="li" variant="body2" color="text.secondary">
@@ -894,10 +1030,7 @@ export default function ActiveItems() {
                                   TimeBank hours transfer when both confirm
                               </Typography>
                               <Typography component="li" variant="body2" color="text.secondary">
-                                  Exchange marked complete (cannot be undone)
-                              </Typography>
-                              <Typography component="li" variant="body2" color="text.secondary">
-                                  Both parties can leave feedback after completion
+                                  You can rate the other party immediately after confirming
                               </Typography>
                           </Box>
 
@@ -915,13 +1048,23 @@ export default function ActiveItems() {
               </DialogContent>
               <DialogActions>
                   {completeSuccess ? (
-                      <Button onClick={handleCompleteDialogClose} variant="contained">
+                      <>
+                        <Button onClick={() => handleCompleteDialogClose(false)} variant="outlined">
                           Close
-                      </Button>
+                        </Button>
+                        <Button
+                          onClick={() => handleCompleteDialogClose(true)}
+                          variant="contained"
+                          color="primary"
+                          startIcon={<StarIcon />}
+                        >
+                          Rate User
+                        </Button>
+                      </>
                   ) : (
                       <>
                           <Button
-                              onClick={handleCompleteDialogClose}
+                              onClick={() => handleCompleteDialogClose(false)}
                               disabled={completeMutation.isPending}
                           >
                               Cancel
@@ -983,6 +1126,21 @@ export default function ActiveItems() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Rating Dialog */}
+      {ratingData && (
+        <RatingSubmitDialog
+          open={ratingDialogOpen}
+          onClose={() => {
+            setRatingDialogOpen(false)
+            setRatingData(null)
+          }}
+          participantId={ratingData.participantId}
+          recipientId={ratingData.recipientId}
+          recipientName={ratingData.recipientName}
+          exchangeTitle={ratingData.exchangeTitle}
+        />
+      )}
     </Container>
   )
 }
