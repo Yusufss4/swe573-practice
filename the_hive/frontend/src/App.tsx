@@ -18,9 +18,12 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
-        {/* SRS FR-9: Map-Based Visualization - Home map view */}
+        {/* SRS FR-9: Map-Based Visualization - Map view */}
         <Route index element={<MapView />} />
         
+        {/* Home page - To be implemented */}
+        <Route path="home" element={<div>Home - To be implemented</div>} />
+
         {/* SRS FR-1: User Registration and Authentication */}
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />

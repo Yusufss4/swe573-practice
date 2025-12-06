@@ -19,7 +19,6 @@ import {
   IconButton,
   Divider,
   Paper,
-  LinearProgress,
 } from '@mui/material'
 import {
   ArrowBack as ArrowBackIcon,
@@ -28,7 +27,6 @@ import {
   CalendarToday as CalendarIcon,
   AccountBalance as BalanceIcon,
   TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   EmojiEvents as TrophyIcon,
   Star as StarIcon,
   Verified as VerifiedIcon,
@@ -69,6 +67,28 @@ interface Comment {
 
 interface CommentsResponse {
   items: Comment[]
+  total: number
+  skip: number
+  limit: number
+}
+
+// Completed exchange structure
+interface CompletedExchange {
+  id: number
+  offer_id?: number | null
+  need_id?: number | null
+  item_title: string
+  item_description: string
+  item_type: 'offer' | 'need'
+  other_user_id: number
+  other_username: string
+  role: string
+  hours: number
+  completed_at: string
+}
+
+interface CompletedExchangesResponse {
+  items: CompletedExchange[]
   total: number
   skip: number
   limit: number
@@ -198,6 +218,16 @@ export default function ProfilePage() {
     enabled: !!username && activeTab === 1, // Only fetch when on comments tab
   })
 
+  // Fetch completed exchanges by username
+  const { data: exchangesData, isLoading: exchangesLoading } = useQuery<CompletedExchangesResponse>({
+    queryKey: ['userCompletedExchanges', username],
+    queryFn: async () => {
+      const response = await apiClient.get(`/users/username/${username}/completed-exchanges`)
+      return response.data
+    },
+    enabled: !!username && activeTab === 0, // Only fetch when on activities tab
+  })
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'long',
@@ -309,7 +339,7 @@ export default function ProfilePage() {
                 </Typography>
                 <Grid container spacing={2}>
                   {/* Balance */}
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={6}>
                     <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <BalanceIcon color="primary" />
@@ -323,23 +353,8 @@ export default function ProfilePage() {
                     </Paper>
                   </Grid>
 
-                  {/* Hours Given */}
-                  <Grid item xs={12} sm={4}>
-                    <Paper elevation={0} sx={{ p: 2, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <TrendingDownIcon color="success" />
-                        <Typography variant="caption" color="text.secondary">
-                          Hours Given
-                        </Typography>
-                      </Box>
-                      <Typography variant="h4" fontWeight={600} color="success.main">
-                        {profile.stats.hours_given.toFixed(1)}h
-                      </Typography>
-                    </Paper>
-                  </Grid>
-
                   {/* Hours Received */}
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={6}>
                     <Paper elevation={0} sx={{ p: 2, bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <TrendingUpIcon color="info" />
@@ -355,7 +370,7 @@ export default function ProfilePage() {
                 </Grid>
               </Box>
 
-              {/* Activity Summary */}
+              {/* Activities */}
               <Box>
                 <Typography variant="body2" color="text.secondary">
                   <strong>{profile.stats.completed_exchanges}</strong> completed exchanges •{' '}
@@ -425,49 +440,99 @@ export default function ProfilePage() {
       <Card>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-            <Tab label="Activity Summary" />
+            <Tab label="Activities" />
             <Tab label={`Comments (${profile.stats.comments_received})`} />
           </Tabs>
         </Box>
 
-        {/* Tab 1: Activity Summary */}
+        {/* Tab 1: Activities */}
         <TabPanel value={activeTab} index={0}>
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Exchange Activity
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              This member has completed <strong>{profile.stats.completed_exchanges}</strong> successful exchanges,
-              contributing <strong>{profile.stats.hours_given.toFixed(1)}</strong> hours to the community
-              and receiving <strong>{profile.stats.hours_received.toFixed(1)}</strong> hours of help.
-            </Typography>
-
-            {/* Activity Visualization */}
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Contribution Balance
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography variant="caption" sx={{ minWidth: 80 }}>
-                  Given
-                </Typography>
-                <Box sx={{ flex: 1 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={
-                      profile.stats.hours_given + profile.stats.hours_received > 0
-                        ? (profile.stats.hours_given / (profile.stats.hours_given + profile.stats.hours_received)) * 100
-                        : 50
-                    }
-                    sx={{ height: 8, borderRadius: 1 }}
-                  />
-                </Box>
-                <Typography variant="caption" sx={{ minWidth: 80, textAlign: 'right' }}>
-                  Received
-                </Typography>
-              </Box>
+          {exchangesLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
             </Box>
-          </Box>
+          ) : !exchangesData || exchangesData.items.length === 0 ? (
+            <Alert severity="info">
+              No completed exchanges yet. Exchanges will appear here after they are completed.
+            </Alert>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {exchangesData.items.map((exchange) => (
+                <Card 
+                  key={exchange.id} 
+                  variant="outlined"
+                  sx={{ 
+                    cursor: 'pointer',
+                    '&:hover': { 
+                      bgcolor: 'action.hover',
+                      borderColor: 'primary.main'
+                    }
+                  }}
+                  onClick={() => {
+                    const path = exchange.item_type === 'offer' 
+                      ? `/offers/${exchange.offer_id}` 
+                      : `/needs/${exchange.need_id}`
+                    navigate(path)
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {exchange.item_title}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+                          <Chip
+                            label={exchange.item_type === 'offer' ? 'Offer' : 'Need'}
+                            size="small"
+                            color={exchange.item_type === 'offer' ? 'primary' : 'secondary'}
+                            variant="outlined"
+                          />
+                          <Chip
+                            label={`${exchange.hours.toFixed(1)}h`}
+                            size="small"
+                            color="success"
+                          />
+                        </Box>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatCommentDate(exchange.completed_at)}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{
+                      mb: 1.5,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}>
+                      {exchange.item_description}
+                    </Typography>
+                    <Divider sx={{ my: 1 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <PersonIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {exchange.role === 'provider' ? 'Provided to' : 'Received from'}{' '}
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          color="primary"
+                          sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/profile/${exchange.other_username}`)
+                          }}
+                        >
+                          @{exchange.other_username}
+                        </Typography>
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+                </Box>
+          )}
         </TabPanel>
 
         {/* Tab 2: Comments */}

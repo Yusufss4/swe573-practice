@@ -114,26 +114,18 @@ const Layout = () => {
                 <Button 
                   color="inherit" 
                   component={Link} 
+                  to="/home"
+                  sx={{ color: 'text.primary' }}
+                >
+                  Home
+                </Button>
+                <Button 
+                  color="inherit" 
+                  component={Link} 
                   to="/"
                   sx={{ color: 'text.primary' }}
                 >
                   Map
-                </Button>
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/offers"
-                  sx={{ color: 'text.primary' }}
-                >
-                  Offers
-                </Button>
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/needs"
-                  sx={{ color: 'text.primary' }}
-                >
-                  Needs
                 </Button>
                 <Button 
                   color="inherit" 
