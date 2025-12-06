@@ -31,8 +31,15 @@ class UserResponse(BaseModel):
     email: str
     username: str
     full_name: str | None
+    display_name: str | None = None
+    description: str | None = None
+    profile_image: str | None = None
+    profile_image_type: str | None = None
     role: str
     balance: float
+    location_lat: float | None = None
+    location_lon: float | None = None
+    location_name: str | None = None
     is_active: bool
     created_at: datetime
     
@@ -44,5 +51,49 @@ class UserPublic(BaseModel):
     id: int
     username: str
     display_name: str | None
+    full_name: str | None = None
+    profile_image: str | None = None
+    profile_image_type: str | None = None
+    
+    model_config = {"from_attributes": True}
+
+
+class UserProfileUpdate(BaseModel):
+    """Request schema for updating user profile."""
+    full_name: str | None = Field(None, max_length=255)
+    description: str | None = Field(None, max_length=1000)
+    profile_image: str | None = Field(None, max_length=500)
+    profile_image_type: str | None = Field(None, pattern="^(preset|custom)$")
+    location_lat: float | None = None
+    location_lon: float | None = None
+    location_name: str | None = Field(None, max_length=255)
+    tags: list[str] | None = None  # List of tag names
+
+
+class UserTagResponse(BaseModel):
+    """Response schema for user tags."""
+    tag_name: str
+    
+    model_config = {"from_attributes": True}
+
+
+class UserProfileResponse(BaseModel):
+    """Response schema for user profile with tags."""
+    id: int
+    email: str
+    username: str
+    full_name: str | None
+    description: str | None
+    profile_image: str | None
+    profile_image_type: str
+    role: str
+    balance: float
+    location_lat: float | None
+    location_lon: float | None
+    location_name: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    tags: list[str]
     
     model_config = {"from_attributes": True}

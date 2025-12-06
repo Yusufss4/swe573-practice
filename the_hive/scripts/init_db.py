@@ -43,6 +43,7 @@ from app.models import (
     ParticipantStatus,
     ParticipantRole,
 )
+from app.models.user import UserTag
 from app.models.rating import Rating, RatingVisibility
 
 
@@ -96,6 +97,7 @@ def seed_basic_data():
         
         # Create test users (FR-7.1: each starts with 5 hours)
         # All users are located in various neighborhoods of Istanbul, Turkey
+        # Each user has a preset avatar and profile tags
         users_data = [
             {
                 "email": "alice@example.com",
@@ -105,6 +107,9 @@ def seed_basic_data():
                 "location_lat": 41.0082,
                 "location_lon": 28.9784,
                 "location_name": "Beyoğlu, İstanbul",
+                "profile_image": "butterfly",
+                "profile_image_type": "preset",
+                "tags": ["programming", "web development", "python", "teaching"],
             },
             {
                 "email": "bob@example.com",
@@ -114,6 +119,9 @@ def seed_basic_data():
                 "location_lat": 41.0136,
                 "location_lon": 28.9550,
                 "location_name": "Fatih, İstanbul",
+                "profile_image": "bear",
+                "profile_image_type": "preset",
+                "tags": ["carpentry", "home repair", "woodworking", "furniture"],
             },
             {
                 "email": "carol@example.com",
@@ -123,6 +131,9 @@ def seed_basic_data():
                 "location_lat": 41.0422,
                 "location_lon": 29.0083,
                 "location_name": "Beşiktaş, İstanbul",
+                "profile_image": "bird",
+                "profile_image_type": "preset",
+                "tags": ["music", "singing", "vocal coaching", "performance"],
             },
             {
                 "email": "david@example.com",
@@ -132,6 +143,9 @@ def seed_basic_data():
                 "location_lat": 40.9923,
                 "location_lon": 29.0230,
                 "location_name": "Kadıköy, İstanbul",
+                "profile_image": "mushroom",
+                "profile_image_type": "preset",
+                "tags": ["cooking", "turkish cuisine", "chef", "meal prep"],
             },
             {
                 "email": "emma@example.com",
@@ -141,6 +155,9 @@ def seed_basic_data():
                 "location_lat": 41.0766,
                 "location_lon": 29.0310,
                 "location_name": "Sarıyer, İstanbul",
+                "profile_image": "sunflower",
+                "profile_image_type": "preset",
+                "tags": ["gardening", "sustainability", "composting", "plants"],
             },
             {
                 "email": "frank@example.com",
@@ -150,6 +167,9 @@ def seed_basic_data():
                 "location_lat": 40.9632,
                 "location_lon": 29.1009,
                 "location_name": "Maltepe, İstanbul",
+                "profile_image": "fox",
+                "profile_image_type": "preset",
+                "tags": ["fitness", "yoga", "personal training", "wellness"],
             },
             {
                 "email": "grace@example.com",
@@ -159,6 +179,9 @@ def seed_basic_data():
                 "location_lat": 41.0553,
                 "location_lon": 29.0094,
                 "location_name": "Şişli, İstanbul",
+                "profile_image": "owl",
+                "profile_image_type": "preset",
+                "tags": ["languages", "english", "german", "french", "tutoring"],
             },
             {
                 "email": "henry@example.com",
@@ -168,6 +191,9 @@ def seed_basic_data():
                 "location_lat": 41.1087,
                 "location_lon": 29.0259,
                 "location_name": "Beykoz, İstanbul",
+                "profile_image": "turtle",
+                "profile_image_type": "preset",
+                "tags": ["tech support", "computers", "seniors", "patience"],
             },
             {
                 "email": "iris@example.com",
@@ -177,6 +203,9 @@ def seed_basic_data():
                 "location_lat": 40.9828,
                 "location_lon": 29.0553,
                 "location_name": "Üsküdar, İstanbul",
+                "profile_image": "flower",
+                "profile_image_type": "preset",
+                "tags": ["art", "painting", "art therapy", "creativity"],
             },
             {
                 "email": "jack@example.com",
@@ -186,10 +215,14 @@ def seed_basic_data():
                 "location_lat": 41.0297,
                 "location_lon": 28.8890,
                 "location_name": "Bakırköy, İstanbul",
+                "profile_image": "bee",
+                "profile_image_type": "preset",
+                "tags": ["bike repair", "cycling", "mechanics", "community"],
             },
         ]
         
         users = []
+        users_with_tags = []
         for user_data in users_data:
             user = User(
                 email=user_data["email"],
@@ -202,15 +235,20 @@ def seed_basic_data():
                 location_lat=user_data["location_lat"],
                 location_lon=user_data["location_lon"],
                 location_name=user_data["location_name"],
+                profile_image=user_data.get("profile_image"),
+                profile_image_type=user_data.get("profile_image_type", "preset"),
             )
             session.add(user)
             users.append(user)
+            users_with_tags.append((user, user_data.get("tags", [])))
         
         session.commit()
         
-        # Create initial ledger entries for all users
-        for user in users:
+        # Create initial ledger entries and user tags for all users
+        for user, user_tags in users_with_tags:
             session.refresh(user)
+            
+            # Create initial ledger entry
             ledger_entry = LedgerEntry(
                 user_id=user.id,
                 debit=0.0,
@@ -220,7 +258,13 @@ def seed_basic_data():
                 description="Initial TimeBank balance",
             )
             session.add(ledger_entry)
-            print(f"✅ Created user: {user.username} (ID: {user.id}, Balance: {user.balance}h)")
+            
+            # Create user profile tags
+            for tag_name in user_tags:
+                user_tag = UserTag(user_id=user.id, tag_name=tag_name.lower())
+                session.add(user_tag)
+            
+            print(f"✅ Created user: {user.username} (ID: {user.id}, Balance: {user.balance}h, Avatar: {user.profile_image}, Tags: {len(user_tags)})")
         
         session.commit()
         

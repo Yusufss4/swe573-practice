@@ -1,7 +1,7 @@
 // SRS FR-2 & FR-10: User Profile with Stats, Badges, and Ratings
 // Public profile view displaying user info, TimeBank stats, and feedback
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -20,6 +20,12 @@ import {
   Divider,
   Paper,
   Rating as MuiRating,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material'
 import {
   ArrowBack as ArrowBackIcon,
@@ -35,10 +41,78 @@ import {
   Schedule as ScheduleIcon,
   Favorite as FavoriteIcon,
   Support as SupportIcon,
+  Edit as EditIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { RatingsList } from '@/components/RatingDisplay'
+import { useAuth } from '@/contexts/AuthContext'
+
+// Preset avatar emoji mappings - expanded with more options
+const AVATAR_EMOJIS: Record<string, string> = {
+  // Insects
+  bee: '🐝',
+  butterfly: '🦋',
+  ladybug: '🐞',
+  ant: '🐜',
+  cricket: '🦗',
+  caterpillar: '🐛',
+  snail: '🐌',
+  spider: '🕷️',
+  mosquito: '🦟',
+  // Nature/animals
+  bird: '🐦',
+  owl: '🦉',
+  turtle: '🐢',
+  frog: '🐸',
+  rabbit: '🐰',
+  fox: '🦊',
+  bear: '🐻',
+  wolf: '🐺',
+  deer: '🦌',
+  squirrel: '🐿️',
+  // Plants
+  flower: '🌸',
+  sunflower: '🌻',
+  tree: '🌳',
+  leaf: '🍃',
+  mushroom: '🍄',
+  cactus: '🌵',
+}
+
+// Avatar colors for presets
+const AVATAR_COLORS: Record<string, string> = {
+  // Insects
+  bee: '#FFD700',
+  butterfly: '#E91E63',
+  ladybug: '#F44336',
+  ant: '#795548',
+  cricket: '#8BC34A',
+  caterpillar: '#4CAF50',
+  snail: '#9E9E9E',
+  spider: '#424242',
+  mosquito: '#607D8B',
+  // Nature/animals
+  bird: '#03A9F4',
+  owl: '#8D6E63',
+  turtle: '#009688',
+  frog: '#8BC34A',
+  rabbit: '#FFCCBC',
+  fox: '#FF5722',
+  bear: '#795548',
+  wolf: '#78909C',
+  deer: '#A1887F',
+  squirrel: '#FF8A65',
+  // Plants
+  flower: '#F48FB1',
+  sunflower: '#FFC107',
+  tree: '#4CAF50',
+  leaf: '#81C784',
+  mushroom: '#D7CCC8',
+  cactus: '#66BB6A',
+}
 
 // SRS FR-2: User profile data structure
 interface UserProfile {
@@ -46,6 +120,8 @@ interface UserProfile {
   username: string
   display_name?: string | null
   description?: string | null
+  profile_image?: string | null
+  profile_image_type: string
   location_name?: string | null
   balance: number
   stats: {
@@ -53,8 +129,9 @@ interface UserProfile {
     hours_given: number
     hours_received: number
     completed_exchanges: number
-    comments_received: number
+    ratings_received: number
   }
+  tags: string[]
   created_at: string
 }
 
@@ -170,6 +247,15 @@ const getBadges = (profile: UserProfile): Badge[] => {
   return badges
 }
 
+// Profile Update Data
+interface ProfileUpdateData {
+  full_name?: string
+  description?: string
+  profile_image?: string
+  profile_image_type?: string
+  tags?: string[]
+}
+
 /**
  * ProfilePage Component
  * 
@@ -181,6 +267,7 @@ const getBadges = (profile: UserProfile): Badge[] => {
  * - Show badge collection based on achievements
  * - Display TimeBank statistics (balance, hours given/received)
  * - Show rating category averages in stats section
+ * - Edit profile for own profile (avatar, about, tags)
  * - Two tabs:
  *   1. Activities - completed exchanges
  *   2. Recent Ratings - feedback from other users
@@ -188,7 +275,22 @@ const getBadges = (profile: UserProfile): Badge[] => {
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>()
   const navigate = useNavigate()
+  const { user: currentUser } = useAuth()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Edit mode states
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editAbout, setEditAbout] = useState('')
+  const [editFullName, setEditFullName] = useState('')
+  const [editTags, setEditTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
+
+  // Avatar selection
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false)
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('')
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   // Fetch user profile by username
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<UserProfile>({
@@ -196,6 +298,87 @@ export default function ProfilePage() {
     queryFn: async () => {
       const response = await apiClient.get(`/users/username/${username}`)
       return response.data
+    },
+  })
+
+  // Fetch preset avatars
+  const { data: presetAvatars } = useQuery<{ avatars: string[] }>({
+    queryKey: ['presetAvatars'],
+    queryFn: async () => {
+      const response = await apiClient.get('/users/avatars/presets')
+      return response.data
+    },
+  })
+
+  // Check if this is the current user's profile
+  const isOwnProfile = currentUser && profile && currentUser.username === profile.username
+
+  // Initialize edit states when profile loads
+  useEffect(() => {
+    if (profile) {
+      setEditAbout(profile.description || '')
+      setEditFullName(profile.display_name || '')
+      setEditTags(profile.tags || [])
+      setSelectedAvatar(profile.profile_image || '')
+    }
+  }, [profile])
+
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: ProfileUpdateData) => {
+      const response = await apiClient.put('/users/me', data)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile', username] })
+      setEditDialogOpen(false)
+    },
+  })
+
+  // Avatar update mutation
+  const updateAvatarMutation = useMutation({
+    mutationFn: async (avatar: string) => {
+      const response = await apiClient.put('/users/me', {
+        profile_image: avatar,
+        profile_image_type: 'preset',
+      })
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile', username] })
+      setAvatarDialogOpen(false)
+    },
+  })
+
+  // Image upload mutation
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      const response = await apiClient.post('/users/me/avatar', formData)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile', username] })
+      setAvatarDialogOpen(false)
+      setUploadingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    },
+    onError: (error: Error) => {
+      setUploadingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      alert(`Failed to upload image: ${error.message || 'Unknown error'}`)
+    },
+  })
+
+  // Remove custom image mutation
+  const removeImageMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.delete('/users/me/avatar')
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile', username] })
     },
   })
 
@@ -234,6 +417,74 @@ export default function ProfilePage() {
     })
   }
 
+  // Handle adding a tag
+  const handleAddTag = () => {
+    const tag = tagInput.trim().toLowerCase()
+    if (tag && !editTags.includes(tag) && editTags.length < 10) {
+      setEditTags([...editTags, tag])
+      setTagInput('')
+    }
+  }
+
+  // Handle removing a tag
+  const handleRemoveTag = (tagToRemove: string) => {
+    setEditTags(editTags.filter(tag => tag !== tagToRemove))
+  }
+
+  // Handle save profile
+  const handleSaveProfile = () => {
+    updateProfileMutation.mutate({
+      full_name: editFullName,
+      description: editAbout,
+      tags: editTags,
+    })
+  }
+
+  // Handle file upload
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Validate file size (500KB max)
+      if (file.size > 500 * 1024) {
+        alert('Image too large. Maximum size is 500KB.')
+        // Reset input to allow re-selecting
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+      // Validate file type
+      if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+        alert('Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.')
+        // Reset input to allow re-selecting
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+      setUploadingImage(true)
+      uploadImageMutation.mutate(file)
+      // Note: input is reset in onSuccess/onError callbacks
+    }
+  }
+
+  // Handle tag click - navigate to map with filter (same as OfferDetail/NeedDetail)
+  const handleTagClick = (tag: string) => {
+    navigate(`/?tag=${encodeURIComponent(tag)}`)
+  }
+
+  // Get avatar display
+  const getAvatarDisplay = (image: string | null | undefined, imageType: string) => {
+    // Custom image (data URL or URL)
+    if (imageType === 'custom' && image) {
+      return { isCustomImage: true, src: image }
+    }
+    // Preset emoji avatar
+    if (imageType === 'preset' && image && AVATAR_EMOJIS[image]) {
+      return {
+        emoji: AVATAR_EMOJIS[image],
+        bgcolor: AVATAR_COLORS[image],
+      }
+    }
+    return null
+  }
+
   if (profileLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -256,6 +507,7 @@ export default function ProfilePage() {
 
   const badges = getBadges(profile)
   const earnedBadges = badges.filter((b) => b.earned)
+  const avatarDisplay = getAvatarDisplay(profile.profile_image, profile.profile_image_type)
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -271,17 +523,57 @@ export default function ProfilePage() {
             {/* Avatar and Basic Info */}
             <Grid item xs={12} md={4}>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                <Avatar
-                  sx={{
-                    width: 120,
-                    height: 120,
-                    bgcolor: 'primary.main',
-                    fontSize: '3rem',
-                    mb: 2,
-                  }}
-                >
-                  {profile.display_name?.[0]?.toUpperCase() || profile.username[0].toUpperCase()}
-                </Avatar>
+                <Box sx={{ position: 'relative' }}>
+                  {avatarDisplay && 'isCustomImage' in avatarDisplay ? (
+                    // Custom uploaded image
+                    <Avatar
+                      src={avatarDisplay.src}
+                      sx={{
+                        width: 120,
+                        height: 120,
+                        mb: 2,
+                        cursor: isOwnProfile ? 'pointer' : 'default',
+                        '&:hover': isOwnProfile ? { opacity: 0.8 } : {},
+                      }}
+                      onClick={() => isOwnProfile && setAvatarDialogOpen(true)}
+                    />
+                  ) : (
+                // Preset emoji or default avatar
+                      <Avatar
+                        sx={{
+                          width: 120,
+                          height: 120,
+                          bgcolor: avatarDisplay ? avatarDisplay.bgcolor : 'primary.main',
+                          fontSize: avatarDisplay ? '4rem' : '3rem',
+                          mb: 2,
+                          cursor: isOwnProfile ? 'pointer' : 'default',
+                          '&:hover': isOwnProfile ? { opacity: 0.8 } : {},
+                        }}
+                        onClick={() => isOwnProfile && setAvatarDialogOpen(true)}
+                      >
+                        {avatarDisplay
+                          ? avatarDisplay.emoji
+                          : (profile.display_name?.[0]?.toUpperCase() || profile.username[0].toUpperCase())
+                        }
+                      </Avatar>
+                  )}
+                  {isOwnProfile && (
+                    <IconButton
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        bottom: 16,
+                        right: 0,
+                        bgcolor: 'background.paper',
+                        boxShadow: 1,
+                        '&:hover': { bgcolor: 'grey.100' },
+                      }}
+                      onClick={() => setAvatarDialogOpen(true)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </Box>
                 <Typography variant="h5" fontWeight={600} gutterBottom>
                   {profile.display_name || profile.username}
                 </Typography>
@@ -306,22 +598,63 @@ export default function ProfilePage() {
                     Member since {formatDate(profile.created_at)}
                   </Typography>
                 </Box>
+
+                {/* Profile Tags - Clickable to filter map */}
+                {profile.tags && profile.tags.length > 0 && (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 2, justifyContent: 'center' }}>
+                    {profile.tags.map((tag) => (
+                      <Chip
+                        key={tag}
+                        label={tag}
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        clickable
+                        onClick={() => handleTagClick(tag)}
+                        sx={{
+                          borderRadius: 2,
+                          '&:hover': {
+                            bgcolor: 'primary.50',
+                            borderColor: 'primary.main',
+                          }
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
+
+                {/* Edit Profile Button */}
+                {isOwnProfile && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<EditIcon />}
+                    onClick={() => setEditDialogOpen(true)}
+                    sx={{ mt: 2 }}
+                  >
+                    Edit Profile
+                  </Button>
+                )}
               </Box>
             </Grid>
 
             {/* Bio and Stats */}
             <Grid item xs={12} md={8}>
               {/* Bio */}
-              {profile.description && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" fontWeight={600} gutterBottom>
-                    About
-                  </Typography>
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  About
+                </Typography>
+                {profile.description ? (
                   <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
                     {profile.description}
                   </Typography>
-                </Box>
-              )}
+                ) : (
+                  <Typography variant="body2" color="text.disabled" fontStyle="italic">
+                    {isOwnProfile ? 'Click "Edit Profile" to add a description about yourself.' : 'No description yet.'}
+                  </Typography>
+                )}
+              </Box>
 
               {/* TimeBank Stats */}
               <Box sx={{ mb: 3 }}>
@@ -624,6 +957,213 @@ export default function ProfilePage() {
           <RatingsList userId={profile.id} limit={10} />
         </TabPanel>
       </Card>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+            {/* Display Name */}
+            <TextField
+              label="Display Name"
+              value={editFullName}
+              onChange={(e) => setEditFullName(e.target.value)}
+              fullWidth
+              helperText="Your name as shown to other users"
+            />
+
+            {/* About/Description */}
+            <TextField
+              label="About"
+              value={editAbout}
+              onChange={(e) => setEditAbout(e.target.value)}
+              multiline
+              rows={4}
+              fullWidth
+              helperText={`${editAbout.length}/1000 characters`}
+              inputProps={{ maxLength: 1000 }}
+            />
+
+            {/* Tags */}
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                Profile Tags (up to 10)
+              </Typography>
+              <Typography variant="caption" color="text.secondary" paragraph>
+                Add tags that describe your skills, interests, or what services you can offer.
+              </Typography>
+
+              {/* Tag chips */}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                {editTags.map((tag) => (
+                  <Chip
+                    key={tag}
+                    label={tag}
+                    size="small"
+                    onDelete={() => handleRemoveTag(tag)}
+                    color="primary"
+                    variant="outlined"
+                  />
+                ))}
+              </Box>
+
+              {/* Add tag input */}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  size="small"
+                  placeholder="Add a tag..."
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleAddTag()
+                    }
+                  }}
+                  disabled={editTags.length >= 10}
+                  sx={{ flex: 1 }}
+                />
+                <Button
+                  variant="outlined"
+                  onClick={handleAddTag}
+                  disabled={!tagInput.trim() || editTags.length >= 10}
+                >
+                  Add
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveProfile}
+            disabled={updateProfileMutation.isPending}
+          >
+            {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Avatar Selection Dialog */}
+      <Dialog open={avatarDialogOpen} onClose={() => setAvatarDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Choose Your Avatar</DialogTitle>
+        <DialogContent>
+          {/* Upload Custom Image Section */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              Upload Your Own Image
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Upload a custom profile picture (JPEG, PNG, GIF, or WebP, max 500KB).
+            </Typography>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              style={{ display: 'none' }}
+              onChange={handleFileUpload}
+            />
+
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Button
+                variant="outlined"
+                startIcon={<PhotoCameraIcon />}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? 'Uploading...' : 'Choose Image'}
+              </Button>
+
+              {profile.profile_image_type === 'custom' && profile.profile_image && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => removeImageMutation.mutate()}
+                  disabled={removeImageMutation.isPending}
+                >
+                  Remove Custom Image
+                </Button>
+              )}
+            </Box>
+
+            {/* Preview of current custom image */}
+            {profile.profile_image_type === 'custom' && profile.profile_image && (
+              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar
+                  src={profile.profile_image}
+                  sx={{ width: 64, height: 64 }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  Current custom image
+                </Typography>
+              </Box>
+            )}
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Preset Avatars Section */}
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+            Or Choose a Preset Avatar
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Select an avatar that represents you in The Hive community.
+          </Typography>
+
+          <Grid container spacing={1.5}>
+            {presetAvatars?.avatars.map((avatar) => (
+              <Grid item xs={4} sm={3} md={2} key={avatar}>
+                <Paper
+                  elevation={selectedAvatar === avatar ? 4 : 1}
+                  sx={{
+                    p: 1.5,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    border: selectedAvatar === avatar ? 2 : 1,
+                    borderColor: selectedAvatar === avatar ? 'primary.main' : 'grey.300',
+                    borderStyle: 'solid',
+                    bgcolor: selectedAvatar === avatar ? 'primary.50' : 'background.paper',
+                    '&:hover': { bgcolor: 'action.hover' },
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => setSelectedAvatar(avatar)}
+                >
+                  <Avatar
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      bgcolor: AVATAR_COLORS[avatar] || 'primary.main',
+                      fontSize: '1.75rem',
+                      mb: 0.5,
+                    }}
+                  >
+                    {AVATAR_EMOJIS[avatar] || avatar[0].toUpperCase()}
+                  </Avatar>
+                  <Typography variant="caption" textAlign="center" sx={{ textTransform: 'capitalize', fontSize: '0.65rem' }}>
+                    {avatar}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAvatarDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={() => updateAvatarMutation.mutate(selectedAvatar)}
+            disabled={!selectedAvatar || updateAvatarMutation.isPending}
+          >
+            {updateAvatarMutation.isPending ? 'Saving...' : 'Save Preset Avatar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   )
 }

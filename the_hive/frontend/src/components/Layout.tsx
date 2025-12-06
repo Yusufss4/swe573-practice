@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { getAvatarDisplay } from '@/utils/avatars'
 
 /**
  * SRS Section 3.3.1: Clean, accessible layout with consistent navigation
@@ -292,19 +293,46 @@ const Layout = () => {
                   onClick={handleMenu}
                   sx={{ p: 0.5 }}
                 >
-                  <Avatar 
-                    sx={{ 
-                      width: 36, 
-                      height: 36, 
-                      bgcolor: 'secondary.main',
-                      fontWeight: 600,
-                      fontSize: '1rem',
-                    }}
-                  >
-                    {user?.display_name 
-                      ? user.display_name[0].toUpperCase()
-                      : user?.username?.[0].toUpperCase() || 'U'}
-                  </Avatar>
+                  {(() => {
+                    const avatarDisplay = getAvatarDisplay(user?.profile_image, user?.profile_image_type)
+                    if (avatarDisplay?.isCustomImage && avatarDisplay.src) {
+                      return (
+                        <Avatar
+                          src={avatarDisplay.src}
+                          sx={{ width: 36, height: 36 }}
+                        />
+                      )
+                    }
+                    if (avatarDisplay?.emoji) {
+                      return (
+                        <Avatar
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            bgcolor: avatarDisplay.bgcolor || 'secondary.main',
+                            fontSize: '1.25rem',
+                          }}
+                        >
+                          {avatarDisplay.emoji}
+                        </Avatar>
+                      )
+                    }
+                    return (
+                      <Avatar
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          bgcolor: 'secondary.main',
+                          fontWeight: 600,
+                          fontSize: '1rem',
+                        }}
+                      >
+                        {user?.display_name
+                          ? user.display_name[0].toUpperCase()
+                          : user?.username?.[0].toUpperCase() || 'U'}
+                      </Avatar>
+                    )
+                  })()}
                 </IconButton>
                 <Menu
                   id="menu-appbar"

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.core.db import check_db_connection
+from app.core.db import check_db_connection, init_db
 from app.core.logging import get_logger, setup_logging
 
 setup_logging()
@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting application", extra={"extra_fields": {"app_name": settings.APP_NAME}})
+    init_db()  # Create database tables on startup
     yield
     logger.info("Shutting down application")
 

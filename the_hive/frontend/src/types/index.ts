@@ -8,6 +8,8 @@ export interface User {
   email: string
   display_name?: string
   description?: string
+  profile_image?: string
+  profile_image_type?: 'preset' | 'custom'
   balance: number // SRS FR-7: TimeBank balance
   location_lat?: number
   location_lon?: number
@@ -16,6 +18,42 @@ export interface User {
   is_active: boolean
   created_at: string
   badges?: Badge[] // SRS FR-13: Badges
+  tags?: string[] // Profile tags
+}
+
+// User profile with stats
+export interface UserProfile {
+  id: number
+  username: string
+  display_name?: string
+  description?: string
+  profile_image?: string
+  profile_image_type: string
+  location_name?: string
+  balance: number
+  stats: UserStats
+  tags: string[]
+  created_at: string
+}
+
+export interface UserStats {
+  balance: number
+  hours_given: number
+  hours_received: number
+  completed_exchanges: number
+  ratings_received: number
+}
+
+// Profile update request
+export interface UserProfileUpdate {
+  full_name?: string
+  description?: string
+  profile_image?: string
+  profile_image_type?: 'preset' | 'custom'
+  location_lat?: number
+  location_lon?: number
+  location_name?: string
+  tags?: string[]
 }
 
 // SRS FR-13: Badge types

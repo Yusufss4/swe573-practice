@@ -49,7 +49,10 @@ def _build_offer_response(session: Session, offer: Offer) -> OfferResponse:
     creator_public = UserPublic(
         id=creator.id,
         username=creator.username,
-        display_name=creator.full_name
+        display_name=creator.full_name,
+        full_name=creator.full_name,
+        profile_image=creator.profile_image,
+        profile_image_type=creator.profile_image_type,
     )
     
     # Parse available slots if present

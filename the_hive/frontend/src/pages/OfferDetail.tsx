@@ -41,6 +41,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { getAvatarDisplay } from '@/utils/avatars'
 
 // SRS FR-3: Offer data structure
 interface OfferDetail {
@@ -51,6 +52,8 @@ interface OfferDetail {
     username: string
     display_name?: string
     full_name?: string
+    profile_image?: string
+    profile_image_type?: string
   }
   title: string
   description: string
@@ -305,17 +308,51 @@ export default function OfferDetail() {
 
               {/* Creator Info */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <Avatar
-                  sx={{
-                    bgcolor: 'primary.main',
-                    width: 48,
-                    height: 48,
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => navigate(`/profile/${offer.creator.username}`)}
-                >
-                  <PersonIcon />
-                </Avatar>
+                {(() => {
+                  const avatarDisplay = getAvatarDisplay(offer.creator.profile_image, offer.creator.profile_image_type)
+                  if (avatarDisplay?.isCustomImage && avatarDisplay.src) {
+                    return (
+                      <Avatar
+                        src={avatarDisplay.src}
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => navigate(`/profile/${offer.creator.username}`)}
+                      />
+                    )
+                  }
+                  if (avatarDisplay?.emoji) {
+                    return (
+                      <Avatar
+                        sx={{
+                          bgcolor: avatarDisplay.bgcolor || 'primary.main',
+                          width: 48,
+                          height: 48,
+                          cursor: 'pointer',
+                          fontSize: '1.5rem',
+                        }}
+                        onClick={() => navigate(`/profile/${offer.creator.username}`)}
+                      >
+                        {avatarDisplay.emoji}
+                      </Avatar>
+                    )
+                  }
+                  return (
+                    <Avatar
+                      sx={{
+                        bgcolor: 'primary.main',
+                        width: 48,
+                        height: 48,
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => navigate(`/profile/${offer.creator.username}`)}
+                    >
+                      <PersonIcon />
+                    </Avatar>
+                  )
+                })()}
                 <Box
                   onClick={() => navigate(`/profile/${offer.creator.username}`)}
                   sx={{

@@ -374,3 +374,158 @@ def test_user_roles(client: TestClient, session: Session):
     # Verify roles are stored correctly
     assert moderator.role == "moderator"
     assert admin.role == "admin"
+
+
+def test_update_profile(client: TestClient, session: Session):
+    """Test updating user profile (SRS FR-2.4)."""
+    # Create a user
+    user = User(
+        email="profile@example.com",
+        username="profileuser",
+        password_hash=get_password_hash("password123"),
+        balance=5.0
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    # Login
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "profileuser", "password": "password123"}
+    )
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Update profile
+    response = client.put(
+        "/api/v1/users/me",
+        headers=headers,
+        json={
+            "full_name": "Updated Name",
+            "description": "This is my bio",
+            "profile_image": "bee",
+            "profile_image_type": "preset",
+            "tags": ["python", "cooking", "gardening"]
+        }
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["display_name"] == "Updated Name"
+    assert data["description"] == "This is my bio"
+    assert data["profile_image"] == "bee"
+    assert data["profile_image_type"] == "preset"
+    assert set(data["tags"]) == {"python", "cooking", "gardening"}
+
+
+def test_update_profile_tags_limit(client: TestClient, session: Session):
+    """Test that profile tags are limited to 10."""
+    # Create a user
+    user = User(
+        email="taglimit@example.com",
+        username="taglimituser",
+        password_hash=get_password_hash("password123"),
+        balance=5.0
+    )
+    session.add(user)
+    session.commit()
+    
+    # Login
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "taglimituser", "password": "password123"}
+    )
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Try to add 15 tags - should be limited to 10
+    response = client.put(
+        "/api/v1/users/me",
+        headers=headers,
+        json={
+            "tags": [f"tag{i}" for i in range(15)]
+        }
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["tags"]) == 10
+
+
+def test_update_profile_invalid_preset_avatar(client: TestClient, session: Session):
+    """Test that invalid preset avatar names are rejected."""
+    # Create a user
+    user = User(
+        email="avatar@example.com",
+        username="avataruser",
+        password_hash=get_password_hash("password123"),
+        balance=5.0
+    )
+    session.add(user)
+    session.commit()
+    
+    # Login
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "avataruser", "password": "password123"}
+    )
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Try to set invalid preset avatar
+    response = client.put(
+        "/api/v1/users/me",
+        headers=headers,
+        json={
+            "profile_image": "invalid_avatar",
+            "profile_image_type": "preset"
+        }
+    )
+    
+    assert response.status_code == 400
+    assert "Invalid preset avatar" in response.json()["detail"]
+
+
+def test_get_preset_avatars(client: TestClient):
+    """Test getting the list of preset avatars."""
+    response = client.get("/api/v1/users/avatars/presets")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "avatars" in data
+    assert "bee" in data["avatars"]
+    assert "butterfly" in data["avatars"]
+    assert "fox" in data["avatars"]  # New animal avatars
+    assert "flower" in data["avatars"]  # New plant avatars
+    assert len(data["avatars"]) == 26  # Updated count
+
+
+def test_profile_includes_tags(client: TestClient, session: Session):
+    """Test that user profile response includes tags."""
+    from app.models.user import UserTag
+    
+    # Create a user with tags
+    user = User(
+        email="withtags@example.com",
+        username="withtagsuser",
+        password_hash=get_password_hash("password123"),
+        balance=5.0
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    # Add tags directly
+    for tag_name in ["python", "cooking"]:
+        tag = UserTag(user_id=user.id, tag_name=tag_name)
+        session.add(tag)
+    session.commit()
+    
+    # Get profile
+    response = client.get(f"/api/v1/users/{user.id}")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "tags" in data
+    assert set(data["tags"]) == {"python", "cooking"}
