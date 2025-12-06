@@ -10,6 +10,7 @@ import CreateNeed from './pages/CreateNeed'
 import ActiveItems from './pages/ActiveItems'
 import ProfilePage from './pages/ProfilePage'
 import MyProfile from './pages/MyProfile'
+import Search from './pages/Search'
 
 // SRS: Main application component
 // Provides routing structure for all pages defined in SRS Section 3.3.1
@@ -34,7 +35,7 @@ function App() {
         <Route path="needs/create" element={<CreateNeed />} />
         
         {/* SRS FR-2: Profile Management */}
-        <Route path="profile/:id" element={<ProfilePage />} />
+        <Route path="profile/:username" element={<ProfilePage />} />
         <Route path="profile/me" element={<MyProfile />} />
         
         {/* SRS FR-14: Active Items Management */}
@@ -47,7 +48,7 @@ function App() {
         <Route path="forum/events" element={<div>Events - To be implemented</div>} />
         
         {/* SRS FR-8: Tagging and Search */}
-        <Route path="search" element={<div>Search - To be implemented</div>} />
+        <Route path="search" element={<Search />} />
         
         {/* SRS FR-11: Reporting and Moderation - Admin/Moderator dashboards */}
         <Route path="admin" element={<div>Admin Dashboard - To be implemented</div>} />

@@ -296,9 +296,15 @@ export default function CreateOffer() {
               label="Capacity"
               placeholder="How many people can you help?"
               value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value)
+                if (e.target.value === '' || (val >= 1)) {
+                  setCapacity(e.target.value)
+                }
+              }}
               disabled={createMutation.isPending}
               type="number"
+              inputProps={{ min: 1 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -306,7 +312,7 @@ export default function CreateOffer() {
                   </InputAdornment>
                 ),
               }}
-              helperText="Maximum number of people you can help with this offer"
+              helperText="Maximum number of people you can help with this offer (minimum 1)"
               sx={{ mb: 3 }}
             />
 
@@ -317,14 +323,19 @@ export default function CreateOffer() {
               label="Hours Required"
               placeholder="How many TimeBank hours is this worth?"
               value={hours}
-              onChange={(e) => setHours(e.target.value)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value)
+                if (e.target.value === '' || (val >= 1)) {
+                  setHours(e.target.value)
+                }
+              }}
               disabled={createMutation.isPending}
               type="number"
               inputProps={{
-                min: "0.5",
-                step: "0.5"
+                min: 1,
+                step: 1
               }}
-              helperText="TimeBank hours for this service (e.g., 1.0, 2.5, etc.)"
+              helperText="TimeBank hours for this service (whole numbers only, minimum 1)"
               sx={{ mb: 3 }}
             />
 

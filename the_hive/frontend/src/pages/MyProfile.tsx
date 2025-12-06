@@ -13,7 +13,7 @@ export default function MyProfile() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        navigate(`/profile/${user.id}`, { replace: true })
+        navigate(`/profile/${user.username}`, { replace: true })
       } else {
         navigate('/login', { replace: true })
       }

@@ -2,7 +2,7 @@
 // Provides location-based browsing with filtering and search capabilities
 
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
   Container,
@@ -115,12 +115,17 @@ const MapCenterUpdater = ({ center }: { center: [number, number] }) => {
  */
 const MapView = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Get initial values from URL params
+  const initialTag = searchParams.get('tag') || ''
+  const initialType = searchParams.get('type') as 'all' | 'offers' | 'needs' | null
   
   // Filter state
   const [searchQuery, setSearchQuery] = useState('')
-  const [typeFilter, setTypeFilter] = useState<'all' | 'offers' | 'needs'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'offers' | 'needs'>(initialType || 'all')
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialTag ? [initialTag] : [])
   const [remoteOnly, setRemoteOnly] = useState<boolean>(false)
   const [distanceFilter, setDistanceFilter] = useState<number>(50) // km
   const [sortBy, setSortBy] = useState<'recent' | 'distance' | 'popularity'>('recent')
@@ -128,6 +133,14 @@ const MapView = () => {
   // Map state
   const [mapCenter, setMapCenter] = useState<[number, number]>([40.7128, -74.0060]) // Default: NYC
   const [selectedItem, setSelectedItem] = useState<MapFeedItem | null>(null)
+
+  // Clear URL params after applying filters (keep URL clean)
+  useEffect(() => {
+    if (initialTag || initialType) {
+      // Clear params after they've been applied to state
+      setSearchParams({}, { replace: true })
+    }
+  }, []) // Only run on mount
 
   // SRS FR-9: Fetch map feed data
   const { data: mapFeed, isLoading, error, refetch } = useQuery<MapFeedResponse>({

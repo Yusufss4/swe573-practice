@@ -114,3 +114,74 @@ def get_user_profile(
         stats=stats,
         created_at=user.created_at.isoformat()
     )
+
+
+@router.get("/username/{username}", response_model=UserProfileResponse)
+def get_user_profile_by_username(
+    username: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> UserProfileResponse:
+    """
+    Get public user profile by username with stats.
+    
+    SRS FR-2: Profile Management
+    
+    Returns:
+        User profile with TimeBank stats and badges
+    """
+    # Get user by username
+    statement = select(User).where(User.username == username)
+    user = session.exec(statement).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Calculate stats from ledger
+    # Hours given (debit entries)
+    debit_sum = session.exec(
+        select(func.sum(LedgerEntry.debit)).where(LedgerEntry.user_id == user.id)
+    ).one() or 0.0
+    
+    # Hours received (credit entries)
+    credit_sum = session.exec(
+        select(func.sum(LedgerEntry.credit)).where(LedgerEntry.user_id == user.id)
+    ).one() or 0.0
+    
+    # Completed exchanges (count of COMPLETED participants)
+    from app.models.participant import Participant, ParticipantStatus
+    completed_count = session.exec(
+        select(func.count(Participant.id)).where(
+            Participant.user_id == user.id,
+            Participant.status == ParticipantStatus.COMPLETED
+        )
+    ).one() or 0
+    
+    # Comments received count
+    comments_count = session.exec(
+        select(func.count(Comment.id)).where(
+            Comment.to_user_id == user.id,
+            Comment.is_visible == True,
+            Comment.is_approved == True
+        )
+    ).one() or 0
+    
+    stats = UserStats(
+        balance=user.balance,
+        hours_given=debit_sum,
+        hours_received=credit_sum,
+        completed_exchanges=completed_count,
+        comments_received=comments_count
+    )
+    
+    return UserProfileResponse(
+        id=user.id,
+        username=user.username,
+        display_name=user.full_name,
+        description=user.description,
+        location_name=user.location_name,
+        balance=user.balance,
+        stats=stats,
+        created_at=user.created_at.isoformat()
+    )

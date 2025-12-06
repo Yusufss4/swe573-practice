@@ -1,8 +1,8 @@
 // SRS FR-14: Active Items Dashboard
 // Shows user's created posts and their applications to help others
 
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
   Container,
@@ -129,10 +129,20 @@ interface MyApplication {
  */
 export default function ActiveItems() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
-  const [activeTab, setActiveTab] = useState(0)
+  // Initialize tab from URL params (tab=applications means index 1)
+  const initialTab = searchParams.get('tab') === 'applications' ? 1 : 0
+  const [activeTab, setActiveTab] = useState(initialTab)
+
+  // Clear URL params after applying
+  useEffect(() => {
+    if (searchParams.get('tab')) {
+      setSearchParams({}, { replace: true })
+    }
+  }, [])
   const [acceptDialogOpen, setAcceptDialogOpen] = useState(false)
     const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null)
@@ -537,7 +547,7 @@ export default function ActiveItems() {
                               <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
                                         <Avatar
                                             sx={{ bgcolor: 'primary.main', cursor: 'pointer' }}
-                                            onClick={() => navigate(`/profile/${participant.user_id}`)}
+                                            onClick={() => navigate(`/profile/${participant.user.username}`)}
                                         >
                                   <PersonIcon />
                                 </Avatar>
@@ -546,7 +556,7 @@ export default function ActiveItems() {
                                                 <Typography
                                                     variant="subtitle2"
                                                     fontWeight={600}
-                                                    onClick={() => navigate(`/profile/${participant.user_id}`)}
+                                                    onClick={() => navigate(`/profile/${participant.user.username}`)}
                                                     sx={{
                                                         cursor: 'pointer',
                                                         '&:hover': { color: 'primary.main', textDecoration: 'underline' }
@@ -575,7 +585,7 @@ export default function ActiveItems() {
                                                     cursor: 'pointer',
                                                     '&:hover': { color: 'primary.main' }
                                                 }}
-                                                onClick={() => navigate(`/profile/${participant.user_id}`)}
+                                                onClick={() => navigate(`/profile/${participant.user.username}`)}
                                             >
                                     @{participant.user.username}
                                   </Typography>

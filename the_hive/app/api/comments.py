@@ -278,7 +278,87 @@ def get_user_comments(
     )
 
 
-@router.get("/my-comments", response_model=CommentListResponse)
+@router.get("/username/{username}", response_model=CommentListResponse)
+def get_user_comments_by_username(
+    username: str,
+    session: Annotated[Session, Depends(get_session)],
+    skip: int = 0,
+    limit: int = 20,
+    exclude_flagged: bool = True
+) -> CommentListResponse:
+    """
+    Get comments on a user's profile by username.
+    
+    SRS Requirement FR-10.3: Comments publicly visible on profiles
+    
+    Args:
+        username: Username whose comments to retrieve
+        skip: Pagination offset
+        limit: Pagination limit
+        exclude_flagged: Whether to exclude flagged comments
+        
+    Returns:
+        Paginated list of comments
+    """
+    # Find user by username
+    statement = select(User).where(User.username == username)
+    user = session.exec(statement).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    user_id = user.id
+    
+    # Build query
+    query = select(Comment).where(
+        Comment.to_user_id == user_id,
+        Comment.is_visible == True
+    )
+    
+    if exclude_flagged:
+        query = query.where(Comment.is_approved == True)
+    
+    # Get total count
+    count_query = select(func.count(Comment.id)).where(
+        Comment.to_user_id == user_id,
+        Comment.is_visible == True
+    )
+    if exclude_flagged:
+        count_query = count_query.where(Comment.is_approved == True)
+    
+    total = session.exec(count_query).one()
+    
+    # Get paginated results
+    query = query.order_by(Comment.timestamp.desc()).offset(skip).limit(limit)
+    comments = session.exec(query).all()
+    
+    # Enrich with usernames
+    comment_responses = []
+    for comment in comments:
+        commenter = session.get(User, comment.from_user_id)
+        recipient = session.get(User, comment.to_user_id)
+        
+        comment_response = CommentResponse(
+            id=comment.id,
+            from_user_id=comment.from_user_id,
+            from_username=commenter.username if commenter else None,
+            to_user_id=comment.to_user_id,
+            to_username=recipient.username if recipient else None,
+            participant_id=comment.participant_id,
+            content=comment.content,
+            is_approved=comment.is_approved,
+            timestamp=comment.timestamp
+        )
+        comment_responses.append(comment_response)
+    
+    return CommentListResponse(
+        items=comment_responses,
+        total=total,
+        skip=skip,
+        limit=limit
+    )@router.get("/my-comments", response_model=CommentListResponse)
 def get_my_comments(
     current_user: CurrentUser,
     session: Annotated[Session, Depends(get_session)],

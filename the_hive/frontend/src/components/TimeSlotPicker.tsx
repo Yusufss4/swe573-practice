@@ -52,6 +52,20 @@ interface TimeSlotPickerProps {
  * - Validation for time format and logical ordering
  * - Edit and delete functionality
  */
+
+// Generate time options in 30-minute increments (24-hour format)
+const generateTimeOptions = (): string[] => {
+  const options: string[] = []
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      const h = hour.toString().padStart(2, '0')
+      const m = minute.toString().padStart(2, '0')
+      options.push(`${h}:${m}`)
+    }
+  }
+  return options
+}
+
 export default function TimeSlotPicker({ value, onChange, disabled }: TimeSlotPickerProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -301,28 +315,36 @@ export default function TimeSlotPicker({ value, onChange, disabled }: TimeSlotPi
             {timeRanges.map((range, index) => (
               <Box key={index} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <TextField
-                  type="time"
+                  select
                   label="Start Time"
                   value={range.start_time}
                   onChange={(e) => handleTimeRangeChange(index, 'start_time', e.target.value)}
                   InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 300 }} // 5 min intervals
                   size="small"
-                  sx={{ flex: 1 }}
-                />
+                  sx={{ flex: 1, minWidth: 120 }}
+                  SelectProps={{ native: true }}
+                >
+                  {generateTimeOptions().map((time) => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </TextField>
                 <Typography variant="body2" color="text.secondary">
                   to
                 </Typography>
                 <TextField
-                  type="time"
+                  select
                   label="End Time"
                   value={range.end_time}
                   onChange={(e) => handleTimeRangeChange(index, 'end_time', e.target.value)}
                   InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 300 }}
                   size="small"
-                  sx={{ flex: 1 }}
-                />
+                  sx={{ flex: 1, minWidth: 120 }}
+                  SelectProps={{ native: true }}
+                >
+                  {generateTimeOptions().map((time) => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </TextField>
                 {timeRanges.length > 1 && (
                   <IconButton
                     size="small"

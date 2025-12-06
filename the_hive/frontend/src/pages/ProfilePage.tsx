@@ -175,27 +175,27 @@ const getBadges = (profile: UserProfile): Badge[] => {
  *   2. Comments - feedback from other users
  */
 export default function ProfilePage() {
-  const { id } = useParams<{ id: string }>()
+  const { username } = useParams<{ username: string }>()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState(0)
 
-  // Fetch user profile
+  // Fetch user profile by username
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<UserProfile>({
-    queryKey: ['userProfile', id],
+    queryKey: ['userProfile', username],
     queryFn: async () => {
-      const response = await apiClient.get(`/users/${id}`)
+      const response = await apiClient.get(`/users/username/${username}`)
       return response.data
     },
   })
 
-  // Fetch comments
+  // Fetch comments by username
   const { data: commentsData, isLoading: commentsLoading } = useQuery<CommentsResponse>({
-    queryKey: ['userComments', id],
+    queryKey: ['userComments', username],
     queryFn: async () => {
-      const response = await apiClient.get(`/comments/user/${id}`)
+      const response = await apiClient.get(`/comments/username/${username}`)
       return response.data
     },
-    enabled: !!id && activeTab === 1, // Only fetch when on comments tab
+    enabled: !!username && activeTab === 1, // Only fetch when on comments tab
   })
 
   const formatDate = (dateString: string) => {

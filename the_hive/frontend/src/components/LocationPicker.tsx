@@ -1,7 +1,7 @@
 // SRS NFR-7: Privacy-focused location picker
 // Allows users to select location via map or text input without forcing exact coordinates
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   Box,
   TextField,
@@ -15,6 +15,7 @@ import {
   Alert,
   ToggleButtonGroup,
   ToggleButton,
+  CircularProgress,
 } from '@mui/material'
 import {
   LocationOn as LocationIcon,
@@ -46,14 +47,66 @@ interface LocationPickerProps {
   required?: boolean
 }
 
+// Reverse geocoding function using OpenStreetMap Nominatim
+async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`,
+      {
+        headers: {
+          'Accept-Language': 'en',
+        },
+      }
+    )
+    if (!response.ok) return null
+
+    const data = await response.json()
+
+    // Build a friendly location name from address components
+    const address = data.address || {}
+    const parts: string[] = []
+
+    // Prefer neighborhood/suburb, then city district, then city
+    if (address.neighbourhood) parts.push(address.neighbourhood)
+    else if (address.suburb) parts.push(address.suburb)
+    else if (address.district) parts.push(address.district)
+    else if (address.borough) parts.push(address.borough)
+
+    // Add city/town
+    if (address.city) parts.push(address.city)
+    else if (address.town) parts.push(address.town)
+    else if (address.municipality) parts.push(address.municipality)
+    else if (address.province) parts.push(address.province)
+
+    // If we have parts, return them joined; otherwise use display_name
+    if (parts.length > 0) {
+      return parts.join(', ')
+    }
+
+    // Fallback to display_name but trim it to be more readable
+    if (data.display_name) {
+      const displayParts = data.display_name.split(', ')
+      return displayParts.slice(0, 3).join(', ')
+    }
+
+    return null
+  } catch (error) {
+    console.error('Reverse geocoding failed:', error)
+    return null
+  }
+}
+
 // Component to handle map clicks
-function LocationMarker({ position, setPosition }: { 
+function LocationMarker({ position, setPosition, onLocationSelect }: { 
   position: [number, number] | null
-  setPosition: (pos: [number, number]) => void 
+  setPosition: (pos: [number, number]) => void
+  onLocationSelect: (lat: number, lon: number) => void
 }) {
   useMapEvents({
     click(e) {
-      setPosition([e.latlng.lat, e.latlng.lng])
+      const newPos: [number, number] = [e.latlng.lat, e.latlng.lng]
+      setPosition(newPos)
+      onLocationSelect(e.latlng.lat, e.latlng.lng)
     },
   })
 
@@ -71,6 +124,7 @@ function LocationMarker({ position, setPosition }: {
  * - Text-only input for privacy (no forced coordinates)
  * - Optional map picker for those who want precision
  * - Approximate coordinates (rounded to ~1km) for privacy
+ * - Auto-fills location name via reverse geocoding when clicking on map
  */
 export default function LocationPicker({ value, onChange, disabled, required }: LocationPickerProps) {
   const [mapDialogOpen, setMapDialogOpen] = useState(false)
@@ -79,6 +133,20 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
     value.lat && value.lon ? [value.lat, value.lon] : null
   )
   const [tempLocationName, setTempLocationName] = useState(value.name || '')
+  const [isGeocoding, setIsGeocoding] = useState(false)
+
+  // Handle reverse geocoding when map is clicked
+  const handleLocationSelect = useCallback(async (lat: number, lon: number) => {
+    setIsGeocoding(true)
+    try {
+      const locationName = await reverseGeocode(lat, lon)
+      if (locationName) {
+        setTempLocationName(locationName)
+      }
+    } finally {
+      setIsGeocoding(false)
+    }
+  }, [])
 
   const handleOpenMapPicker = () => {
     setInputMode('map')
@@ -87,8 +155,8 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
     if (value.lat && value.lon) {
       setTempPosition([value.lat, value.lon])
     } else {
-      // Default to NYC if no position set
-      setTempPosition([40.7128, -74.0060])
+      // Default to Istanbul if no position set
+      setTempPosition([41.0082, 28.9784])
     }
     setTempLocationName(value.name || '')
   }
@@ -227,27 +295,39 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
           ) : (
             <Box>
               <Alert severity="info" sx={{ mb: 2 }}>
-                Click on the map to select a location. Coordinates will be rounded to ~1km precision for privacy.
+                  Click on the map to select a location. The location name will be filled automatically.
               </Alert>
               <TextField
                 fullWidth
-                label="Location Name (Optional)"
-                placeholder="Give this location a friendly name"
+                  label="Location Name"
+                  placeholder="Click on the map to auto-fill, or type manually"
                 value={tempLocationName}
                 onChange={(e) => setTempLocationName(e.target.value)}
                 sx={{ mb: 2 }}
+                  InputProps={{
+                    endAdornment: isGeocoding ? (
+                      <InputAdornment position="end">
+                        <CircularProgress size={20} />
+                      </InputAdornment>
+                    ) : null,
+                  }}
+                  helperText={isGeocoding ? "Looking up location name..." : "Auto-filled from map click, or edit manually"}
               />
               <Box sx={{ height: 400, borderRadius: 1, overflow: 'hidden', border: 1, borderColor: 'divider' }}>
                 <MapContainer
-                  center={tempPosition || [40.7128, -74.0060]}
-                  zoom={10}
+                    center={tempPosition || [41.0082, 28.9784]}
+                    zoom={12}
                   style={{ height: '100%', width: '100%' }}
                 >
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
-                  <LocationMarker position={tempPosition} setPosition={setTempPosition} />
+                    <LocationMarker
+                      position={tempPosition}
+                      setPosition={setTempPosition}
+                      onLocationSelect={handleLocationSelect}
+                    />
                 </MapContainer>
               </Box>
               {tempPosition && (

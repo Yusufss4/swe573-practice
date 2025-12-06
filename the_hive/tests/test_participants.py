@@ -172,11 +172,10 @@ def test_offer_help_for_offer(client: TestClient, creator_headers: dict, helper_
     assert response.status_code == 201
     offer_id = response.json()["id"]
     
-    # Helper offers to help via handshake API
+    # Helper offers to help via handshake API (using query params)
     response = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=I'd%20love%20to%20help!",
         headers=helper_headers,
-        json={"offer_id": offer_id, "message": "I'd love to help!"}
     )
     assert response.status_code == 201
     data = response.json()
@@ -198,11 +197,10 @@ def test_offer_help_for_need(client: TestClient, creator_headers: dict, helper_h
     assert response.status_code == 201
     need_id = response.json()["id"]
     
-    # Helper offers to help via handshake API
+    # Helper offers to help via handshake API (using query params)
     response = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=need&item_id={need_id}&message=I%20can%20help%20with%20that!",
         headers=helper_headers,
-        json={"need_id": need_id, "message": "I can help with that!"}
     )
     assert response.status_code == 201
     data = response.json()
@@ -222,11 +220,10 @@ def test_cannot_offer_help_to_own_offer(client: TestClient, creator_headers: dic
     })
     offer_id = response.json()["id"]
     
-    # Try to offer help to own offer via handshake API
+    # Try to offer help to own offer via handshake API (using query params)
     response = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=Helping%20myself",
         headers=creator_headers,
-        json={"offer_id": offer_id, "message": "Helping myself"}
     )
     assert response.status_code == 400
     assert "your own" in response.json()["detail"]
@@ -244,19 +241,17 @@ def test_accept_participant_for_offer(client: TestClient, creator_headers: dict,
     })
     offer_id = response.json()["id"]
     
-    # Helper offers to help via handshake API
+    # Helper offers to help via handshake API (using query params)
     response = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=I%20can%20help",
         headers=helper_headers,
-        json={"offer_id": offer_id, "message": "I can help"}
     )
     participant_id = response.json()["id"]
     
-    # Creator accepts the participant via handshake API
+    # Creator accepts the participant via handshake API (path param + query param)
     response = client.post(
-        "/api/v1/handshake/accept",
+        f"/api/v1/handshake/{participant_id}/accept?hours=2.0",
         headers=creator_headers,
-        json={"participant_id": participant_id, "hours": 2.0}
     )
     assert response.status_code == 200
     data = response.json()
@@ -286,27 +281,24 @@ def test_offer_marked_full_when_capacity_reached(
     })
     offer_id = response.json()["id"]
     
-    # First helper proposes via handshake API
+    # First helper proposes via handshake API (using query params)
     response = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=Helper%201",
         headers=helper_headers,
-        json={"offer_id": offer_id, "message": "Helper 1"}
     )
     participant1_id = response.json()["id"]
     
-    # Second helper proposes via handshake API
+    # Second helper proposes via handshake API (using query params)
     response = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=Helper%202",
         headers=helper2_headers,
-        json={"offer_id": offer_id, "message": "Helper 2"}
     )
     participant2_id = response.json()["id"]
     
-    # Accept first participant via handshake API
+    # Accept first participant via handshake API (path param + query param)
     response = client.post(
-        "/api/v1/handshake/accept",
+        f"/api/v1/handshake/{participant1_id}/accept?hours=1.5",
         headers=creator_headers,
-        json={"participant_id": participant1_id, "hours": 1.5}
     )
     assert response.status_code == 200
     
@@ -317,9 +309,8 @@ def test_offer_marked_full_when_capacity_reached(
     
     # Accept second participant - should mark as FULL
     response = client.post(
-        "/api/v1/handshake/accept",
+        f"/api/v1/handshake/{participant2_id}/accept?hours=2.0",
         headers=creator_headers,
-        json={"participant_id": participant2_id, "hours": 2.0}
     )
     assert response.status_code == 200
     
@@ -347,45 +338,39 @@ def test_cannot_exceed_capacity(
     })
     offer_id = response.json()["id"]
     
-    # Three helpers propose via handshake API
+    # Three helpers propose via handshake API (using query params)
     response1 = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=Helper%201",
         headers=helper_headers,
-        json={"offer_id": offer_id, "message": "Helper 1"}
     )
     participant1_id = response1.json()["id"]
     
     response2 = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=Helper%202",
         headers=helper2_headers,
-        json={"offer_id": offer_id, "message": "Helper 2"}
     )
     participant2_id = response2.json()["id"]
     
     response3 = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=Helper%203",
         headers=helper3_headers,
-        json={"offer_id": offer_id, "message": "Helper 3"}
     )
     participant3_id = response3.json()["id"]
     
-    # Accept first two participants via handshake API
+    # Accept first two participants via handshake API (path param + query param)
     client.post(
-        "/api/v1/handshake/accept",
+        f"/api/v1/handshake/{participant1_id}/accept?hours=1.0",
         headers=creator_headers,
-        json={"participant_id": participant1_id, "hours": 1.0}
     )
     client.post(
-        "/api/v1/handshake/accept",
+        f"/api/v1/handshake/{participant2_id}/accept?hours=1.0",
         headers=creator_headers,
-        json={"participant_id": participant2_id, "hours": 1.0}
     )
     
     # Try to accept third participant - should fail
     response = client.post(
-        "/api/v1/handshake/accept",
+        f"/api/v1/handshake/{participant3_id}/accept?hours=1.0",
         headers=creator_headers,
-        json={"participant_id": participant3_id, "hours": 1.0}
     )
     assert response.status_code == 400
     assert "capacity already reached" in response.json()["detail"]
@@ -521,19 +506,17 @@ def test_only_creator_can_accept_participants(
     })
     offer_id = response.json()["id"]
     
-    # Helper proposes via handshake API
+    # Helper proposes via handshake API (using query params)
     response = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=I%20can%20help",
         headers=helper_headers,
-        json={"offer_id": offer_id, "message": "I can help"}
     )
     participant_id = response.json()["id"]
     
-    # Helper2 tries to accept (not the creator) via handshake API
+    # Helper2 tries to accept (not the creator) via handshake API (path param + query param)
     response = client.post(
-        "/api/v1/handshake/accept",
+        f"/api/v1/handshake/{participant_id}/accept?hours=1.0",
         headers=helper2_headers,
-        json={"participant_id": participant_id, "hours": 1.0}
     )
     assert response.status_code == 403
     assert "creator" in response.json()["detail"]
@@ -556,16 +539,14 @@ def test_list_offer_participants(
     })
     offer_id = response.json()["id"]
     
-    # Two helpers propose via handshake API
+    # Two helpers propose via handshake API (using query params)
     client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=Helper%201",
         headers=helper_headers,
-        json={"offer_id": offer_id, "message": "Helper 1"}
     )
     client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=offer&item_id={offer_id}&message=Helper%202",
         headers=helper2_headers,
-        json={"offer_id": offer_id, "message": "Helper 2"}
     )
     
     # List participants
@@ -592,19 +573,17 @@ def test_need_acceptance_flow(
     })
     need_id = response.json()["id"]
     
-    # Helper proposes via handshake API
+    # Helper proposes via handshake API (using query params)
     response = client.post(
-        "/api/v1/handshake/propose",
+        f"/api/v1/handshake/propose?item_type=need&item_id={need_id}&message=I%20can%20help",
         headers=helper_headers,
-        json={"need_id": need_id, "message": "I can help"}
     )
     participant_id = response.json()["id"]
     
-    # Accept participant via handshake API
+    # Accept participant via handshake API (path param + query param)
     response = client.post(
-        "/api/v1/handshake/accept",
+        f"/api/v1/handshake/{participant_id}/accept?hours=3.0",
         headers=creator_headers,
-        json={"participant_id": participant_id, "hours": 3.0}
     )
     assert response.status_code == 200
     assert response.json()["status"] == "accepted"

@@ -34,6 +34,7 @@ import {
   Schedule as ScheduleIcon,
   Language as RemoteIcon,
   HelpOutline as NeedIcon,
+  CheckCircle as CheckIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
@@ -78,6 +79,25 @@ interface ProposeHelpRequest {
     selected_time_range?: string
 }
 
+// Accepted participant structure
+interface AcceptedParticipant {
+  id: number
+  user_id: number
+  user: {
+    id: number
+    username: string
+    display_name?: string
+  }
+  status: string
+  hours_contributed?: number
+  created_at: string
+}
+
+interface ParticipantListResponse {
+  items: AcceptedParticipant[]
+  total: number
+}
+
 /**
  * NeedDetail Component
  * 
@@ -114,6 +134,16 @@ export default function NeedDetail() {
     },
   })
 
+  // Fetch accepted participants
+  const { data: acceptedParticipants } = useQuery<ParticipantListResponse>({
+    queryKey: ['need-participants', id, 'accepted'],
+    queryFn: async () => {
+      const response = await apiClient.get(`/participants/needs/${id}?status_filter=accepted`)
+      return response.data
+    },
+    enabled: !!id,
+  })
+
   // Propose help mutation
   const proposeMutation = useMutation({
     mutationFn: async (data: ProposeHelpRequest) => {
@@ -136,8 +166,8 @@ export default function NeedDetail() {
         setSelectedTimeRange(null)
       setError(null)
       queryClient.invalidateQueries({ queryKey: ['need', id] })
-      // Show success message
-      alert('Your proposal has been sent! The creator will review it soon.')
+      // Navigate to My Applications tab in Active Items
+      navigate('/active-items?tab=applications')
     },
     onError: (err: any) => {
       const errorMessage = err.response?.data?.detail || 'Failed to send proposal. Please try again.'
@@ -295,12 +325,12 @@ export default function NeedDetail() {
                                       height: 48,
                                       cursor: 'pointer'
                                   }}
-                                  onClick={() => navigate(`/profile/${need.creator_id}`)}
+                                  onClick={() => navigate(`/profile/${need.creator.username}`)}
                               >
                   <PersonIcon />
                 </Avatar>
                               <Box
-                                  onClick={() => navigate(`/profile/${need.creator_id}`)}
+                                  onClick={() => navigate(`/profile/${need.creator.username}`)}
                                   sx={{
                                       cursor: 'pointer',
                                       '&:hover': { opacity: 0.8 }
@@ -471,6 +501,33 @@ export default function NeedDetail() {
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
                 {isFull ? 'All helpers found!' : `${need.capacity - need.accepted_count} helper${need.capacity - need.accepted_count !== 1 ? 's' : ''} needed`}
               </Typography>
+
+              {/* Accepted Participants */}
+              {acceptedParticipants && acceptedParticipants.items.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                    Accepted helpers:
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {acceptedParticipants.items.map((participant) => (
+                      <Chip
+                        key={participant.id}
+                        avatar={
+                          <Avatar sx={{ bgcolor: 'success.main', width: 24, height: 24 }}>
+                            <CheckIcon sx={{ fontSize: 14 }} />
+                          </Avatar>
+                        }
+                        label={participant.user.display_name || participant.user.username}
+                        size="small"
+                        variant="outlined"
+                        color="success"
+                        onClick={() => navigate(`/profile/${participant.user.username}`)}
+                        sx={{ cursor: 'pointer' }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </Box>
 
             {/* Tags */}
@@ -489,7 +546,7 @@ export default function NeedDetail() {
                       label={tag}
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate(`/search?query=${tag}&type=need`)}
+                      onClick={() => navigate(`/?tag=${encodeURIComponent(tag)}&type=needs`)}
                       sx={{ cursor: 'pointer' }}
                     />
                   ))}

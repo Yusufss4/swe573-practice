@@ -296,9 +296,15 @@ export default function CreateNeed() {
               label="Capacity"
               placeholder="How many helpers do you need?"
               value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value)
+                if (e.target.value === '' || (val >= 1)) {
+                  setCapacity(e.target.value)
+                }
+              }}
               disabled={createMutation.isPending}
               type="number"
+              inputProps={{ min: 1 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -306,7 +312,7 @@ export default function CreateNeed() {
                   </InputAdornment>
                 ),
               }}
-              helperText="Maximum number of people who can help with this need"
+              helperText="Maximum number of people who can help with this need (minimum 1)"
               sx={{ mb: 3 }}
             />
 
@@ -317,14 +323,19 @@ export default function CreateNeed() {
               label="Hours Offered"
               placeholder="How many TimeBank hours will you offer?"
               value={hours}
-              onChange={(e) => setHours(e.target.value)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value)
+                if (e.target.value === '' || (val >= 1)) {
+                  setHours(e.target.value)
+                }
+              }}
               disabled={createMutation.isPending}
               type="number"
               inputProps={{
-                min: "0.5",
-                step: "0.5"
+                min: 1,
+                step: 1
               }}
-              helperText="TimeBank hours you'll offer for this service (e.g., 1.0, 2.5, etc.)"
+              helperText="TimeBank hours you'll offer for this service (whole numbers only, minimum 1)"
               sx={{ mb: 3 }}
             />
 
