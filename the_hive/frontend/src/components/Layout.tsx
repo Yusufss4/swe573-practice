@@ -299,7 +299,7 @@ const Layout = () => {
                     fontWeight={700}
                     sx={{ color: 'primary.main' }}
                   >
-                    {user?.balance?.toFixed(1) || '0.0'}h
+                    {Math.round(user?.balance || 0)}h
                   </Typography>
                 </Box>
 

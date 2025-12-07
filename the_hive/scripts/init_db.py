@@ -445,7 +445,7 @@ def seed_basic_data():
                 "description": "Learn how to compost at home and reduce kitchen waste. Small-space solutions included!",
                 "is_remote": True,
                 "capacity": 10,
-                "hours": 1.5,
+                "hours": 2.0,
                 "tags": ["gardening"],
             },
             {
@@ -481,7 +481,7 @@ def seed_basic_data():
                 "description": "Patient help with smartphones, tablets, email, video calls. I come to you!",
                 "is_remote": False,
                 "capacity": 2,
-                "hours": 1.5,
+                "hours": 2.0,
                 "tags": ["tech-support"],
             },
             {
@@ -613,7 +613,7 @@ def seed_basic_data():
                 "description": "Beginner looking to learn acoustic guitar. Prefer in-person lessons.",
                 "is_remote": False,
                 "capacity": 1,
-                "hours": 1.5,
+                "hours": 2.0,
                 "tags": ["music", "tutoring"],
             },
             {
@@ -681,7 +681,7 @@ def seed_basic_data():
                 "description": "My upright piano hasn't been tuned in years. Looking for an expert!",
                 "is_remote": False,
                 "capacity": 1,
-                "hours": 1.5,
+                "hours": 2.0,
                 "tags": ["music"],
             },
             {
@@ -913,12 +913,12 @@ def seed_basic_data():
         )
         session.add(ledger_alice_spend1)
         
-        # Completed exchange 2: Frank learned composting from Emma (1.5 hours)
-        # Emma (provider) gains 1.5 hours, Frank (requester) loses 1.5 hours
-        users[4].balance += 1.5
+        # Completed exchange 2: Frank learned composting from Emma (2 hours)
+        # Emma (provider) gains 2 hours, Frank (requester) loses 2 hours
+        users[4].balance += 2.0
         ledger_emma_earn = LedgerEntry(
             user_id=users[4].id,  # Emma
-            credit=1.5,
+            credit=2.0,
             debit=0.0,
             balance=users[4].balance,
             description="Earned: Composting Workshop with Frank",
@@ -927,11 +927,11 @@ def seed_basic_data():
         )
         session.add(ledger_emma_earn)
         
-        users[5].balance -= 1.5
+        users[5].balance -= 2.0
         ledger_frank_spend = LedgerEntry(
             user_id=users[5].id,  # Frank
             credit=0.0,
-            debit=1.5,
+            debit=2.0,
             balance=users[5].balance,
             description="Spent: Composting Workshop with Emma",
             transaction_type=TransactionType.EXCHANGE,

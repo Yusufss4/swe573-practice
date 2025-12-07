@@ -682,7 +682,7 @@ export default function ProfilePage() {
                         </Typography>
                       </Box>
                       <Typography variant="h4" fontWeight={600} color="primary.main">
-                        {profile.stats.balance.toFixed(1)}h
+                        {Math.round(profile.stats.balance)}h
                       </Typography>
                     </Paper>
                   </Grid>
@@ -697,7 +697,7 @@ export default function ProfilePage() {
                         </Typography>
                       </Box>
                       <Typography variant="h4" fontWeight={600} color="success.main">
-                        {profile.stats.hours_given.toFixed(1)}h
+                        {Math.round(profile.stats.hours_given)}h
                       </Typography>
                     </Paper>
                   </Grid>
@@ -712,7 +712,7 @@ export default function ProfilePage() {
                         </Typography>
                       </Box>
                       <Typography variant="h4" fontWeight={600} color="info.main">
-                        {profile.stats.hours_received.toFixed(1)}h
+                        {Math.round(profile.stats.hours_received)}h
                       </Typography>
                     </Paper>
                   </Grid>
@@ -922,7 +922,7 @@ export default function ProfilePage() {
                             color="success"
                           />
                           <Chip
-                            label={`${exchange.hours.toFixed(1)}h`}
+                            label={`${Math.round(exchange.hours)}h`}
                             size="small"
                           />
                         </Box>
@@ -1022,7 +1022,7 @@ export default function ProfilePage() {
                             variant="outlined"
                           />
                           <Chip
-                            label={`${exchange.hours.toFixed(1)}h`}
+                            label={`${Math.round(exchange.hours)}h`}
                             size="small"
                             color="success"
                           />

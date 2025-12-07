@@ -1013,7 +1013,7 @@ export default function ActiveItems() {
                                   <strong>{completeSuccess.hours}</strong> hours have been transferred.
                               </Typography>
                               <Typography variant="body2" color="text.secondary" paragraph>
-                                  Your new balance: <strong>{completeSuccess.newBalance.toFixed(1)}</strong> hours
+                                  Your new balance: <strong>{Math.round(completeSuccess.newBalance)}</strong> hours
                               </Typography>
                           </>
                       )
