@@ -21,7 +21,10 @@ from app.models.offer import Offer, OfferStatus
 from app.models.need import Need, NeedStatus
 from app.models.associations import OfferTag, NeedTag
 from app.models.tag import Tag
-from app.schemas.map import MapPinResponse, MapFeedResponse
+from app.models.user import User
+from app.models.participant import Participant, ParticipantStatus
+from app.models.rating import Rating
+from app.schemas.map import MapPinResponse, MapFeedResponse, CreatorResponse, ParticipantResponse
 
 router = APIRouter(prefix="/map", tags=["Map"])
 
@@ -188,6 +191,45 @@ def get_map_feed(
         )
         offer_tags = [{"id": tag_id, "name": tag_name} for tag_id, tag_name in session.exec(offer_tags_query).all()]
         
+        # Get creator info with rating
+        creator = session.get(User, offer.creator_id)
+        creator_info = None
+        if creator:
+            # Get creator's overall rating
+            avg_rating = session.exec(
+                select(func.avg(Rating.general_rating))
+                .where(Rating.to_user_id == creator.id)
+            ).first()
+            
+            creator_info = CreatorResponse(
+                id=creator.id,
+                username=creator.username,
+                full_name=creator.full_name or creator.username,
+                profile_image=creator.profile_image,
+                profile_image_type=creator.profile_image_type,
+                overall_rating=round(float(avg_rating), 1) if avg_rating else None,
+            )
+        
+        # Get accepted participants
+        accepted_participants_query = (
+            select(User)
+            .join(Participant, Participant.user_id == User.id)
+            .where(
+                Participant.offer_id == offer.id,
+                Participant.status == ParticipantStatus.ACCEPTED
+            )
+        )
+        accepted_users = session.exec(accepted_participants_query).all()
+        participants_info = [
+            ParticipantResponse(
+                id=user.id,
+                username=user.username,
+                profile_image=user.profile_image,
+                profile_image_type=user.profile_image_type,
+            )
+            for user in accepted_users
+        ]
+        
         # Calculate distance if user location provided and offer has location
         distance = None
         if (
@@ -220,6 +262,8 @@ def get_map_feed(
             ),
             location_name=offer.location_name,
             tags=offer_tags,
+            creator=creator_info,
+            accepted_participants=participants_info,
             capacity=offer.capacity,
             accepted_count=offer.accepted_count,
             distance_km=round(distance, 1) if distance is not None else None,
@@ -235,6 +279,45 @@ def get_map_feed(
             .where(NeedTag.need_id == need.id)
         )
         need_tags = [{"id": tag_id, "name": tag_name} for tag_id, tag_name in session.exec(need_tags_query).all()]
+        
+        # Get creator info with rating
+        creator = session.get(User, need.creator_id)
+        creator_info = None
+        if creator:
+            # Get creator's overall rating
+            avg_rating = session.exec(
+                select(func.avg(Rating.general_rating))
+                .where(Rating.to_user_id == creator.id)
+            ).first()
+            
+            creator_info = CreatorResponse(
+                id=creator.id,
+                username=creator.username,
+                full_name=creator.full_name or creator.username,
+                profile_image=creator.profile_image,
+                profile_image_type=creator.profile_image_type,
+                overall_rating=round(float(avg_rating), 1) if avg_rating else None,
+            )
+        
+        # Get accepted participants
+        accepted_participants_query = (
+            select(User)
+            .join(Participant, Participant.user_id == User.id)
+            .where(
+                Participant.need_id == need.id,
+                Participant.status == ParticipantStatus.ACCEPTED
+            )
+        )
+        accepted_users = session.exec(accepted_participants_query).all()
+        participants_info = [
+            ParticipantResponse(
+                id=user.id,
+                username=user.username,
+                profile_image=user.profile_image,
+                profile_image_type=user.profile_image_type,
+            )
+            for user in accepted_users
+        ]
         
         # Calculate distance if user location provided and need has location
         distance = None
@@ -268,6 +351,8 @@ def get_map_feed(
             ),
             location_name=need.location_name,
             tags=need_tags,
+            creator=creator_info,
+            accepted_participants=participants_info,
             capacity=need.capacity,
             accepted_count=need.accepted_count,
             distance_km=round(distance, 1) if distance is not None else None,

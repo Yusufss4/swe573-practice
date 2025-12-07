@@ -78,7 +78,7 @@ class Rating(SQLModel, table=True):
     
     # General Rating - Calculated as average of the three categories
     # Stored for query performance and historical consistency
-    general_rating: int = Field(ge=1, le=5)
+    general_rating: float = Field(ge=1, le=5)
     
     # ===== Public Comment (Optional) =====
     # Shown on profile - should be constructive and peace-oriented

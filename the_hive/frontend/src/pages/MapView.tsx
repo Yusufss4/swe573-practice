@@ -39,6 +39,8 @@ import {
   Person as PersonIcon,
   LocationOn as LocationIcon,
   Close as CloseIcon,
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
 } from '@mui/icons-material'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
@@ -87,8 +89,17 @@ interface MapFeedItem {
   creator?: {
     id: number
     username: string
-    display_name?: string
+    full_name?: string
+    profile_image?: string
+    profile_image_type?: string
+    overall_rating?: number
   }
+  accepted_participants?: Array<{
+    id: number
+    username: string
+    profile_image?: string
+    profile_image_type?: string
+  }>
   capacity?: number
   accepted_count?: number
   distance_km?: number | null
@@ -97,6 +108,14 @@ interface MapFeedItem {
 interface MapFeedResponse {
   items: MapFeedItem[]
   total: number
+}
+
+// Avatar emoji mappings
+const AVATAR_EMOJIS: Record<string, string> = {
+  bee: '🐝', butterfly: '🦋', ladybug: '🐞', ant: '🐜',
+  bird: '🐦', owl: '🦉', turtle: '🐢', frog: '🐸',
+  rabbit: '🐰', fox: '🦊', bear: '🐻', wolf: '🐺',
+  flower: '🌸', sunflower: '🌻', tree: '🌳', mushroom: '🍄',
 }
 
 // Component to handle map center updates
@@ -127,7 +146,7 @@ const MapView = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTag ? [initialTag] : [])
   const [remoteOnly, setRemoteOnly] = useState<boolean>(false)
   const [distanceFilter, setDistanceFilter] = useState<number>(50) // km
-  const [sortBy, setSortBy] = useState<'recent' | 'distance' | 'popularity'>('recent')
+  const [sortBy, setSortBy] = useState<'recent' | 'distance' | 'popularity' | 'rating'>('recent')
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
   const [locationName, setLocationName] = useState<string | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
@@ -260,6 +279,12 @@ const MapView = () => {
         const distA = a.distance_km ?? Infinity
         const distB = b.distance_km ?? Infinity
         return distA - distB
+      })
+    } else if (sortBy === 'rating') {
+      items = [...items].sort((a, b) => {
+        const ratingA = a.creator?.overall_rating ?? 0
+        const ratingB = b.creator?.overall_rating ?? 0
+        return ratingB - ratingA // Higher ratings first
       })
     }
 
@@ -658,15 +683,61 @@ const MapView = () => {
                             </Box>
                           )}
 
-                          {/* Creator Info */}
+                          {/* Creator Info with Accepted Participants on Right */}
                           {item.creator && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
-                              <Avatar sx={{ width: 24, height: 24, bgcolor: 'primary.main' }}>
-                                <PersonIcon fontSize="small" />
-                              </Avatar>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.creator.display_name || item.creator.username}
-                              </Typography>
+                            <Box sx={{ mt: 2, mb: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                                {/* Creator (Left) */}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Avatar 
+                                    sx={{ 
+                                      width: 28, 
+                                      height: 28, 
+                                      bgcolor: 'primary.main',
+                                      fontSize: '1rem'
+                                    }}
+                                  >
+                                    {item.creator.profile_image_type === 'preset' && item.creator.profile_image
+                                      ? AVATAR_EMOJIS[item.creator.profile_image] || item.creator.profile_image
+                                      : item.creator.username.charAt(0).toUpperCase()}
+                                  </Avatar>
+                                  <Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                      @{item.creator.username}
+                                    </Typography>
+                                    {item.creator.overall_rating !== undefined && item.creator.overall_rating !== null && (
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                        <StarIcon sx={{ fontSize: 14, color: 'warning.main' }} />
+                                        <Typography variant="caption" fontWeight={600}>
+                                          {item.creator.overall_rating.toFixed(1)}
+                                        </Typography>
+                                      </Box>
+                                    )}
+                                  </Box>
+                                </Box>
+
+                                {/* Accepted Participants (Right) */}
+                                {item.accepted_participants && item.accepted_participants.length > 0 && (
+                                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                    {item.accepted_participants.map((participant) => (
+                                      <Tooltip key={participant.id} title={`@${participant.username}`}>
+                                        <Avatar
+                                          sx={{
+                                            width: 24,
+                                            height: 24,
+                                            fontSize: '0.75rem',
+                                            bgcolor: 'secondary.main'
+                                          }}
+                                        >
+                                          {participant.profile_image_type === 'preset' && participant.profile_image
+                                            ? AVATAR_EMOJIS[participant.profile_image] || participant.profile_image
+                                            : participant.username.charAt(0).toUpperCase()}
+                                        </Avatar>
+                                      </Tooltip>
+                                    ))}
+                                  </Box>
+                                )}
+                              </Box>
                             </Box>
                           )}
                         </CardContent>
@@ -708,6 +779,7 @@ const MapView = () => {
           >
             <MenuItem value="recent">Most Recent</MenuItem>
             <MenuItem value="distance">Distance</MenuItem>
+            <MenuItem value="rating">Rating</MenuItem>
             <MenuItem value="popularity">Popularity</MenuItem>
           </Select>
         </FormControl>

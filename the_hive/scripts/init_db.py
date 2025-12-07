@@ -408,7 +408,7 @@ def seed_basic_data():
                 "title": "Community Choir - Join Us!",
                 "description": "Weekly choir practice open to all. No experience necessary, just bring enthusiasm!",
                 "is_remote": False,
-                "capacity": 20,
+                "capacity": 5,
                 "hours": 2.0,
                 "tags": ["music"],
             },
@@ -427,7 +427,7 @@ def seed_basic_data():
                 "description": "I'll help you plan and prepare healthy meals for the week. Your kitchen or mine!",
                 "is_remote": False,
                 "capacity": 2,
-                "hours": 2.5,
+                "hours": 3.0,
                 "tags": ["cooking"],
             },
             {
@@ -444,7 +444,7 @@ def seed_basic_data():
                 "title": "Composting Workshop",
                 "description": "Learn how to compost at home and reduce kitchen waste. Small-space solutions included!",
                 "is_remote": True,
-                "capacity": 10,
+                "capacity": 5,
                 "hours": 2.0,
                 "tags": ["gardening"],
             },
@@ -462,7 +462,7 @@ def seed_basic_data():
                 "title": "Beginner Yoga Classes",
                 "description": "Gentle yoga for flexibility and stress relief. Virtual or in-person options available.",
                 "is_remote": True,
-                "capacity": 8,
+                "capacity": 5,
                 "hours": 1.0,
                 "tags": ["fitness"],
             },
@@ -823,59 +823,217 @@ def seed_basic_data():
         
         # ===== PENDING/ACCEPTED EXCHANGES (not yet completed) =====
         
-        # Carol applies to David's cooking class (PENDING)
-        participant2 = Participant(
-            user_id=users[2].id,
-            offer_id=offers[6][0].id,  # Turkish Cooking Class
+        # PYTHON TUTORING (Alice's offer) - Capacity 3 - FULL with 3 ACCEPTED
+        participant_python1 = Participant(
+            user_id=users[6].id,  # Grace
+            offer_id=offers[0][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="I'm interested in learning Python for data analysis!",
+            hours_contributed=2.0,
+        )
+        session.add(participant_python1)
+        
+        participant_python2 = Participant(
+            user_id=users[3].id,  # David
+            offer_id=offers[0][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Would love to learn Python web development!",
+            hours_contributed=2.0,
+        )
+        session.add(participant_python2)
+        
+        participant_python3 = Participant(
+            user_id=users[5].id,  # Frank
+            offer_id=offers[0][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Interested in data science with Python!",
+            hours_contributed=2.0,
+        )
+        session.add(participant_python3)
+        
+        # WEB DEVELOPMENT WORKSHOP (Alice's offer) - Capacity 5 - 2 ACCEPTED
+        participant_web_workshop1 = Participant(
+            user_id=users[7].id,  # Henry
+            offer_id=offers[1][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Excited to learn web development!",
+            hours_contributed=4.0,
+        )
+        session.add(participant_web_workshop1)
+        
+        participant_web_workshop2 = Participant(
+            user_id=users[9].id,  # Jack
+            offer_id=offers[1][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="I want to build my own website!",
+            hours_contributed=4.0,
+        )
+        session.add(participant_web_workshop2)
+        
+        # TURKISH COOKING CLASS (David's offer) - Capacity 4 - 1 PENDING, 2 ACCEPTED
+        participant_cooking1 = Participant(
+            user_id=users[2].id,  # Carol
+            offer_id=offers[6][0].id,
             role=ParticipantRole.REQUESTER,
             status=ParticipantStatus.PENDING,
-            message="This sounds amazing! I love Turkish food and want to learn the authentic way.",
+            message="This sounds amazing! I love Turkish food!",
         )
-        session.add(participant2)
+        session.add(participant_cooking1)
         
-        # Grace applies to Alice's Python tutoring (PENDING)
-        participant4 = Participant(
-            user_id=users[6].id,
-            offer_id=offers[0][0].id,  # Python Programming Tutoring
+        participant_cooking2 = Participant(
+            user_id=users[8].id,  # Iris
+            offer_id=offers[6][0].id,
             role=ParticipantRole.REQUESTER,
-            status=ParticipantStatus.PENDING,
-            message="I'm interested in learning Python for data analysis. Can we focus on pandas and matplotlib?",
+            status=ParticipantStatus.ACCEPTED,
+            message="Can't wait to learn authentic Turkish recipes!",
+            hours_contributed=3.0,
         )
-        session.add(participant4)
+        session.add(participant_cooking2)
         
-        # Carol applies to Alice's "Guitar Lessons Needed" (Carol is PROVIDER) - PENDING
-        participant7 = Participant(
-            user_id=users[2].id,
+        participant_cooking3 = Participant(
+            user_id=users[0].id,  # Alice
+            offer_id=offers[6][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Turkish cuisine looks delicious!",
+            hours_contributed=3.0,
+        )
+        session.add(participant_cooking3)
+        
+        # SPANISH CONVERSATION (Grace's offer) - Capacity 4 - Already has 1 COMPLETED (Carol)
+        # Adding 3 more ACCEPTED to make it FULL (4/4 total)
+        participant_spanish1 = Participant(
+            user_id=users[3].id,  # David
+            offer_id=offers[12][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Looking to practice Spanish conversation!",
+            hours_contributed=1.0,
+        )
+        session.add(participant_spanish1)
+        
+        participant_spanish2 = Participant(
+            user_id=users[1].id,  # Bob
+            offer_id=offers[12][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="I need to improve my Spanish skills!",
+            hours_contributed=1.0,
+        )
+        session.add(participant_spanish2)
+        
+        participant_spanish3 = Participant(
+            user_id=users[4].id,  # Emma
+            offer_id=offers[12][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Would love to practice with a native speaker!",
+            hours_contributed=1.0,
+        )
+        session.add(participant_spanish3)
+        
+        # BIKE TUNE-UPS (Jack's offer) - Capacity 5 - 3 ACCEPTED
+        participant_bike1 = Participant(
+            user_id=users[2].id,  # Carol
+            offer_id=offers[14][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="My bike needs some maintenance!",
+            hours_contributed=1.0,
+        )
+        session.add(participant_bike1)
+        
+        participant_bike2 = Participant(
+            user_id=users[6].id,  # Grace
+            offer_id=offers[14][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Great! My chain has been squeaking.",
+            hours_contributed=1.0,
+        )
+        session.add(participant_bike2)
+        
+        participant_bike3 = Participant(
+            user_id=users[4].id,  # Emma
+            offer_id=offers[14][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Perfect timing, my brakes need adjustment!",
+            hours_contributed=1.0,
+        )
+        session.add(participant_bike3)
+        
+        # VOCAL COACHING (Carol's offer) - Capacity 2 - 1 ACCEPTED
+        participant_vocal = Participant(
+            user_id=users[7].id,  # Henry
+            offer_id=offers[4][0].id,
+            role=ParticipantRole.REQUESTER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Would love to improve my singing!",
+            hours_contributed=1.0,
+        )
+        session.add(participant_vocal)
+        
+        # GUITAR LESSONS NEEDED (Alice's need) - Capacity 1 - 1 PENDING
+        participant_guitar = Participant(
+            user_id=users[2].id,  # Carol
             need_id=needs[3][0].id,
             role=ParticipantRole.PROVIDER,
             status=ParticipantStatus.PENDING,
-            message="I can teach you guitar! I've been playing for 10 years. Let's start with the basics.",
+            message="I can teach you guitar! I've been playing for 10 years.",
         )
-        session.add(participant7)
+        session.add(participant_guitar)
         
-        # David applies to Jack's dog walking need (David is PROVIDER) - PENDING
-        participant8 = Participant(
+        # DOG WALKING (Jack's need) - Capacity 1 - 1 ACCEPTED
+        participant_dog = Participant(
             user_id=users[3].id,  # David
-            need_id=needs[2][0].id,  # Dog Walking Partner (Jack's need)
-            role=ParticipantRole.PROVIDER,
-            status=ParticipantStatus.PENDING,
-            message="I'd be happy to help walk your dog! I love animals and could use the exercise.",
-        )
-        session.add(participant8)
-        
-        # David accepts Iris's childcare need (David is PROVIDER) - ACCEPTED
-        participant_childcare = Participant(
-            user_id=users[3].id,  # David
-            need_id=needs[10][0].id,  # Childcare for Art Classes (Iris's need)
+            need_id=needs[2][0].id,
             role=ParticipantRole.PROVIDER,
             status=ParticipantStatus.ACCEPTED,
-            message="I have experience with kids and would love to help out during your art classes!",
+            message="I'd be happy to help walk your dog!",
+            hours_contributed=1.0,
+        )
+        session.add(participant_dog)
+        
+        # CHILDCARE (Iris's need) - Capacity 1 - 1 ACCEPTED
+        participant_childcare = Participant(
+            user_id=users[3].id,  # David
+            need_id=needs[10][0].id,
+            role=ParticipantRole.PROVIDER,
+            status=ParticipantStatus.ACCEPTED,
+            message="I have experience with kids and would love to help!",
             hours_contributed=2.0,
         )
         session.add(participant_childcare)
         
+        # YOGA PARTNER (Emma's need) - Capacity 2 - 2 ACCEPTED (FULL)
+        participant_yoga1 = Participant(
+            user_id=users[5].id,  # Frank
+            need_id=needs[6][0].id,
+            role=ParticipantRole.PROVIDER,
+            status=ParticipantStatus.ACCEPTED,
+            message="I'd love to practice yoga together in the park!",
+            hours_contributed=1.0,
+        )
+        session.add(participant_yoga1)
+        
+        participant_yoga2 = Participant(
+            user_id=users[6].id,  # Grace
+            need_id=needs[6][0].id,
+            role=ParticipantRole.PROVIDER,
+            status=ParticipantStatus.ACCEPTED,
+            message="Count me in! Yoga in nature sounds perfect!",
+            hours_contributed=1.0,
+        )
+        session.add(participant_yoga2)
+        
         session.commit()
-        print(f"✅ Created 10 participant records (5 completed, 5 accepted/pending)")
+        print(f"✅ Created 28 participant records (5 completed, 23 active: 21 accepted + 2 pending)")
         
         # Refresh participants to get IDs
         session.refresh(participant1)
@@ -1024,22 +1182,42 @@ def seed_basic_data():
         print(f"   - Carol: {users[2].balance}h, Iris: {users[8].balance}h")
         
         # Update accepted_count for offers and needs with completed/accepted participants
-        offers[3][0].accepted_count = 1  # Carpentry workshop
-        offers[9][0].accepted_count = 1  # Composting workshop
-        offers[12][0].accepted_count = 1  # Spanish conversation
-        needs[0][0].accepted_count = 1  # Help Moving Furniture
-        needs[1][0].accepted_count = 1  # Website Design Help
-        needs[10][0].accepted_count = 1  # Childcare for Art Classes (David accepted)
+        # Completed exchanges
+        offers[3][0].accepted_count = 1  # Carpentry workshop - COMPLETED
+        offers[9][0].accepted_count = 1  # Composting workshop - COMPLETED
+        offers[12][0].accepted_count = 1  # Spanish conversation - COMPLETED (old one)
+        needs[0][0].accepted_count = 1  # Help Moving Furniture - COMPLETED
+        needs[1][0].accepted_count = 1  # Website Design Help - COMPLETED
+        
+        # Active exchanges with accepted participants
+        offers[0][0].accepted_count = 3  # Python Tutoring - FULL (3/3)
+        offers[1][0].accepted_count = 2  # Web Development Workshop (2/5)
+        offers[4][0].accepted_count = 1  # Vocal Coaching (1/2)
+        offers[6][0].accepted_count = 2  # Turkish Cooking (2/4, 1 pending)
+        offers[12][0].accepted_count = 4  # Spanish Conversation (1 completed + 3 accepted = 4/4) FULL
+        offers[14][0].accepted_count = 3  # Bike Tune-ups (3/5)
+        needs[2][0].accepted_count = 1  # Dog Walking (1/1) FULL
+        needs[6][0].accepted_count = 2  # Yoga Partner (2/2) FULL
+        needs[10][0].accepted_count = 1  # Childcare (1/1) FULL
         
         # Mark offers/needs with completed participants as COMPLETED
         offers[3][0].status = OfferStatus.COMPLETED  # Carpentry workshop - completed
         offers[9][0].status = OfferStatus.COMPLETED  # Composting workshop - completed
-        offers[12][0].status = OfferStatus.COMPLETED  # Spanish conversation - completed
         needs[0][0].status = NeedStatus.COMPLETED  # Help Moving Furniture - completed
         needs[1][0].status = NeedStatus.COMPLETED  # Website Design Help - completed
         
+        # Mark FULL offers/needs (accepted_count >= capacity)
+        offers[0][0].status = OfferStatus.FULL  # Python Tutoring (3/3)
+        offers[12][0].status = OfferStatus.FULL  # Spanish Conversation (4/4)
+        needs[2][0].status = NeedStatus.FULL  # Dog Walking (1/1)
+        needs[6][0].status = NeedStatus.FULL  # Yoga Partner (2/2)
+        needs[10][0].status = NeedStatus.FULL  # Childcare (1/1)
+        
         session.commit()
-        print(f"✅ Updated accepted_count and completed status for items with completed participants")
+        print(f"✅ Updated accepted_count and status for all exchanges")
+        print(f"   - Full: Python Tutoring (3/3), Spanish Convo (4/4), Dog Walking (1/1), Yoga (2/2), Childcare (1/1)")
+        print(f"   - Partial: Web Workshop (2/5), Vocal (1/2), Turkish Cooking (2/4), Bike Tune-ups (3/5)")
+        print(f"   - Empty: 12 exchanges have no participants yet")
         
         # =================================================================
         # Create RATINGS for completed exchanges (FR-10.4)
@@ -1067,7 +1245,7 @@ def seed_basic_data():
             reliability_rating=5,
             kindness_rating=5,
             helpfulness_rating=4,
-            general_rating=5,  # avg of (5+5+4)/3 = 4.67 → 5
+            general_rating=4.7,  # avg of (5+5+4)/3 = 4.67
             public_comment="Alice was a great student - eager to learn and asked great questions!",
             visibility=RatingVisibility.VISIBLE,
         )
@@ -1095,7 +1273,7 @@ def seed_basic_data():
             reliability_rating=5,
             kindness_rating=4,
             helpfulness_rating=4,
-            general_rating=4,  # avg of (5+4+4)/3 = 4.33 → 4
+            general_rating=4.3,  # avg of (5+4+4)/3 = 4.33
             public_comment="Frank was enthusiastic and brought great energy to the workshop!",
             visibility=RatingVisibility.VISIBLE,
         )
@@ -1123,7 +1301,7 @@ def seed_basic_data():
             reliability_rating=4,
             kindness_rating=5,
             helpfulness_rating=4,
-            general_rating=4,  # avg of (4+5+4)/3 = 4.33 → 4
+            general_rating=4.3,  # avg of (4+5+4)/3 = 4.33
             public_comment="Henry was well-prepared for the move. Everything went smoothly!",
             visibility=RatingVisibility.VISIBLE,
         )
@@ -1151,7 +1329,7 @@ def seed_basic_data():
             reliability_rating=5,
             kindness_rating=5,
             helpfulness_rating=4,
-            general_rating=5,  # avg of (5+5+4)/3 = 4.67 → 5
+            general_rating=4.7,  # avg of (5+5+4)/3 = 4.67
             public_comment="Carol is making great progress! Always comes prepared and is a joy to practice with.",
             visibility=RatingVisibility.VISIBLE,
         )
@@ -1179,7 +1357,7 @@ def seed_basic_data():
             reliability_rating=5,
             kindness_rating=5,
             helpfulness_rating=4,
-            general_rating=5,  # avg of (5+5+4)/3 = 4.67 → 5
+            general_rating=4.7,  # avg of (5+5+4)/3 = 4.67
             public_comment="Iris had beautiful art content ready and gave clear feedback. Great collaboration!",
             visibility=RatingVisibility.VISIBLE,
         )
@@ -1513,7 +1691,7 @@ Rain or shine - we're doing this! ☀️🌧️""",
     print(f"   - 15 tags across various service categories")
     print(f"   - 15 offers with remote and in-person options")
     print(f"   - 12 needs with diverse requirements")
-    print(f"   - 9 participant records (5 completed, 4 pending)")
+    print(f"   - 28 participant records (5 completed, 21 accepted, 2 pending)")
     print(f"   - 20 ledger entries (10 initial + 10 from exchanges)")
     print(f"   - 10 ratings (mutual ratings for 5 completed exchanges)")
     print(f"   - 6 forum topics with comments")
@@ -1562,8 +1740,8 @@ def validate_schema():
         
         # Check participants
         participants = session.exec(select(Participant)).all()
-        if len(participants) < 9:
-            raise ValueError(f"❌ Expected at least 9 participants, found {len(participants)}")
+        if len(participants) < 23:
+            raise ValueError(f"❌ Expected at least 23 participants, found {len(participants)}")
         print(f"✅ Found {len(participants)} participants/applications")
         
         # Check completed participants

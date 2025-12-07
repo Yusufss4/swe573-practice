@@ -20,6 +20,28 @@ class TagResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CreatorResponse(BaseModel):
+    """Schema for creator information in map responses."""
+    id: int
+    username: str
+    full_name: str
+    profile_image: Optional[str] = None
+    profile_image_type: Optional[str] = None
+    overall_rating: Optional[float] = None
+    
+    model_config = {"from_attributes": True}
+
+
+class ParticipantResponse(BaseModel):
+    """Schema for accepted participant information."""
+    id: int
+    username: str
+    profile_image: Optional[str] = None
+    profile_image_type: Optional[str] = None
+    
+    model_config = {"from_attributes": True}
+
+
 class MapPinResponse(BaseModel):
     """Schema for a map pin (minimal data for display).
     
@@ -45,6 +67,8 @@ class MapPinResponse(BaseModel):
         description="Approximate location name (e.g., 'Brooklyn, NY')"
     )
     tags: list[TagResponse] = Field(default_factory=list, description="Associated tags with id and name")
+    creator: Optional[CreatorResponse] = Field(None, description="Creator information with rating")
+    accepted_participants: list[ParticipantResponse] = Field(default_factory=list, description="Accepted participants")
     capacity: int = Field(..., description="Maximum number of participants")
     accepted_count: int = Field(default=0, description="Number of accepted participants")
     distance_km: Optional[float] = Field(
