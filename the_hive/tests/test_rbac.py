@@ -242,9 +242,9 @@ def test_custom_role_dependency(client: TestClient, regular_user_token: str, mod
 
 
 def test_no_token_returns_401(client: TestClient):
-    """Test that endpoints without token return 401."""
+    """Test that endpoints without token return 403."""
     response = client.get("/api/v1/test/user-only")
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 
 def test_invalid_token_returns_401(client: TestClient):

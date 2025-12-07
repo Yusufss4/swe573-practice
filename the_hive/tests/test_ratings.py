@@ -656,7 +656,7 @@ class TestRatingAuthorization:
             },
         )
 
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_non_participant_cannot_rate(
         self,
