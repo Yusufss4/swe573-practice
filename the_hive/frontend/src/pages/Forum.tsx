@@ -386,7 +386,7 @@ export default function Forum() {
         </Box>
       ) : error ? (
         <Alert severity="error" sx={{ mb: 2 }}>
-          Failed to load topics. Please try again.
+          Unable to load forum topics. Please try again.
         </Alert>
       ) : topicsData?.items.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>

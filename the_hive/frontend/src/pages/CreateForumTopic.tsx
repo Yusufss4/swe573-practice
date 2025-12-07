@@ -317,7 +317,7 @@ export default function CreateForumTopic() {
             {/* Error message */}
             {createTopicMutation.isError && (
               <Alert severity="error" sx={{ mb: 3 }}>
-                Failed to create topic. Please try again.
+                Unable to create topic. Please try again.
               </Alert>
             )}
 

@@ -367,7 +367,7 @@ export default function ProfilePage() {
     onError: (error: Error) => {
       setUploadingImage(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
-      alert(`Failed to upload image: ${error.message || 'Unknown error'}`)
+      alert(`Unable to upload image: ${error.message || 'Please try again.'}`)
     },
   })
 
@@ -499,7 +499,7 @@ export default function ProfilePage() {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error">
-          Failed to load profile. User may not exist.
+          Unable to load profile. This user may not exist.
         </Alert>
       </Container>
     )

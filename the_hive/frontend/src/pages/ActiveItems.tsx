@@ -357,7 +357,7 @@ export default function ActiveItems() {
       queryClient.invalidateQueries({ queryKey: ['myNeeds'] })
     },
     onError: (err: any) => {
-      const errorMessage = err.response?.data?.detail || 'Failed to accept participant'
+      const errorMessage = err.response?.data?.detail || 'Unable to accept this request. Please try again.'
       setError(errorMessage)
     },
   })
@@ -403,7 +403,7 @@ export default function ActiveItems() {
             queryClient.invalidateQueries({ queryKey: ['myApplications'] })
         },
         onError: (err: any) => {
-            const errorMessage = err.response?.data?.detail || 'Failed to complete exchange'
+            const errorMessage = err.response?.data?.detail || 'Unable to complete this exchange. Please try again.'
             setError(errorMessage)
         },
     })

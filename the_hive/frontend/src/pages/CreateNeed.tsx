@@ -96,7 +96,7 @@ export default function CreateNeed() {
       navigate(`/needs/${data.id}`)
     },
     onError: (err: any) => {
-      const errorMessage = err.response?.data?.detail || 'Failed to create need. Please try again.'
+      const errorMessage = err.response?.data?.detail || 'Unable to create need. Please try again.'
       setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage))
     },
   })

@@ -205,7 +205,7 @@ export default function ForumTopicDetail() {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
-          Topic not found or failed to load.
+          Unable to load this topic. It may not exist or has been removed.
         </Alert>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/forum')}>
           Back to Forum
@@ -439,7 +439,7 @@ export default function ForumTopicDetail() {
               </form>
               {createCommentMutation.isError && (
                 <Alert severity="error" sx={{ mt: 2 }}>
-                  Failed to post comment. Please try again.
+                  Unable to post your comment. Please try again.
                 </Alert>
               )}
             </CardContent>

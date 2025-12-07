@@ -78,7 +78,7 @@ export default function CreateOffer() {
   const [location, setLocation] = useState<{ name: string; lat?: number; lon?: number }>({
     name: '',
   })
-  const [capacity, setCapacity] = useState('3')
+  const [capacity, setCapacity] = useState('1')
   const [hours, setHours] = useState('1')
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [tags, setTags] = useState<string[]>([])
@@ -96,7 +96,7 @@ export default function CreateOffer() {
       navigate(`/offers/${data.id}`)
     },
     onError: (err: any) => {
-      const errorMessage = err.response?.data?.detail || 'Failed to create offer. Please try again.'
+      const errorMessage = err.response?.data?.detail || 'Unable to create offer. Please try again.'
       setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage))
     },
   })

@@ -193,7 +193,7 @@ export default function NeedDetail() {
       navigate('/active-items?tab=applications')
     },
     onError: (err: any) => {
-      const errorMessage = err.response?.data?.detail || 'Failed to send proposal. Please try again.'
+      const errorMessage = err.response?.data?.detail || 'Unable to send your offer. Please try again.'
       setError(errorMessage)
     },
   })
@@ -283,7 +283,7 @@ export default function NeedDetail() {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error">
-          Failed to load need details. {fetchError?.message || 'Please try again later.'}
+          Unable to load this need. Please try again later.
         </Alert>
       </Container>
     )
@@ -327,7 +327,7 @@ export default function NeedDetail() {
                   />
                 )}
                 <Chip
-                  label={need.status.toUpperCase()}
+                  label={need.status.charAt(0).toUpperCase() + need.status.slice(1)}
                   color={need.status === 'active' ? 'success' : 'default'}
                   size="small"
                   variant="outlined"
@@ -462,14 +462,11 @@ export default function NeedDetail() {
                     <Box sx={{ mb: 3 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <ScheduleIcon color="action" />
-                        <Typography variant="h6" fontWeight={600}>
-                          Preferred Time Slots
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Select a time slot when proposing to help (optional)
+                      <Typography variant="h6" fontWeight={600}>
+                        Preferred Time Slots
                       </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {need.available_slots.map((slot, idx) => (
                           <Box key={idx}>
                             <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>

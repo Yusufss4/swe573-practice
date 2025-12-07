@@ -125,7 +125,7 @@ const Register = () => {
       // Navigate to home after successful registration
       navigate('/')
     } catch (error: any) {
-      setApiError(error.message || 'Registration failed. Please try again.')
+      setApiError(error.message || 'Unable to complete registration. Please try again.')
     } finally {
       setIsSubmitting(false)
     }

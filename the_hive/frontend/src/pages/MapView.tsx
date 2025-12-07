@@ -39,7 +39,6 @@ import {
   Person as PersonIcon,
   LocationOn as LocationIcon,
   Close as CloseIcon,
-  Refresh as RefreshIcon,
 } from '@mui/icons-material'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
@@ -381,13 +380,6 @@ const MapView = () => {
               More Filters
             </Button>
 
-            {/* Refresh Button */}
-            <Tooltip title="Refresh map data">
-              <IconButton onClick={() => refetch()} size="small">
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-
             {/* Location Status */}
             {locationError && (
               <Chip
@@ -440,7 +432,7 @@ const MapView = () => {
                       p: 2,
                     }}
                   >
-                    <Alert severity="error">Failed to load map data</Alert>
+                    <Alert severity="error">Unable to load map data. Please try again.</Alert>
                   </Box>
                 ) : (
                   <MapContainer

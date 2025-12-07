@@ -195,7 +195,7 @@ export default function OfferDetail() {
       navigate('/active-items?tab=applications')
     },
     onError: (err: any) => {
-      const errorMessage = err.response?.data?.detail || 'Failed to send proposal. Please try again.'
+      const errorMessage = err.response?.data?.detail || 'Unable to send your request. Please try again.'
       setError(errorMessage)
     },
   })
@@ -271,7 +271,7 @@ export default function OfferDetail() {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error">
-          Failed to load offer details. {fetchError?.message || 'Please try again later.'}
+          Unable to load this offer. Please try again later.
         </Alert>
       </Container>
     )
@@ -314,7 +314,7 @@ export default function OfferDetail() {
                   />
                 )}
                 <Chip
-                  label={offer.status.toUpperCase()}
+                  label={offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
                   color={offer.status === 'active' ? 'success' : 'default'}
                   size="small"
                   variant="outlined"
@@ -449,14 +449,11 @@ export default function OfferDetail() {
                     <Box sx={{ mb: 3 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <ScheduleIcon color="action" />
-                        <Typography variant="h6" fontWeight={600}>
-                          Available Time Slots
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Select a time slot when proposing to help (optional)
+                      <Typography variant="h6" fontWeight={600}>
+                        Available Time Slots
                       </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {offer.available_slots.map((slot, idx) => (
                           <Box key={idx}>
                             <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>

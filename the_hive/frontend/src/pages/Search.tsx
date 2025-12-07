@@ -243,7 +243,7 @@ export default function Search() {
         </Box>
       ) : error ? (
         <Alert severity="error">
-          Failed to load search results. Please try again.
+          Unable to load search results. Please try again.
         </Alert>
       ) : data?.results.length === 0 ? (
         <Alert severity="info">
