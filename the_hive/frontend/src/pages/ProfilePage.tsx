@@ -995,30 +995,6 @@ export default function ProfilePage() {
                         </Typography>
                       </Box>
                     )}
-                    {/* Only show participant info if there's an actual participant (not waiting) */}
-                    {exchange.role !== 'creator' && exchange.other_user_id && (
-                      <>
-                        <Divider sx={{ my: 1 }} />
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <PersonIcon fontSize="small" color="action" />
-                          <Typography variant="body2" color="text.secondary">
-                            {exchange.role === 'provider' ? 'Providing to' : 'Receiving from'}{' '}
-                            <Typography
-                              component="span"
-                              variant="body2"
-                              color="primary"
-                              sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                navigate(`/profile/${exchange.other_username}`)
-                              }}
-                            >
-                              @{exchange.other_username}
-                            </Typography>
-                          </Typography>
-                        </Box>
-                      </>
-                    )}
                   </CardContent>
                 </Card>
               ))}

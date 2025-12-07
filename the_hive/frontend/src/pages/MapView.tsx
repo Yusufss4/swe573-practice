@@ -340,16 +340,10 @@ const MapView = () => {
   return (
     <Box sx={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
       {/* Top Filter Bar */}
-      <Box
-        sx={{
-          p: 2,
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-        }}
-      >
-        <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Box sx={{ p: 2 }}>
+        <Container maxWidth={false} sx={{ px: 2 }}>
+          <Card sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Search Input */}
             <TextField
               placeholder="Search offers and needs..."
@@ -379,6 +373,7 @@ const MapView = () => {
               exclusive
               onChange={(_, value) => value && setTypeFilter(value)}
               size="small"
+              sx={{ '& .MuiToggleButton-root': { textTransform: 'none' } }}
             >
               <ToggleButton value="all">All</ToggleButton>
               <ToggleButton value="offers">
@@ -391,11 +386,23 @@ const MapView = () => {
               </ToggleButton>
             </ToggleButtonGroup>
 
+            {/* Remote/Not Remote Toggle */}
+            <ToggleButton
+              value="remote"
+              selected={remoteOnly}
+              onChange={() => setRemoteOnly(!remoteOnly)}
+              size="small"
+              sx={{ textTransform: 'none' }}
+            >
+              Remote
+            </ToggleButton>
+
             {/* More Filters Button */}
             <Button
               variant="outlined"
               startIcon={<FilterIcon />}
               onClick={() => setFilterDrawerOpen(true)}
+              sx={{ minHeight: 40 }}
               endIcon={
                 selectedTags.length > 0 && (
                   <Badge badgeContent={selectedTags.length} color="primary" />
@@ -405,36 +412,61 @@ const MapView = () => {
               More Filters
             </Button>
 
-            {/* Location Status */}
+            {/* Location Status - Square Box */}
             {locationError && (
-              <Chip
-                icon={<LocationIcon />}
-                label="Location unavailable"
-                size="small"
-                color="warning"
-                variant="outlined"
-              />
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 2,
+                  py: 1,
+                  border: 1,
+                  borderColor: 'warning.main',
+                  borderRadius: 1,
+                  bgcolor: 'warning.lighter',
+                  minHeight: 40,
+                }}
+              >
+                <LocationIcon color="warning" fontSize="small" />
+                <Typography variant="body2" color="warning.main">
+                  Location unavailable
+                </Typography>
+              </Box>
             )}
             {userLocation && !locationError && (
-              <Chip
-                icon={<LocationIcon />}
-                label={locationName || 'Loading location...'}
-                size="small"
-                color="success"
-                variant="outlined"
-              />
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 2,
+                  py: 1,
+                  border: 1,
+                  borderColor: 'success.main',
+                  borderRadius: 1,
+                  bgcolor: 'success.lighter',
+                  minHeight: 40,
+                }}
+              >
+                <LocationIcon color="success" fontSize="small" />
+                <Typography variant="body2" color="success.main">
+                  {locationName || 'Loading location...'}
+                </Typography>
+              </Box>
             )}
           </Box>
+          </Card>
         </Container>
       </Box>
 
       {/* Main Content Area */}
-      <Box sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden' }}>
-        <Container maxWidth="xl" sx={{ height: '100%', py: 0 }}>
+      <Box sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden', pt: 2 }}>
+        <Container maxWidth={false} sx={{ height: '100%', py: 0, px: 2 }}>
           <Grid container spacing={2} sx={{ height: '100%' }}>
             {/* Map Column */}
             <Grid item xs={12} md={7} sx={{ height: '100%', position: 'relative' }}>
-              <Box sx={{ height: '100%', position: 'relative', borderRadius: 1, overflow: 'hidden' }}>
+              <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
                 {isLoading ? (
                   <Box
                     sx={{
@@ -559,7 +591,7 @@ const MapView = () => {
                     </Box>
                   </Box>
                 </Box>
-              </Box>
+              </Card>
             </Grid>
 
             {/* List Column */}
@@ -783,19 +815,6 @@ const MapView = () => {
             <MenuItem value="popularity">Popularity</MenuItem>
           </Select>
         </FormControl>
-
-        {/* Remote Filter */}
-        <Box sx={{ mb: 3 }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={remoteOnly}
-                onChange={(e) => setRemoteOnly(e.target.checked)}
-              />
-            }
-            label="Show only remote offers/needs"
-          />
-        </Box>
 
         {/* Distance Filter */}
         <Box sx={{ mb: 3 }}>

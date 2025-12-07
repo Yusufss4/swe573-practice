@@ -39,6 +39,9 @@ const Layout = () => {
 
   // Don't show navbar on login/register pages
   const hideNavbar = ['/login', '/register'].includes(location.pathname)
+  
+  // Use full width for map page
+  const isMapPage = location.pathname === '/'
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -443,16 +446,16 @@ const Layout = () => {
         component="main" 
         sx={{ 
           flexGrow: 1, 
-          py: hideNavbar ? 0 : 3,
-          px: hideNavbar ? 0 : undefined,
+          py: hideNavbar ? 0 : (isMapPage ? 0 : 3),
+          px: hideNavbar || isMapPage ? 0 : undefined,
         }} 
-        maxWidth={hideNavbar ? false : 'lg'}
+        maxWidth={hideNavbar || isMapPage ? false : 'lg'}
       >
         <Outlet />
       </Container>
 
-      {/* Footer - hide on auth pages */}
-      {!hideNavbar && (
+      {/* Footer - hide on auth pages and map page */}
+      {!hideNavbar && !isMapPage && (
         <Box
           component="footer"
           sx={{

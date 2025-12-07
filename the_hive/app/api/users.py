@@ -472,6 +472,31 @@ def get_user_completed_exchanges(
                         continue
                     seen_participant_ids.add(participant.id)
                     
+                    # For accepted status (active exchanges), if user is creator, only add once per item
+                    item_key = ("offer", participant.offer_id)
+                    if status_filter == "accepted" and is_creator:
+                        if item_key in seen_item_ids:
+                            continue  # Skip duplicate - already added this offer
+                        seen_item_ids.add(item_key)
+                        # For creator with active exchanges, show "Waiting for participants"
+                        exchanges.append(CompletedExchangeResponse(
+                            id=0,  # Not tied to specific participant
+                            offer_id=participant.offer_id,
+                            need_id=None,
+                            item_title=offer.title,
+                            item_description=offer.description,
+                            item_type="offer",
+                            other_user_id=None,
+                            other_username="Waiting for participants",
+                            role="creator",
+                            hours=offer.hours,
+                            completed_at=offer.created_at.isoformat(),
+                            is_remote=offer.is_remote,
+                            location_name=offer.location_name,
+                        ))
+                        continue
+                    
+                    # For completed or if user is participant, show normally
                     # Determine the "other party" from user's perspective
                     if is_participant:
                         other_user = session.get(User, offer.creator_id)
@@ -500,7 +525,8 @@ def get_user_completed_exchanges(
                     ))
                     
                     # Track this item to avoid duplicates when adding own active items
-                    seen_item_ids.add(("offer", participant.offer_id))
+                    if item_key not in seen_item_ids:
+                        seen_item_ids.add(item_key)
                     
         elif participant.need_id:
             need = session.get(Need, participant.need_id)
@@ -514,6 +540,31 @@ def get_user_completed_exchanges(
                         continue
                     seen_participant_ids.add(participant.id)
                     
+                    # For accepted status (active exchanges), if user is creator, only add once per item
+                    item_key = ("need", participant.need_id)
+                    if status_filter == "accepted" and is_creator:
+                        if item_key in seen_item_ids:
+                            continue  # Skip duplicate - already added this need
+                        seen_item_ids.add(item_key)
+                        # For creator with active exchanges, show "Waiting for participants"
+                        exchanges.append(CompletedExchangeResponse(
+                            id=0,  # Not tied to specific participant
+                            offer_id=None,
+                            need_id=participant.need_id,
+                            item_title=need.title,
+                            item_description=need.description,
+                            item_type="need",
+                            other_user_id=None,
+                            other_username="Waiting for participants",
+                            role="creator",
+                            hours=need.hours,
+                            completed_at=need.created_at.isoformat(),
+                            is_remote=need.is_remote,
+                            location_name=need.location_name,
+                        ))
+                        continue
+                    
+                    # For completed or if user is participant, show normally
                     # Determine the "other party" from user's perspective
                     if is_participant:
                         other_user = session.get(User, need.creator_id)
@@ -542,7 +593,8 @@ def get_user_completed_exchanges(
                     ))
                     
                     # Track this item to avoid duplicates when adding own active items
-                    seen_item_ids.add(("need", participant.need_id))
+                    if item_key not in seen_item_ids:
+                        seen_item_ids.add(item_key)
     
     # If status_filter is "accepted" or "all", also include user's own ACTIVE offers/needs
     # even if they have no accepted participants yet
