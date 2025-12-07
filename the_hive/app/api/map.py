@@ -5,6 +5,7 @@ SRS Requirements:
 - FR-9.1: Display offers/needs on map with approximate locations
 - FR-9.2: Filter by tags
 - FR-9.3: Sort by distance from user location
+- FR-8.4: Semantic tag expansion for discovery
 - NFR-7: Privacy - approximate coordinates only (rounded to ~1km)
 
 This module provides location-based discovery with privacy protection.
@@ -17,6 +18,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select, or_, func
 
 from app.core.db import get_session
+from app.core.semantic_tags import expand_tags_for_search
 from app.models.offer import Offer, OfferStatus
 from app.models.need import Need, NeedStatus
 from app.models.associations import OfferTag, NeedTag
@@ -123,10 +125,38 @@ def get_map_feed(
     # Collect all map pins
     pins = []
     
-    # Parse tags if provided
-    tag_names = []
+    # Parse tags and expand semantically if provided
+    expanded_tag_ids = []
     if tags:
-        tag_names = [t.strip() for t in tags.split(",") if t.strip()]
+        # Normalize: lowercase, replace spaces with hyphens
+        tag_names = [t.strip().lower().replace(' ', '-') for t in tags.split(",") if t.strip()]
+        
+        # Get tag IDs from names - support both exact match and prefix match
+        tag_ids = []
+        for tag_name in tag_names:
+            # Try exact match first
+            exact_match = session.exec(
+                select(Tag).where(Tag.name == tag_name)
+            ).first()
+            
+            if exact_match:
+                tag_ids.append(exact_match.id)
+            else:
+                # Try prefix match (e.g., "physical" matches "physical-work")
+                prefix_matches = session.exec(
+                    select(Tag).where(Tag.name.startswith(tag_name))
+                ).all()
+                tag_ids.extend([t.id for t in prefix_matches])
+        
+        # SRS FR-8.4: Expand tags using semantic relationships for better discovery
+        if tag_ids:
+            expanded_tag_ids = expand_tags_for_search(
+                session,
+                tag_ids,
+                include_children=True,
+                include_parents=True,
+                include_synonyms=True
+            )
     
     # Only fetch offers if type is None or 'offer'
     if type is None or type == 'offer':
@@ -137,19 +167,14 @@ def get_map_feed(
         if is_remote is not None:
             offer_query = offer_query.where(Offer.is_remote == is_remote)
         
-        # Filter by tags if specified
-        if tag_names:
-            # Get tag IDs
-            tag_query = select(Tag.id).where(Tag.name.in_(tag_names))
-            tag_ids = list(session.exec(tag_query).all())
-            
-            if tag_ids:
-                # Filter offers that have at least one of the specified tags
-                offer_query = offer_query.where(
-                    Offer.id.in_(
-                        select(OfferTag.offer_id).where(OfferTag.tag_id.in_(tag_ids))
-                    )
+        # Filter by tags if specified (with semantic expansion)
+        if expanded_tag_ids:
+            # Filter offers that have at least one of the expanded tags
+            offer_query = offer_query.where(
+                Offer.id.in_(
+                    select(OfferTag.offer_id).where(OfferTag.tag_id.in_(expanded_tag_ids))
                 )
+            )
         
         offers = session.exec(offer_query).all()
     else:
@@ -164,18 +189,14 @@ def get_map_feed(
         if is_remote is not None:
             need_query = need_query.where(Need.is_remote == is_remote)
         
-        # Filter by tags if specified
-        if tag_names:
-            tag_query = select(Tag.id).where(Tag.name.in_(tag_names))
-            tag_ids = list(session.exec(tag_query).all())
-            
-            if tag_ids:
-                # Filter needs that have at least one of the specified tags
-                need_query = need_query.where(
-                    Need.id.in_(
-                        select(NeedTag.need_id).where(NeedTag.tag_id.in_(tag_ids))
-                    )
+        # Filter by tags if specified (with semantic expansion)
+        if expanded_tag_ids:
+            # Filter needs that have at least one of the expanded tags
+            need_query = need_query.where(
+                Need.id.in_(
+                    select(NeedTag.need_id).where(NeedTag.tag_id.in_(expanded_tag_ids))
                 )
+            )
         
         needs = session.exec(need_query).all()
     else:

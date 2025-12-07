@@ -73,6 +73,8 @@ from app.api.offers import router as offers_router
 from app.api.participants import router as participants_router
 from app.api.ratings import router as ratings_router
 from app.api.search import router as search_router
+from app.api.semantic_tags import router as semantic_tags_router
+from app.api.tags import router as tags_router
 from app.api.users import router as users_router
 
 app.include_router(auth_router, prefix="/api/v1")
@@ -87,4 +89,6 @@ app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(map_router, prefix="/api/v1")
 app.include_router(forum_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(semantic_tags_router, prefix="/api/v1")
+app.include_router(tags_router, prefix="/api/v1")
 

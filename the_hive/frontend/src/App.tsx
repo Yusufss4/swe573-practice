@@ -14,6 +14,7 @@ import Search from './pages/Search'
 import Forum from './pages/Forum'
 import ForumTopicDetail from './pages/ForumTopicDetail'
 import CreateForumTopic from './pages/CreateForumTopic'
+import TagsPage from './pages/TagsPage'
 
 // SRS: Main application component
 // Provides routing structure for all pages defined in SRS Section 3.3.1
@@ -57,6 +58,9 @@ function App() {
         
         {/* SRS FR-8: Tagging and Search */}
         <Route path="search" element={<Search />} />
+        
+        {/* SRS FR-8.4: Tags Hierarchy Visualization */}
+        <Route path="tags" element={<TagsPage />} />
         
         {/* SRS FR-11: Reporting and Moderation - Admin/Moderator dashboards */}
         <Route path="admin" element={<div>Admin Dashboard - To be implemented</div>} />

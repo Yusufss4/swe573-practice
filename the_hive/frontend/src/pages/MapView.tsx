@@ -30,6 +30,7 @@ import {
   Badge,
   FormControlLabel,
   Checkbox,
+  Autocomplete,
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -141,6 +142,7 @@ const MapView = () => {
   
   // Filter state
   const [searchQuery, setSearchQuery] = useState('')
+  const [tagSearchQuery, setTagSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'offers' | 'needs'>(initialType || 'all')
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTag ? [initialTag] : [])
@@ -204,7 +206,7 @@ const MapView = () => {
 
   // SRS FR-9: Fetch map feed data
   const { data: mapFeed, isLoading, error, refetch } = useQuery<MapFeedResponse>({
-    queryKey: ['mapFeed', typeFilter, remoteOnly, userLocation, distanceFilter],
+    queryKey: ['mapFeed', typeFilter, remoteOnly, userLocation, distanceFilter, selectedTags],
     queryFn: async () => {
       const params = new URLSearchParams()
 
@@ -225,6 +227,11 @@ const MapView = () => {
       // Add remote filter
       if (remoteOnly) {
         params.append('is_remote', 'true')
+      }
+
+      // Add tags filter with semantic expansion
+      if (selectedTags.length > 0) {
+        params.append('tags', selectedTags.join(','))
       }
       
       const response = await apiClient.get<MapFeedResponse>(`/map/feed?${params.toString()}`)
@@ -247,23 +254,22 @@ const MapView = () => {
       })
     }
 
-    // Search filter
+    // Search filter (local text search - includes title, description, username, location)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       items = items.filter(
         (item) =>
           item.title.toLowerCase().includes(query) ||
           (item.description && item.description.toLowerCase().includes(query)) ||
+          (item.creator?.username && item.creator.username.toLowerCase().includes(query)) ||
+          (item.creator?.full_name && item.creator.full_name.toLowerCase().includes(query)) ||
+          (item.location_name && item.location_name.toLowerCase().includes(query)) ||
           (item.tags && item.tags.some((tag) => tag.name.toLowerCase().includes(query)))
       )
     }
 
-    // Tag filter
-    if (selectedTags.length > 0) {
-      items = items.filter((item) =>
-        item.tags && item.tags.some((tag) => selectedTags.includes(tag.name))
-      )
-    }
+    // Tag filter is now handled by backend with semantic expansion
+    // No need for local filtering when selectedTags is set
 
     // Sort
     if (sortBy === 'recent') {
@@ -346,11 +352,11 @@ const MapView = () => {
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Search Input */}
             <TextField
-              placeholder="Search offers and needs..."
+              placeholder="Search by title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               size="small"
-              sx={{ flexGrow: 1, minWidth: 250 }}
+              sx={{ flexGrow: 1, minWidth: 200 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -365,6 +371,29 @@ const MapView = () => {
                   </InputAdornment>
                 ),
               }}
+            />
+
+            {/* Tag Search with Autocomplete - Supports prefix matching + semantic expansion */}
+            <Autocomplete
+              freeSolo
+              size="small"
+              options={availableTags}
+              value={null}
+              inputValue={tagSearchQuery}
+              onInputChange={(_, newValue) => setTagSearchQuery(newValue)}
+              onChange={(_, value) => {
+                if (value && typeof value === 'string' && !selectedTags.includes(value)) {
+                  setSelectedTags([...selectedTags, value])
+                  setTagSearchQuery('')
+                }
+              }}
+              sx={{ minWidth: 200 }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Search by tag..."
+                />
+              )}
             />
 
             {/* Type Filter Toggle */}
