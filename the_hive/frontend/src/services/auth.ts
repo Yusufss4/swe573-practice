@@ -78,6 +78,13 @@ export const logout = (): void => {
 }
 
 /**
+ * Get JWT token from localStorage
+ */
+export const getToken = (): string | null => {
+  return localStorage.getItem('access_token')
+}
+
+/**
  * Get current user from localStorage
  */
 export const getCurrentUser = (): User | null => {

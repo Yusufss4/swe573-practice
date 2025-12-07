@@ -1,9 +1,10 @@
 // SRS FR-1: Authentication Context
 // Provides global authentication state management
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import type { User } from '@/types'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react'
+import type { User, Notification } from '@/types'
 import * as authService from '@/services/auth'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface AuthContextType {
   user: User | null
@@ -24,10 +25,89 @@ interface AuthProviderProps {
 /**
  * SRS FR-1.5: Authentication provider with session management
  * Stores JWT in localStorage and manages user state
+ * SRS FR-N: WebSocket connection for real-time notifications
  */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const wsRef = useRef<WebSocket | null>(null)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+  const queryClient = useQueryClient()
+
+  // WebSocket connection management
+  const connectWebSocket = () => {
+    const token = authService.getToken()
+    if (!token || !user) return
+
+    // WebSocket URL - use ws:// for local dev, wss:// for production
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${protocol}//${window.location.host}/api/v1/notifications/ws?token=${token}`
+    
+    try {
+      const ws = new WebSocket(wsUrl)
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected')
+        wsRef.current = ws
+      }
+      
+      ws.onmessage = (event) => {
+        try {
+          const notification: Notification = JSON.parse(event.data)
+          console.log('Received notification:', notification)
+          
+          // Invalidate notifications query to refresh the list
+          queryClient.invalidateQueries({ queryKey: ['notifications'] })
+          
+          // Show browser notification if permitted
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(notification.title, {
+              body: notification.message,
+              icon: '/hive-icon.png',
+            })
+          }
+        } catch (error) {
+          console.error('Error parsing notification:', error)
+        }
+      }
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error)
+      }
+      
+      ws.onclose = () => {
+        console.log('WebSocket disconnected')
+        wsRef.current = null
+        
+        // Attempt to reconnect after 5 seconds
+        if (user) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log('Attempting to reconnect WebSocket...')
+            connectWebSocket()
+          }, 5000)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to create WebSocket:', error)
+    }
+  }
+
+  const disconnectWebSocket = () => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+    }
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+  }
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -51,6 +131,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     initAuth()
   }, [])
+
+  // Connect/disconnect WebSocket based on auth state
+  useEffect(() => {
+    if (user && !isLoading) {
+      connectWebSocket()
+    } else {
+      disconnectWebSocket()
+    }
+
+    return () => {
+      disconnectWebSocket()
+    }
+  }, [user, isLoading])
 
   const login = async (username: string, password: string) => {
     const response = await authService.login({ username, password })

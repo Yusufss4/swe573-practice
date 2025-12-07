@@ -207,6 +207,29 @@ def propose_help(
     session.commit()
     session.refresh(participant)
     
+    # SRS FR-N.10: Notify creator that someone applied
+    from app.core.notifications import notify_application_received
+    if item_type == "offer":
+        item = session.get(Offer, item_id)
+        notify_application_received(
+            session=session,
+            offer_creator_id=item.creator_id,
+            applicant_username=current_user.username,
+            offer_title=item.title,
+            offer_id=item_id,
+            participant_id=participant.id,
+        )
+    else:
+        item = session.get(Need, item_id)
+        notify_application_received(
+            session=session,
+            offer_creator_id=item.creator_id,
+            applicant_username=current_user.username,
+            offer_title=item.title,
+            offer_id=item_id,
+            participant_id=participant.id,
+        )
+    
     # Build response with user data
     return _build_participant_response(session, participant)
 
@@ -343,6 +366,27 @@ def accept_handshake(
     
     session.commit()
     session.refresh(participant)
+    
+    # SRS FR-N.11: Notify applicant that their application was accepted
+    from app.core.notifications import notify_application_accepted
+    if participant.offer_id is not None:
+        offer = session.get(Offer, participant.offer_id)
+        notify_application_accepted(
+            session=session,
+            applicant_id=participant.user_id,
+            offer_title=offer.title,
+            offer_id=offer.id,
+            participant_id=participant.id,
+        )
+    else:
+        need = session.get(Need, participant.need_id)
+        notify_application_accepted(
+            session=session,
+            applicant_id=participant.user_id,
+            offer_title=need.title,
+            offer_id=need.id,
+            participant_id=participant.id,
+        )
     
     # Build response with user data
     return _build_participant_response(session, participant)

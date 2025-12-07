@@ -68,6 +68,7 @@ from app.api.forum import router as forum_router
 from app.api.handshake import router as handshake_router
 from app.api.map import router as map_router
 from app.api.needs import router as needs_router
+from app.api.notifications import router as notifications_router
 from app.api.offers import router as offers_router
 from app.api.participants import router as participants_router
 from app.api.ratings import router as ratings_router
@@ -85,4 +86,5 @@ app.include_router(ratings_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(map_router, prefix="/api/v1")
 app.include_router(forum_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
 

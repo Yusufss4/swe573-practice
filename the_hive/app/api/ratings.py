@@ -281,6 +281,16 @@ def submit_rating(
     # Check if this makes ratings visible (other party already rated)
     _check_rating_visibility(session, rating)
     
+    # SRS FR-N.15: Notify user that they received a rating
+    from app.core.notifications import notify_rating_received
+    notify_rating_received(
+        session=session,
+        rated_user_id=rating.to_user_id,
+        rater_username=current_user.username,
+        rating_value=rating.general_rating,
+        rating_id=rating.id,
+    )
+    
     return _build_rating_response(session, rating, check_visibility=False)
 
 
@@ -482,7 +492,10 @@ def get_user_rating_summary(
     # Calculate distribution
     distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
     for r in general_ratings:
-        distribution[r] += 1
+        # Round to nearest integer for distribution
+        rounded = round(r)
+        if rounded in distribution:
+            distribution[rounded] += 1
     
     # Calculate overall average (across all provided ratings)
     all_ratings_values = general_ratings.copy()

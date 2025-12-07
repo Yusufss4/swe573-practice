@@ -261,6 +261,38 @@ export interface Report {
   resolved_at?: string
 }
 
+// SRS FR-N: Notification types
+export interface Notification {
+  id: number
+  user_id: number
+  type: NotificationType
+  title: string
+  message: string
+  related_offer_id?: number
+  related_need_id?: number
+  related_user_id?: number
+  related_participant_id?: number
+  related_rating_id?: number
+  is_read: boolean
+  created_at: string
+  read_at?: string
+}
+
+export type NotificationType =
+  | 'application_received'
+  | 'application_accepted'
+  | 'application_declined'
+  | 'participant_cancelled'
+  | 'exchange_awaiting_confirmation'
+  | 'exchange_completed'
+  | 'rating_received'
+
+export interface NotificationListResponse {
+  notifications: Notification[]
+  total: number
+  unread_count: number
+}
+
 // API Response wrappers
 export interface PaginatedResponse<T> {
   items: T[]

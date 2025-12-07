@@ -19,12 +19,12 @@ import {
   Hive as HiveIcon,
   AccessTime,
   Add as AddIcon,
-  Notifications as NotificationsIcon,
   Inbox as InboxIcon,
 } from '@mui/icons-material'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { getAvatarDisplay } from '@/utils/avatars'
+import NotificationBell from './NotificationBell'
 
 /**
  * SRS Section 3.3.1: Clean, accessible layout with consistent navigation
@@ -35,7 +35,6 @@ const Layout = () => {
   const location = useLocation()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [createMenuAnchor, setCreateMenuAnchor] = useState<null | HTMLElement>(null)
-  const [notificationsAnchor, setNotificationsAnchor] = useState<null | HTMLElement>(null)
 
   // Don't show navbar on login/register pages
   const hideNavbar = ['/login', '/register'].includes(location.pathname)
@@ -57,14 +56,6 @@ const Layout = () => {
 
   const handleCreateMenuClose = () => {
     setCreateMenuAnchor(null)
-  }
-
-  const handleNotificationsOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setNotificationsAnchor(event.currentTarget)
-  }
-
-  const handleNotificationsClose = () => {
-    setNotificationsAnchor(null)
   }
 
   const handleLogout = () => {
@@ -248,34 +239,7 @@ const Layout = () => {
                 </Button>
 
                 {/* Notifications Bell */}
-                <IconButton
-                  color="inherit"
-                  onClick={handleNotificationsOpen}
-                  sx={{ color: 'text.primary' }}
-                >
-                  <NotificationsIcon />
-                </IconButton>
-                <Menu
-                  anchorEl={notificationsAnchor}
-                  open={Boolean(notificationsAnchor)}
-                  onClose={handleNotificationsClose}
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                  PaperProps={{
-                    sx: { width: 320, maxHeight: 400 },
-                  }}
-                >
-                  <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-                    <Typography variant="h6" fontWeight={600}>
-                      Notifications
-                    </Typography>
-                  </Box>
-                  <MenuItem onClick={handleNotificationsClose}>
-                    <Typography variant="body2" color="text.secondary">
-                      No new notifications
-                    </Typography>
-                  </MenuItem>
-                </Menu>
+                <NotificationBell />
 
                 {/* SRS FR-7.2: TimeBank Balance Indicator */}
                 <Box

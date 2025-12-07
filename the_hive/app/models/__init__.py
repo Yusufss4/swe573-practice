@@ -21,6 +21,7 @@ from app.models.ledger import LedgerEntry, Transfer, TransactionType
 from app.models.rating import Rating, RatingVisibility
 from app.models.report import Report, ReportReason, ReportStatus, ReportAction
 from app.models.forum import ForumTopic, ForumComment, ForumTopicTag, TopicType
+from app.models.notification import Notification, NotificationType
 
 __all__ = [
     # User
@@ -57,6 +58,9 @@ __all__ = [
     "ForumComment",
     "ForumTopicTag",
     "TopicType",
+    # Notifications
+    "Notification",
+    "NotificationType",
 ]
 
 

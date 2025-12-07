@@ -197,9 +197,53 @@ def complete_exchange_endpoint(
         completing_user_id=current_user.id,
     )
     
+    # SRS FR-N.16: Need and Offer imports for notification context
+    from app.core.notifications import notify_exchange_awaiting_confirmation, notify_exchange_completed
+    from app.models.offer import Offer
+    from app.models.need import Need
+    
     # If returns all None, one party confirmed but waiting for the other
     if result[0] is None:
         participant = session.get(Participant, participant_id)
+        
+        # Determine who to notify (the party who hasn't confirmed yet)
+        if participant.offer_id:
+            offer = session.get(Offer, participant.offer_id)
+            provider_id = participant.user_id
+            requester_id = offer.creator_id
+            item_title = offer.title
+            item_id = offer.id
+        else:
+            need = session.get(Need, participant.need_id)
+            provider_id = participant.user_id
+            requester_id = need.creator_id
+            item_title = need.title
+            item_id = need.id
+        
+        # Notify the party who hasn't confirmed yet
+        if participant.provider_confirmed and not participant.requester_confirmed:
+            # Provider confirmed, notify requester
+            provider = session.get(User, provider_id)
+            notify_exchange_awaiting_confirmation(
+                session=session,
+                user_id=requester_id,
+                other_party_username=provider.username,
+                offer_title=item_title,
+                offer_id=item_id,
+                participant_id=participant_id,
+            )
+        elif participant.requester_confirmed and not participant.provider_confirmed:
+            # Requester confirmed, notify provider
+            requester = session.get(User, requester_id)
+            notify_exchange_awaiting_confirmation(
+                session=session,
+                user_id=provider_id,
+                other_party_username=requester.username,
+                offer_title=item_title,
+                offer_id=item_id,
+                participant_id=participant_id,
+            )
+        
         return {
             "status": "pending_confirmation",
             "message": "Your confirmation has been recorded. Waiting for the other party to confirm.",
@@ -219,6 +263,34 @@ def complete_exchange_endpoint(
     # Check if there was a warning about reciprocity limit
     _, warning_message = check_reciprocity_limit(
         session, requester.id, 0  # Check current state
+    )
+    
+    # SRS FR-N.14: Notify both parties that exchange is completed
+    participant = session.get(Participant, participant_id)
+    if participant.offer_id:
+        offer = session.get(Offer, participant.offer_id)
+        item_title = offer.title
+        item_id = offer.id
+    else:
+        need = session.get(Need, participant.need_id)
+        item_title = need.title
+        item_id = need.id
+    
+    notify_exchange_completed(
+        session=session,
+        user_id=provider.id,
+        other_party_username=requester.username,
+        offer_title=item_title,
+        offer_id=item_id,
+        participant_id=participant_id,
+    )
+    notify_exchange_completed(
+        session=session,
+        user_id=requester.id,
+        other_party_username=provider.username,
+        offer_title=item_title,
+        offer_id=item_id,
+        participant_id=participant_id,
     )
     
     return ExchangeCompleteResponse(
