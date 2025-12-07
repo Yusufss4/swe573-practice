@@ -81,6 +81,8 @@ def _get_user_tags(session: Session, user_id: int) -> list[str]:
 def _get_user_stats(session: Session, user_id: int, balance: float) -> UserStats:
     """Calculate user stats from database."""
     from app.models.participant import Participant, ParticipantStatus
+    from app.models.offer import Offer
+    from app.models.need import Need
     
     # Hours given (debit entries)
     debit_sum = session.exec(
@@ -92,13 +94,38 @@ def _get_user_stats(session: Session, user_id: int, balance: float) -> UserStats
         select(func.sum(LedgerEntry.credit)).where(LedgerEntry.user_id == user_id)
     ).one() or 0.0
     
-    # Completed exchanges
-    completed_count = session.exec(
+    # Completed exchanges - count both as participant and as creator
+    # 1. Count where user is a participant
+    completed_as_participant = session.exec(
         select(func.count(Participant.id)).where(
             Participant.user_id == user_id,
             Participant.status == ParticipantStatus.COMPLETED
         )
     ).one() or 0
+    
+    # 2. Count completed participants on user's offers
+    completed_on_offers = session.exec(
+        select(func.count(Participant.id))
+        .select_from(Participant)
+        .join(Offer, Participant.offer_id == Offer.id)
+        .where(
+            Offer.creator_id == user_id,
+            Participant.status == ParticipantStatus.COMPLETED
+        )
+    ).one() or 0
+    
+    # 3. Count completed participants on user's needs
+    completed_on_needs = session.exec(
+        select(func.count(Participant.id))
+        .select_from(Participant)
+        .join(Need, Participant.need_id == Need.id)
+        .where(
+            Need.creator_id == user_id,
+            Participant.status == ParticipantStatus.COMPLETED
+        )
+    ).one() or 0
+    
+    completed_count = completed_as_participant + completed_on_offers + completed_on_needs
     
     # Ratings received count
     ratings_count = session.exec(
