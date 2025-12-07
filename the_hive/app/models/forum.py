@@ -95,6 +95,10 @@ class ForumComment(SQLModel, table=True):
     is_approved: bool = Field(default=True)
     moderation_reason: Optional[str] = Field(default=None, max_length=500)
     
+    # Soft delete (SRS FR-11.3: Moderators can remove comments)
+    is_deleted: bool = Field(default=False)
+    deleted_at: Optional[datetime] = Field(default=None)
+    
     # Visibility
     is_visible: bool = Field(default=True)
     

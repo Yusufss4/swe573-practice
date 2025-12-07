@@ -15,6 +15,7 @@ import Forum from './pages/Forum'
 import ForumTopicDetail from './pages/ForumTopicDetail'
 import CreateForumTopic from './pages/CreateForumTopic'
 import TagsPage from './pages/TagsPage'
+import ModeratorDashboard from './pages/ModeratorDashboard'
 
 // SRS: Main application component
 // Provides routing structure for all pages defined in SRS Section 3.3.1
@@ -64,7 +65,7 @@ function App() {
         
         {/* SRS FR-11: Reporting and Moderation - Admin/Moderator dashboards */}
         <Route path="admin" element={<div>Admin Dashboard - To be implemented</div>} />
-        <Route path="moderator" element={<div>Moderator Dashboard - To be implemented</div>} />
+        <Route path="moderator" element={<ModeratorDashboard />} />
       </Route>
     </Routes>
   )

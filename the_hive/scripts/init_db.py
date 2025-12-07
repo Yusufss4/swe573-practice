@@ -96,6 +96,43 @@ def seed_basic_data():
             print("   To reseed, drop and recreate the database first.")
             return
         
+        # Create moderator user first (with role=MODERATOR)
+        from app.core.security import get_password_hash
+        moderator = User(
+            email="moderator@thehive.com",
+            username="moderator",
+            password_hash=get_password_hash("ModeratorPass123!"),
+            full_name="System Moderator",
+            description="Platform moderator responsible for content review and user safety",
+            role=UserRole.MODERATOR,
+            balance=5.0,
+            location_lat=41.0082,
+            location_lon=28.9784,
+            location_name="İstanbul, Turkey",
+            profile_image="owl",
+            profile_image_type="preset",
+        )
+        session.add(moderator)
+        session.commit()
+        session.refresh(moderator)
+        
+        # Create initial ledger entry for moderator
+        moderator_ledger = LedgerEntry(
+            user_id=moderator.id,
+            debit=0.0,
+            credit=5.0,
+            balance=5.0,
+            transaction_type=TransactionType.INITIAL,
+            description="Initial TimeBank balance",
+        )
+        session.add(moderator_ledger)
+        session.commit()
+        
+        print(f"✅ Created MODERATOR: {moderator.username} (ID: {moderator.id}, Role: {moderator.role})")
+        print(f"   📧 Email: moderator@thehive.com")
+        print(f"   🔑 Password: ModeratorPass123!")
+        print()
+        
         # Create test users (FR-7.1: each starts with 5 hours)
         # All users are located in various neighborhoods of Istanbul, Turkey
         # Each user has a preset avatar and profile tags

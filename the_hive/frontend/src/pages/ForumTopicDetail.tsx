@@ -39,6 +39,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
+import ReportButton from '@/components/ReportButton'
 import { getAvatarDisplay } from '@/utils/avatars'
 
 // Types
@@ -252,25 +253,35 @@ export default function ForumTopicDetail() {
                 />
               )}
             </Box>
-            {isCreator && (
-              <Box>
-                <IconButton
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {!isCreator && (
+                <ReportButton
+                  itemType="forum_topic"
+                  itemId={topic.id}
+                  itemTitle={topic.title}
                   size="small"
-                  onClick={() => navigate(`/forum/edit/${topic.id}`)}
-                  title="Edit"
-                >
-                  <EditIcon />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  onClick={() => setDeleteDialogOpen(true)}
-                  title="Delete"
-                  color="error"
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            )}
+                />
+              )}
+              {isCreator && (
+                <Box>
+                  <IconButton
+                    size="small"
+                    onClick={() => navigate(`/forum/edit/${topic.id}`)}
+                    title="Edit"
+                  >
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    title="Delete"
+                    color="error"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              )}
+            </Box>
           </Box>
 
           {/* Title */}
@@ -467,7 +478,15 @@ export default function ForumTopicDetail() {
                 comment.author_profile_image_type
               )
               return (
-                <Card key={comment.id} sx={{ mb: 2 }}>
+                <Card
+                  key={comment.id}
+                  sx={{
+                    mb: 2,
+                    '&:hover .comment-report-button': {
+                      opacity: 1,
+                    },
+                  }}
+                >
                   <CardContent>
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       {/* Avatar */}
@@ -501,21 +520,38 @@ export default function ForumTopicDetail() {
 
                       {/* Content */}
                       <Box sx={{ flex: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                          <Typography
-                            variant="subtitle2"
-                            fontWeight={600}
-                            sx={{ cursor: 'pointer' }}
-                            onClick={() => navigate(`/profile/${comment.author_username}`)}
-                          >
-                            {comment.author_display_name || comment.author_username}{' '}
-                            <Typography component="span" variant="body2" color="text.secondary">
-                              @{comment.author_username}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography
+                              variant="subtitle2"
+                              fontWeight={600}
+                              sx={{ cursor: 'pointer' }}
+                              onClick={() => navigate(`/profile/${comment.author_username}`)}
+                            >
+                              {comment.author_display_name || comment.author_username}{' '}
+                              <Typography component="span" variant="body2" color="text.secondary">
+                                @{comment.author_username}
+                              </Typography>
                             </Typography>
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {formatDate(comment.created_at)}
-                          </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatDate(comment.created_at)}
+                            </Typography>
+                          </Box>
+                          {user && user.id !== comment.author_id && (
+                            <Box
+                              className="comment-report-button"
+                              sx={{
+                                opacity: 0,
+                                transition: 'opacity 0.2s',
+                              }}
+                            >
+                              <ReportButton
+                                itemType="comment"
+                                itemId={comment.id}
+                                size="small"
+                              />
+                            </Box>
+                          )}
                         </Box>
                         <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
                           {comment.content}

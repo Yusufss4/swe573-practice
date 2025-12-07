@@ -46,6 +46,7 @@ import { getAvatarDisplay } from '@/utils/avatars'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
+import ReportButton from '@/components/ReportButton'
 
 // Fix Leaflet icon issue
 import icon from 'leaflet/dist/images/marker-icon.png'
@@ -334,10 +335,20 @@ export default function NeedDetail() {
                 />
               </Box>
 
-              {/* Title */}
-              <Typography variant="h4" gutterBottom fontWeight={600}>
-                {need.title}
-              </Typography>
+              {/* Title with Report Button */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="h4" fontWeight={600}>
+                  {need.title}
+                </Typography>
+                {!isCreator && (
+                  <ReportButton
+                    itemType="need"
+                    itemId={need.id}
+                    itemTitle={need.title}
+                    size="medium"
+                  />
+                )}
+              </Box>
 
               {/* Creator Info */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>

@@ -83,12 +83,38 @@ class User(SQLModel, table=True):
     location_lon: Optional[float] = Field(default=None)
     location_name: Optional[str] = Field(default=None, max_length=255)  # e.g., "Brooklyn, NY"
     
+    # Moderation fields (SRS FR-11.5: User sanctions)
+    is_suspended: bool = Field(default=False)
+    suspended_at: Optional[datetime] = Field(default=None)
+    suspended_until: Optional[datetime] = Field(default=None)
+    suspension_reason: Optional[str] = Field(default=None, max_length=500)
+    
+    is_banned: bool = Field(default=False)
+    banned_at: Optional[datetime] = Field(default=None)
+    ban_reason: Optional[str] = Field(default=None, max_length=500)
+    
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
     tags: list["UserTag"] = Relationship(back_populates="user")
+    
+    # Convenience properties
+    @property
+    def is_moderator(self) -> bool:
+        """Check if user is a moderator or admin."""
+        return self.role in [UserRole.MODERATOR, UserRole.ADMIN]
+    
+    @property
+    def is_admin(self) -> bool:
+        """Check if user is an admin."""
+        return self.role == UserRole.ADMIN
+    
+    @property
+    def bio(self) -> Optional[str]:
+        """Alias for description field (used in report schemas)."""
+        return self.description
 
 
 class UserTag(SQLModel, table=True):

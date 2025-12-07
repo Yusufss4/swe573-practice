@@ -49,6 +49,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { RatingsList } from '@/components/RatingDisplay'
 import { useAuth } from '@/contexts/AuthContext'
+import ReportButton from '@/components/ReportButton'
 
 // Preset avatar emoji mappings - expanded with more options
 const AVATAR_EMOJIS: Record<string, string> = {
@@ -575,7 +576,17 @@ export default function ProfilePage() {
       </IconButton>
 
       {/* Profile Header Card */}
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3, position: 'relative' }}>
+        {!isOwnProfile && (
+          <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>
+            <ReportButton
+              itemType="user"
+              itemId={profile.id}
+              itemTitle={profile.display_name || profile.username}
+              size="small"
+            />
+          </Box>
+        )}
         <CardContent>
           <Grid container spacing={3}>
             {/* Avatar and Basic Info */}
