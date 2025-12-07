@@ -553,9 +553,15 @@ export default function NeedDetail() {
                 </Button>
               )}
 
-              {isFull && !isCreator && (
+              {isFull && !isCreator && need.status !== 'completed' && (
                 <Alert severity="info" sx={{ mt: 2 }}>
                   This need has enough helpers. Check back later if spots become available.
+                </Alert>
+              )}
+
+              {need.status === 'completed' && !isCreator && (
+                <Alert severity="success" sx={{ mt: 2 }}>
+                  This need has been completed.
                 </Alert>
               )}
 

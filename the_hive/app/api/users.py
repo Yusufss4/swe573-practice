@@ -353,17 +353,19 @@ def get_user_profile_by_username(
 
 class CompletedExchangeResponse(BaseModel):
     """Schema for a completed exchange."""
-    id: int  # Participant ID
+    id: int  # Participant ID (0 if no participants yet)
     offer_id: Optional[int]
     need_id: Optional[int]
     item_title: str
     item_description: str
     item_type: str  # "offer" or "need"
-    other_user_id: int  # The other party in the exchange
+    other_user_id: Optional[int]  # The other party in the exchange (None if no participants yet)
     other_username: str
-    role: str  # provider or requester
+    role: str  # provider or requester or creator
     hours: float
     completed_at: str
+    is_remote: bool
+    location_name: Optional[str] = None
     
     model_config = {"from_attributes": True}
 
@@ -380,20 +382,24 @@ class CompletedExchangesListResponse(BaseModel):
 def get_user_completed_exchanges(
     username: str,
     session: Annotated[Session, Depends(get_session)],
+    status_filter: str = Query("completed", description="Filter by status: accepted, completed, all"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
 ) -> CompletedExchangesListResponse:
     """
-    Get completed exchanges for a user by username.
+    Get exchanges for a user by username.
     
-    SRS FR-10: View completed exchanges on profile
+    SRS FR-10: View exchanges on profile
     
-    Returns completed exchanges where user was either:
+    Returns exchanges where user was either:
     1. A participant (applied to someone's offer/need)
-    2. The creator of an offer/need that was completed
+    2. The creator of an offer/need that was accepted/completed
+    
+    Args:
+        status_filter: Filter by participant status (accepted=active, completed, all)
     
     Returns:
-        List of completed exchanges with details
+        List of exchanges with details
     """
     from app.models.participant import Participant, ParticipantStatus
     from app.models.offer import Offer
@@ -408,23 +414,25 @@ def get_user_completed_exchanges(
             detail="User not found"
         )
     
-    # Get all completed participants
-    # We need to find exchanges where either:
-    # 1. User is the participant (user_id == user.id)
-    # 2. User is the creator of the offer/need
+    # Build query based on status filter
+    if status_filter == "accepted":
+        status_condition = Participant.status == ParticipantStatus.ACCEPTED
+    elif status_filter == "completed":
+        status_condition = Participant.status == ParticipantStatus.COMPLETED
+    else:  # all
+        status_condition = (Participant.status == ParticipantStatus.ACCEPTED) | (Participant.status == ParticipantStatus.COMPLETED)
     
-    # First, get all completed participants
-    all_completed = session.exec(
-        select(Participant).where(
-            Participant.status == ParticipantStatus.COMPLETED
-        )
+    # Get filtered participants
+    all_participants = session.exec(
+        select(Participant).where(status_condition)
     ).all()
     
     # Build response with enriched details
     exchanges = []
     seen_participant_ids = set()  # Avoid duplicates
+    seen_item_ids = set()  # Track items already added (to avoid duplicates from own active items)
     
-    for participant in all_completed:
+    for participant in all_participants:
         if participant.offer_id:
             offer = session.get(Offer, participant.offer_id)
             if offer:
@@ -460,7 +468,12 @@ def get_user_completed_exchanges(
                         role=role,
                         hours=participant.hours_contributed,
                         completed_at=participant.updated_at.isoformat(),
+                        is_remote=offer.is_remote,
+                        location_name=offer.location_name,
                     ))
+                    
+                    # Track this item to avoid duplicates when adding own active items
+                    seen_item_ids.add(("offer", participant.offer_id))
                     
         elif participant.need_id:
             need = session.get(Need, participant.need_id)
@@ -497,7 +510,72 @@ def get_user_completed_exchanges(
                         role=role,
                         hours=participant.hours_contributed,
                         completed_at=participant.updated_at.isoformat(),
+                        is_remote=need.is_remote,
+                        location_name=need.location_name,
                     ))
+                    
+                    # Track this item to avoid duplicates when adding own active items
+                    seen_item_ids.add(("need", participant.need_id))
+    
+    # If status_filter is "accepted" or "all", also include user's own ACTIVE offers/needs
+    # even if they have no accepted participants yet
+    if status_filter in ["accepted", "all"]:
+        from app.models.offer import OfferStatus
+        from app.models.need import NeedStatus
+        
+        # Get user's own ACTIVE offers
+        user_offers = session.exec(
+            select(Offer).where(
+                Offer.creator_id == user.id,
+                Offer.status == OfferStatus.ACTIVE
+            )
+        ).all()
+        
+        for offer in user_offers:
+            item_key = ("offer", offer.id)
+            if item_key not in seen_item_ids:
+                exchanges.append(CompletedExchangeResponse(
+                    id=0,  # No participant ID for items without accepted participants
+                    offer_id=offer.id,
+                    need_id=None,
+                    item_title=offer.title,
+                    item_description=offer.description,
+                    item_type="offer",
+                    other_user_id=None,  # No other party yet
+                    other_username="Waiting for participants",
+                    role="creator",
+                    hours=offer.hours,
+                    completed_at=offer.created_at.isoformat(),
+                    is_remote=offer.is_remote,
+                    location_name=offer.location_name,
+                ))
+        
+        # Get user's own ACTIVE needs
+        user_needs = session.exec(
+            select(Need).where(
+                Need.creator_id == user.id,
+                Need.status == NeedStatus.ACTIVE
+            )
+        ).all()
+        
+        for need in user_needs:
+            item_key = ("need", need.id)
+            if item_key not in seen_item_ids:
+                exchanges.append(CompletedExchangeResponse(
+                    id=0,  # No participant ID for items without accepted participants
+                    offer_id=None,
+                    need_id=need.id,
+                    item_title=need.title,
+                    item_description=need.description,
+                    item_type="need",
+                    other_user_id=None,  # No other party yet
+                    other_username="Waiting for participants",
+                    role="creator",
+                    hours=need.hours,
+                    completed_at=need.created_at.isoformat(),
+                    is_remote=need.is_remote,
+                    location_name=need.location_name,
+                ))
     
     # Sort by completed_at descending
     exchanges.sort(key=lambda x: x.completed_at, reverse=True)

@@ -394,9 +394,19 @@ export default function ProfilePage() {
 
   // Fetch completed exchanges by username
   const { data: exchangesData, isLoading: exchangesLoading } = useQuery<CompletedExchangesResponse>({
-    queryKey: ['userCompletedExchanges', username],
+    queryKey: ['userCompletedExchanges', username, 'completed'],
     queryFn: async () => {
-      const response = await apiClient.get(`/users/username/${username}/completed-exchanges`)
+      const response = await apiClient.get(`/users/username/${username}/completed-exchanges?status_filter=completed`)
+      return response.data
+    },
+    enabled: !!username && activeTab === 1, // Only fetch when on completed activities tab
+  })
+
+  // Fetch active exchanges (accepted status)
+  const { data: activeExchangesData, isLoading: activeExchangesLoading } = useQuery<CompletedExchangesResponse>({
+    queryKey: ['userActiveExchanges', username, 'accepted'],
+    queryFn: async () => {
+      const response = await apiClient.get(`/users/username/${username}/completed-exchanges?status_filter=accepted`)
       return response.data
     },
     enabled: !!username && activeTab === 0, // Only fetch when on activities tab
@@ -858,19 +868,125 @@ export default function ProfilePage() {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
             <Tab label="Activities" />
+            <Tab label="Completed Activities" />
             <Tab label="Recent Ratings" />
           </Tabs>
         </Box>
 
-        {/* Tab 1: Activities */}
+        {/* Tab 1: Active Exchanges */}
         <TabPanel value={activeTab} index={0}>
+          {activeExchangesLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : !activeExchangesData || activeExchangesData.items.length === 0 ? (
+            <Alert severity="info">
+              No active exchanges. Active exchanges will appear here when accepted.
+            </Alert>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {activeExchangesData.items.map((exchange) => (
+                <Card 
+                  key={exchange.id} 
+                  variant="outlined"
+                  sx={{ 
+                    cursor: 'pointer',
+                    '&:hover': { 
+                      bgcolor: 'action.hover',
+                      borderColor: 'primary.main'
+                    }
+                  }}
+                  onClick={() => {
+                    const path = exchange.item_type === 'offer' 
+                      ? `/offers/${exchange.offer_id}` 
+                      : `/needs/${exchange.need_id}`
+                    navigate(path)
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {exchange.item_title}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+                          <Chip
+                            label={exchange.item_type === 'offer' ? 'Offer' : 'Need'}
+                            size="small"
+                            color={exchange.item_type === 'offer' ? 'primary' : 'secondary'}
+                            variant="outlined"
+                          />
+                          <Chip
+                            label="Active"
+                            size="small"
+                            color="success"
+                          />
+                          <Chip
+                            label={`${exchange.hours.toFixed(1)}h`}
+                            size="small"
+                          />
+                        </Box>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{
+                      mb: 1.5,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}>
+                      {exchange.item_description}
+                    </Typography>
+                    {/* Show location if not remote */}
+                    {!exchange.is_remote && exchange.location_name && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <LocationIcon fontSize="small" color="action" />
+                        <Typography variant="body2" color="text.secondary">
+                          {exchange.location_name}
+                        </Typography>
+                      </Box>
+                    )}
+                    {/* Only show participant info if there's an actual participant (not waiting) */}
+                    {exchange.role !== 'creator' && exchange.other_user_id && (
+                      <>
+                        <Divider sx={{ my: 1 }} />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <PersonIcon fontSize="small" color="action" />
+                          <Typography variant="body2" color="text.secondary">
+                            {exchange.role === 'provider' ? 'Providing to' : 'Receiving from'}{' '}
+                            <Typography
+                              component="span"
+                              variant="body2"
+                              color="primary"
+                              sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                navigate(`/profile/${exchange.other_username}`)
+                              }}
+                            >
+                              @{exchange.other_username}
+                            </Typography>
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
+        </TabPanel>
+
+        {/* Tab 2: Completed Activities */}
+        <TabPanel value={activeTab} index={1}>
           {exchangesLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
             </Box>
           ) : !exchangesData || exchangesData.items.length === 0 ? (
             <Alert severity="info">
-              No completed exchanges yet. Exchanges will appear here after they are completed.
+              No completed exchanges yet.
             </Alert>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -926,6 +1042,17 @@ export default function ProfilePage() {
                     }}>
                       {exchange.item_description}
                     </Typography>
+                    {/* Show location if not remote */}
+                    {!exchange.is_remote && exchange.location_name && (
+                      <>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <LocationIcon fontSize="small" color="action" />
+                          <Typography variant="body2" color="text.secondary">
+                            {exchange.location_name}
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
                     <Divider sx={{ my: 1 }} />
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <PersonIcon fontSize="small" color="action" />
@@ -952,8 +1079,8 @@ export default function ProfilePage() {
           )}
         </TabPanel>
 
-        {/* Tab 2: Recent Ratings */}
-        <TabPanel value={activeTab} index={1}>
+        {/* Tab 3: Recent Ratings */}
+        <TabPanel value={activeTab} index={2}>
           <RatingsList userId={profile.id} limit={10} />
         </TabPanel>
       </Card>

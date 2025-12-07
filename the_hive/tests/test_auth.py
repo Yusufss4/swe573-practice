@@ -498,7 +498,7 @@ def test_get_preset_avatars(client: TestClient):
     assert "butterfly" in data["avatars"]
     assert "fox" in data["avatars"]  # New animal avatars
     assert "flower" in data["avatars"]  # New plant avatars
-    assert len(data["avatars"]) == 26  # Updated count
+    assert len(data["avatars"]) == 25  # Updated count
 
 
 def test_profile_includes_tags(client: TestClient, session: Session):

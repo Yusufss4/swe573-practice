@@ -539,9 +539,15 @@ export default function OfferDetail() {
                 </Button>
               )}
 
-              {isFull && !isCreator && (
+              {isFull && !isCreator && offer.status !== 'completed' && (
                 <Alert severity="info" sx={{ mt: 2 }}>
                   This offer is currently full. Check back later if spots become available.
+                </Alert>
+              )}
+
+              {offer.status === 'completed' && !isCreator && (
+                <Alert severity="success" sx={{ mt: 2 }}>
+                  This offer has been completed.
                 </Alert>
               )}
 

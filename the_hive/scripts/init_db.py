@@ -863,8 +863,19 @@ def seed_basic_data():
         )
         session.add(participant8)
         
+        # David accepts Iris's childcare need (David is PROVIDER) - ACCEPTED
+        participant_childcare = Participant(
+            user_id=users[3].id,  # David
+            need_id=needs[10][0].id,  # Childcare for Art Classes (Iris's need)
+            role=ParticipantRole.PROVIDER,
+            status=ParticipantStatus.ACCEPTED,
+            message="I have experience with kids and would love to help out during your art classes!",
+            hours_contributed=2.0,
+        )
+        session.add(participant_childcare)
+        
         session.commit()
-        print(f"✅ Created 9 participant records (5 completed, 4 pending)")
+        print(f"✅ Created 10 participant records (5 completed, 5 accepted/pending)")
         
         # Refresh participants to get IDs
         session.refresh(participant1)
@@ -1018,8 +1029,17 @@ def seed_basic_data():
         offers[12][0].accepted_count = 1  # Spanish conversation
         needs[0][0].accepted_count = 1  # Help Moving Furniture
         needs[1][0].accepted_count = 1  # Website Design Help
+        needs[10][0].accepted_count = 1  # Childcare for Art Classes (David accepted)
+        
+        # Mark offers/needs with completed participants as COMPLETED
+        offers[3][0].status = OfferStatus.COMPLETED  # Carpentry workshop - completed
+        offers[9][0].status = OfferStatus.COMPLETED  # Composting workshop - completed
+        offers[12][0].status = OfferStatus.COMPLETED  # Spanish conversation - completed
+        needs[0][0].status = NeedStatus.COMPLETED  # Help Moving Furniture - completed
+        needs[1][0].status = NeedStatus.COMPLETED  # Website Design Help - completed
+        
         session.commit()
-        print(f"✅ Updated accepted_count for items with completed participants")
+        print(f"✅ Updated accepted_count and completed status for items with completed participants")
         
         # =================================================================
         # Create RATINGS for completed exchanges (FR-10.4)
