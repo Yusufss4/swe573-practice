@@ -129,10 +129,52 @@ const MapView = () => {
   const [remoteOnly, setRemoteOnly] = useState<boolean>(false)
   const [distanceFilter, setDistanceFilter] = useState<number>(50) // km
   const [sortBy, setSortBy] = useState<'recent' | 'distance' | 'popularity'>('recent')
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
+  const [locationName, setLocationName] = useState<string | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
   
   // Map state
-  const [mapCenter, setMapCenter] = useState<[number, number]>([40.7128, -74.0060]) // Default: NYC
+  const [mapCenter, setMapCenter] = useState<[number, number]>([41.0082, 28.9784]) // Default: Istanbul, Turkey
   const [selectedItem, setSelectedItem] = useState<MapFeedItem | null>(null)
+
+  // Request user's location on mount
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const coords: [number, number] = [position.coords.latitude, position.coords.longitude]
+          setUserLocation(coords)
+          setMapCenter(coords) // Center map on user's location
+          setLocationError(null)
+          
+          // Reverse geocode to get location name
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords[0]}&lon=${coords[1]}&zoom=10`
+            )
+            const data = await response.json()
+            const locationStr = data.address?.city || data.address?.town || data.address?.county || data.address?.state || 'Current Location'
+            setLocationName(locationStr)
+          } catch (error) {
+            console.error('Error getting location name:', error)
+            setLocationName('Current Location')
+          }
+        },
+        (error) => {
+          console.error('Error getting location:', error)
+          setLocationError(error.message)
+          // Keep default Istanbul location if permission denied
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      )
+    } else {
+      setLocationError('Geolocation is not supported by your browser')
+    }
+  }, [])
 
   // Clear URL params after applying filters (keep URL clean)
   useEffect(() => {
@@ -144,9 +186,15 @@ const MapView = () => {
 
   // SRS FR-9: Fetch map feed data
   const { data: mapFeed, isLoading, error, refetch } = useQuery<MapFeedResponse>({
-    queryKey: ['mapFeed', typeFilter, remoteOnly],
+    queryKey: ['mapFeed', typeFilter, remoteOnly, userLocation, distanceFilter],
     queryFn: async () => {
       const params = new URLSearchParams()
+
+      // Add user location for distance calculation
+      if (userLocation) {
+        params.append('user_lat', userLocation[0].toString())
+        params.append('user_lon', userLocation[1].toString())
+      }
 
       // Add type filter
       if (typeFilter === 'offers') {
@@ -172,6 +220,15 @@ const MapView = () => {
     
     let items = mapFeed.items
 
+    // Distance filter - only apply if user location is available and distance is not "Any"
+    if (userLocation && distanceFilter < 100) {
+      items = items.filter((item) => {
+        if (item.is_remote) return true // Always show remote items
+        if (!item.distance_km) return true // Show items without distance calculation
+        return item.distance_km <= distanceFilter
+      })
+    }
+
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
@@ -195,10 +252,20 @@ const MapView = () => {
       items = [...items].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
+    } else if (sortBy === 'distance' && userLocation) {
+      items = [...items].sort((a, b) => {
+        // Remote items go to end
+        if (a.is_remote && !b.is_remote) return 1
+        if (!a.is_remote && b.is_remote) return -1
+        // Sort by distance
+        const distA = a.distance_km ?? Infinity
+        const distB = b.distance_km ?? Infinity
+        return distA - distB
+      })
     }
 
     return items
-  }, [mapFeed?.items, searchQuery, selectedTags, sortBy])
+  }, [mapFeed?.items, searchQuery, selectedTags, sortBy, distanceFilter, userLocation])
 
   // Extract all unique tags from items
   const availableTags = useMemo(() => {
@@ -320,6 +387,26 @@ const MapView = () => {
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
+
+            {/* Location Status */}
+            {locationError && (
+              <Chip
+                icon={<LocationIcon />}
+                label="Location unavailable"
+                size="small"
+                color="warning"
+                variant="outlined"
+              />
+            )}
+            {userLocation && !locationError && (
+              <Chip
+                icon={<LocationIcon />}
+                label={locationName || 'Loading location...'}
+                size="small"
+                color="success"
+                variant="outlined"
+              />
+            )}
           </Box>
         </Container>
       </Box>
@@ -363,8 +450,10 @@ const MapView = () => {
                     scrollWheelZoom={true}
                   >
                     <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                      url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                      subdomains="abcd"
+                      maxZoom={20}
                     />
                     <MapCenterUpdater center={mapCenter} />
                     
@@ -646,20 +735,37 @@ const MapView = () => {
 
         {/* Distance Filter */}
         <Box sx={{ mb: 3 }}>
-          <Typography gutterBottom>
-            Distance: {distanceFilter === 100 ? 'Any' : `${distanceFilter} km`}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography gutterBottom>
+              Distance: {distanceFilter === 100 ? 'Any' : `${distanceFilter} km`}
+            </Typography>
+            {!userLocation && (
+              <Chip
+                icon={<LocationIcon />}
+                label="Requires location"
+                size="small"
+                color="warning"
+                variant="outlined"
+              />
+            )}
+          </Box>
           <Slider
             value={distanceFilter}
             onChange={(_, value) => setDistanceFilter(value as number)}
             min={1}
             max={100}
+            disabled={!userLocation}
             marks={[
               { value: 1, label: '1km' },
               { value: 50, label: '50km' },
               { value: 100, label: 'Any' },
             ]}
           />
+          {!userLocation && (
+            <Typography variant="caption" color="text.secondary">
+              Enable location permissions to filter by distance
+            </Typography>
+          )}
         </Box>
 
         {/* Tag Filter */}

@@ -22,6 +22,8 @@ import {
   CircularProgress,
   Divider,
   Paper,
+  Tabs,
+  Tab,
 } from '@mui/material'
 import {
   ArrowBack as ArrowBackIcon,
@@ -35,11 +37,28 @@ import {
   Language as RemoteIcon,
   HelpOutline as NeedIcon,
   CheckCircle as CheckIcon,
+  Map as MapIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { getAvatarDisplay } from '@/utils/avatars'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// Fix Leaflet icon issue
+import icon from 'leaflet/dist/images/marker-icon.png'
+import iconShadow from 'leaflet/dist/images/marker-shadow.png'
+
+const DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+})
+
+L.Marker.prototype.options.icon = DefaultIcon
 
 // SRS FR-3: Need data structure
 interface NeedDetail {
@@ -127,6 +146,7 @@ export default function NeedDetail() {
     const [selectedTimeRange, setSelectedTimeRange] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [currentTab, setCurrentTab] = useState(0)
 
   // Fetch need details
   const { data: need, isLoading, error: fetchError } = useQuery<NeedDetail>({
@@ -396,58 +416,71 @@ export default function NeedDetail() {
 
               <Divider sx={{ my: 3 }} />
 
-              {/* Description */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" gutterBottom fontWeight={600}>
-                  Description
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {need.description}
-                </Typography>
+              {/* Tabs for Details and Location */}
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Tabs value={currentTab} onChange={(_, newValue) => setCurrentTab(newValue)}>
+                  <Tab label="Details" />
+                  {!need.is_remote && need.location_lat && need.location_lon && (
+                    <Tab label="Location" />
+                  )}
+                </Tabs>
               </Box>
 
-              {/* Location (if not remote) */}
-              {!need.is_remote && need.location_name && (
-                <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LocationIcon color="action" />
-                  <Typography variant="body2" color="text.secondary">
-                    {need.location_name}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Date Range */}
-              <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CalendarIcon color="action" />
-                <Typography variant="body2" color="text.secondary">
-                  Needed by: {formatDate(need.start_date)} - {formatDate(need.end_date)}
-                </Typography>
-              </Box>
-
-              {/* Time Slots Section */}
-                          {need.available_slots && need.available_slots.length > 0 && (
-                <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <ScheduleIcon color="action" />
-                    <Typography variant="h6" fontWeight={600}>
-                      Preferred Time Slots
+              {/* Details Tab */}
+              {currentTab === 0 && (
+                <>
+                  {/* Description */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom fontWeight={600}>
+                      Description
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {need.description}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Select a time slot when proposing to help (optional)
-                  </Typography>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                      {need.available_slots.map((slot, idx) => (
-                                          <Box key={idx}>
-                                              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-                                                  {formatSlotDate(slot.date)}
-                                              </Typography>
+
+                  {/* Location (if not remote) */}
+                  {!need.is_remote && need.location_name && (
+                    <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <LocationIcon color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {need.location_name}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Date Range */}
+                  <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CalendarIcon color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      Needed by: {formatDate(need.start_date)} - {formatDate(need.end_date)}
+                    </Typography>
+                  </Box>
+
+                  {/* Time Slots Section */}
+                  {need.available_slots && need.available_slots.length > 0 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <ScheduleIcon color="action" />
+                        <Typography variant="h6" fontWeight={600}>
+                          Preferred Time Slots
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Select a time slot when proposing to help (optional)
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {need.available_slots.map((slot, idx) => (
+                          <Box key={idx}>
+                            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                              {formatSlotDate(slot.date)}
+                            </Typography>
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                {slot.time_ranges.map((range, rangeIdx) => {
-                                    const rangeKey = `${range.start_time}-${range.end_time}`
-                                    const isSelected = selectedDate === slot.date && selectedTimeRange === rangeKey
-                                    return (
-                                        <Chip
+                              {slot.time_ranges.map((range, rangeIdx) => {
+                                const rangeKey = `${range.start_time}-${range.end_time}`
+                                const isSelected = selectedDate === slot.date && selectedTimeRange === rangeKey
+                                return (
+                                  <Chip
                                     key={rangeIdx}
                                     icon={<ClockIcon />}
                                     label={formatTimeRange(range.start_time, range.end_time)}
@@ -455,12 +488,55 @@ export default function NeedDetail() {
                                     color={isSelected ? 'primary' : 'default'}
                                     variant={isSelected ? 'filled' : 'outlined'}
                                     sx={{ cursor: 'pointer' }}
-                                />
-                              )
-                          })}
+                                  />
+                                )
+                              })}
                             </Box>
-                        </Box>
-                    ))}
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </>
+              )}
+
+              {/* Location Map Tab */}
+              {currentTab === 1 && !need.is_remote && need.location_lat && need.location_lon && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" gutterBottom fontWeight={600}>
+                    Location
+                  </Typography>
+                  {need.location_name && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <LocationIcon color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {need.location_name}
+                      </Typography>
+                    </Box>
+                  )}
+                  <Box sx={{ height: 400, width: '100%', borderRadius: 1, overflow: 'hidden' }}>
+                    <MapContainer
+                      center={[need.location_lat, need.location_lon]}
+                      zoom={13}
+                      style={{ height: '100%', width: '100%' }}
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://carto.com/">CARTO</a> contributors'
+                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                      />
+                      <Marker position={[need.location_lat, need.location_lon]}>
+                        <Popup>
+                          <Box>
+                            <Typography variant="subtitle2" fontWeight={600}>
+                              {need.title}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {need.location_name}
+                            </Typography>
+                          </Box>
+                        </Popup>
+                      </Marker>
+                    </MapContainer>
                   </Box>
                 </Box>
               )}

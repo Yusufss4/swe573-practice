@@ -24,6 +24,8 @@ import {
   IconButton,
   Tooltip,
   Paper,
+  Tabs,
+  Tab,
 } from '@mui/material'
 import {
   ArrowBack as ArrowBackIcon,
@@ -37,11 +39,28 @@ import {
   Schedule as ScheduleIcon,
   Language as RemoteIcon,
   Star as StarIcon,
+  Map as MapIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { getAvatarDisplay } from '@/utils/avatars'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// Fix Leaflet icon issue
+import icon from 'leaflet/dist/images/marker-icon.png'
+import iconShadow from 'leaflet/dist/images/marker-shadow.png'
+
+const DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+})
+
+L.Marker.prototype.options.icon = DefaultIcon
 
 // SRS FR-3: Offer data structure
 interface OfferDetail {
@@ -129,6 +148,7 @@ export default function OfferDetail() {
   const [selectedTimeRange, setSelectedTimeRange] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [currentTab, setCurrentTab] = useState(0)
 
   // Fetch offer details
   const { data: offer, isLoading, error: fetchError } = useQuery<OfferDetail>({
@@ -383,71 +403,127 @@ export default function OfferDetail() {
 
               <Divider sx={{ my: 3 }} />
 
-              {/* Description */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" gutterBottom fontWeight={600}>
-                  Description
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {offer.description}
-                </Typography>
+              {/* Tabs for Details and Location */}
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Tabs value={currentTab} onChange={(_, newValue) => setCurrentTab(newValue)}>
+                  <Tab label="Details" />
+                  {!offer.is_remote && offer.location_lat && offer.location_lon && (
+                    <Tab label="Location" />
+                  )}
+                </Tabs>
               </Box>
 
-              {/* Location (if not remote) */}
-              {!offer.is_remote && offer.location_name && (
-                <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LocationIcon color="action" />
-                  <Typography variant="body2" color="text.secondary">
-                    {offer.location_name}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Date Range */}
-              <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CalendarIcon color="action" />
-                <Typography variant="body2" color="text.secondary">
-                  Available: {formatDate(offer.start_date)} - {formatDate(offer.end_date)}
-                </Typography>
-              </Box>
-
-              {/* Time Slots Section */}
-              {offer.available_slots && offer.available_slots.length > 0 && (
-                <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <ScheduleIcon color="action" />
-                    <Typography variant="h6" fontWeight={600}>
-                      Available Time Slots
+              {/* Details Tab */}
+              {currentTab === 0 && (
+                <>
+                  {/* Description */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom fontWeight={600}>
+                      Description
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {offer.description}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Select a time slot when proposing to help (optional)
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {offer.available_slots.map((slot, idx) => (
-                      <Box key={idx}>
-                        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-                          {formatSlotDate(slot.date)}
+
+                  {/* Location (if not remote) */}
+                  {!offer.is_remote && offer.location_name && (
+                    <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <LocationIcon color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {offer.location_name}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Date Range */}
+                  <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CalendarIcon color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      Available: {formatDate(offer.start_date)} - {formatDate(offer.end_date)}
+                    </Typography>
+                  </Box>
+
+                  {/* Time Slots Section */}
+                  {offer.available_slots && offer.available_slots.length > 0 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <ScheduleIcon color="action" />
+                        <Typography variant="h6" fontWeight={600}>
+                          Available Time Slots
                         </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {slot.time_ranges.map((range, rangeIdx) => {
-                            const rangeKey = `${range.start_time}-${range.end_time}`
-                            const isSelected = selectedDate === slot.date && selectedTimeRange === rangeKey
-                            return (
-                              <Chip
-                                key={rangeIdx}
-                                icon={<ClockIcon />}
-                                label={formatTimeRange(range.start_time, range.end_time)}
-                                onClick={() => handleTimeSlotClick(slot.date, rangeKey)}
-                                color={isSelected ? 'primary' : 'default'}
-                                variant={isSelected ? 'filled' : 'outlined'}
-                                sx={{ cursor: 'pointer' }}
-                              />
-                            )
-                          })}
-                        </Box>
                       </Box>
-                    ))}
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Select a time slot when proposing to help (optional)
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {offer.available_slots.map((slot, idx) => (
+                          <Box key={idx}>
+                            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                              {formatSlotDate(slot.date)}
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                              {slot.time_ranges.map((range, rangeIdx) => {
+                                const rangeKey = `${range.start_time}-${range.end_time}`
+                                const isSelected = selectedDate === slot.date && selectedTimeRange === rangeKey
+                                return (
+                                  <Chip
+                                    key={rangeIdx}
+                                    icon={<ClockIcon />}
+                                    label={formatTimeRange(range.start_time, range.end_time)}
+                                    onClick={() => handleTimeSlotClick(slot.date, rangeKey)}
+                                    color={isSelected ? 'primary' : 'default'}
+                                    variant={isSelected ? 'filled' : 'outlined'}
+                                    sx={{ cursor: 'pointer' }}
+                                  />
+                                )
+                              })}
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </>
+              )}
+
+              {/* Location Map Tab */}
+              {currentTab === 1 && !offer.is_remote && offer.location_lat && offer.location_lon && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" gutterBottom fontWeight={600}>
+                    Location
+                  </Typography>
+                  {offer.location_name && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <LocationIcon color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {offer.location_name}
+                      </Typography>
+                    </Box>
+                  )}
+                  <Box sx={{ height: 400, width: '100%', borderRadius: 1, overflow: 'hidden' }}>
+                    <MapContainer
+                      center={[offer.location_lat, offer.location_lon]}
+                      zoom={13}
+                      style={{ height: '100%', width: '100%' }}
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://carto.com/">CARTO</a> contributors'
+                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                      />
+                      <Marker position={[offer.location_lat, offer.location_lon]}>
+                        <Popup>
+                          <Box>
+                            <Typography variant="subtitle2" fontWeight={600}>
+                              {offer.title}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {offer.location_name}
+                            </Typography>
+                          </Box>
+                        </Popup>
+                      </Marker>
+                    </MapContainer>
                   </Box>
                 </Box>
               )}
