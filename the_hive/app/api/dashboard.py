@@ -6,19 +6,23 @@ SRS Requirements:
 - FR-14.2: My Active Needs - needs created by user (exclude expired/completed)
 - FR-14.3: Applications I Submitted - where user applied (pending/accepted)
 - FR-14.4: Accepted Participation - where user is accepted participant (exclude completed)
+- FR-11.5: Platform statistics for moderator dashboard
 
-This module provides filtered endpoints to feed UI tabs for active participation tracking.
+This module provides filtered endpoints to feed UI tabs for active participation tracking
+and platform-wide statistics for moderators.
 """
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session, select, func, or_
 
-from app.core.auth import CurrentUser
+from app.core.auth import CurrentUser, ModeratorUser
 from app.core.db import get_session
 from app.models.offer import Offer, OfferStatus
 from app.models.need import Need, NeedStatus
 from app.models.participant import Participant, ParticipantStatus
+from app.models.ledger import LedgerEntry
+from app.models.user import User
 from app.schemas.dashboard import (
     ActiveOfferResponse,
     ActiveNeedResponse,
@@ -28,6 +32,7 @@ from app.schemas.dashboard import (
     ActiveNeedsListResponse,
     ApplicationsListResponse,
     ParticipationsListResponse,
+    DashboardStatsResponse,
 )
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -278,4 +283,75 @@ def get_my_participations(
         total=total,
         skip=skip,
         limit=limit,
+    )
+
+
+@router.get("/stats", response_model=DashboardStatsResponse)
+def get_dashboard_stats(
+    moderator_user: ModeratorUser,
+    session: Annotated[Session, Depends(get_session)],
+) -> DashboardStatsResponse:
+    """Get platform statistics for moderator dashboard (FR-11.5).
+    
+    Returns aggregate statistics:
+    - Total and active offers/needs
+    - Completed exchanges
+    - Total hours exchanged
+    - Active users
+    """
+    # Count total offers and needs
+    total_offers_stmt = select(func.count()).select_from(Offer)
+    total_offers = session.exec(total_offers_stmt).one()
+    
+    total_needs_stmt = select(func.count()).select_from(Need)
+    total_needs = session.exec(total_needs_stmt).one()
+    
+    # Count active offers and needs
+    active_offers_stmt = select(func.count()).select_from(Offer).where(
+        Offer.status.in_([OfferStatus.ACTIVE, OfferStatus.FULL])
+    )
+    active_offers = session.exec(active_offers_stmt).one()
+    
+    active_needs_stmt = select(func.count()).select_from(Need).where(
+        Need.status.in_([NeedStatus.ACTIVE, NeedStatus.FULL])
+    )
+    active_needs = session.exec(active_needs_stmt).one()
+    
+    # Count completed exchanges (participants with COMPLETED status)
+    completed_stmt = select(func.count()).select_from(Participant).where(
+        Participant.status == ParticipantStatus.COMPLETED
+    )
+    completed_exchanges = session.exec(completed_stmt).one()
+    
+    # Calculate total hours exchanged (sum of all ledger credits)
+    # Credits represent hours earned, which equals hours spent by others
+    hours_stmt = select(func.sum(LedgerEntry.credit)).select_from(LedgerEntry)
+    total_hours = session.exec(hours_stmt).one()
+    total_hours_exchanged = float(total_hours) if total_hours else 0.0
+    
+    # Count active users (users with at least one active offer or need)
+    active_users_stmt = select(func.count(func.distinct(User.id))).select_from(User).where(
+        or_(
+            User.id.in_(
+                select(Offer.creator_id).where(
+                    Offer.status.in_([OfferStatus.ACTIVE, OfferStatus.FULL])
+                )
+            ),
+            User.id.in_(
+                select(Need.creator_id).where(
+                    Need.status.in_([NeedStatus.ACTIVE, NeedStatus.FULL])
+                )
+            )
+        )
+    )
+    active_users = session.exec(active_users_stmt).one()
+    
+    return DashboardStatsResponse(
+        total_offers=total_offers,
+        total_needs=total_needs,
+        active_offers=active_offers,
+        active_needs=active_needs,
+        completed_exchanges=completed_exchanges,
+        total_hours_exchanged=total_hours_exchanged,
+        active_users=active_users,
     )

@@ -160,8 +160,11 @@ def get_map_feed(
     
     # Only fetch offers if type is None or 'offer'
     if type is None or type == 'offer':
-        # Query active offers
-        offer_query = select(Offer).where(Offer.status == OfferStatus.ACTIVE)
+        # Query active offers (exclude archived items)
+        offer_query = select(Offer).where(
+            Offer.status == OfferStatus.ACTIVE,
+            Offer.archived_at.is_(None)
+        )
         
         # Filter by remote status if specified
         if is_remote is not None:
@@ -182,8 +185,11 @@ def get_map_feed(
     
     # Only fetch needs if type is None or 'need'
     if type is None or type == 'need':
-        # Query active needs
-        need_query = select(Need).where(Need.status == NeedStatus.ACTIVE)
+        # Query active needs (exclude archived items)
+        need_query = select(Need).where(
+            Need.status == NeedStatus.ACTIVE,
+            Need.archived_at.is_(None)
+        )
         
         # Filter by remote status if specified
         if is_remote is not None:

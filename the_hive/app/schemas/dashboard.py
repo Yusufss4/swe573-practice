@@ -128,3 +128,20 @@ class ParticipationsListResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+class DashboardStatsResponse(BaseModel):
+    """Schema for platform-wide statistics (FR-11.5).
+    
+    Used by moderator dashboard to show overview metrics:
+    - Service exchange counts
+    - Activity levels
+    - Hours exchanged
+    """
+    total_offers: int
+    total_needs: int
+    active_offers: int
+    active_needs: int
+    completed_exchanges: int
+    total_hours_exchanged: float
+    active_users: int

@@ -57,10 +57,10 @@ const ReportButton = ({ itemType, itemId, itemTitle, size = 'small' }: ReportBut
     onSuccess: () => {
       setSuccess(true)
       setError(null)
-      // Auto-close after 2 seconds
+      // Auto-close after 3 seconds
       setTimeout(() => {
         handleClose()
-      }, 2000)
+      }, 3000)
     },
     onError: (err: any) => {
       setError(err.response?.data?.detail || 'Failed to submit report')

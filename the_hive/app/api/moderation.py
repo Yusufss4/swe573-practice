@@ -42,8 +42,8 @@ def remove_offer(
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
     
-    # Archive the offer
-    offer.status = OfferStatus.ARCHIVED
+    # Archive the offer (mark as cancelled and set archived timestamp)
+    offer.status = OfferStatus.CANCELLED
     offer.archived_at = datetime.utcnow()
     
     # Note: In production, you might want to add a moderation_reason field
@@ -71,8 +71,8 @@ def remove_need(
     if not need:
         raise HTTPException(status_code=404, detail="Need not found")
     
-    # Archive the need
-    need.status = NeedStatus.ARCHIVED
+    # Archive the need (mark as cancelled and set archived timestamp)
+    need.status = NeedStatus.CANCELLED
     need.archived_at = datetime.utcnow()
     
     session.add(need)

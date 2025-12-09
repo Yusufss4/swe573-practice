@@ -130,6 +130,16 @@ const Layout = () => {
                 >
                   Forum
                 </Button>
+                {(user?.role === 'moderator' || user?.role === 'admin') && (
+                  <Button
+                    color="inherit"
+                    component={Link}
+                    to="/moderator"
+                    sx={{ color: 'text.primary' }}
+                  >
+                    Moderator
+                  </Button>
+                )}
               </Box>
             )}
 
