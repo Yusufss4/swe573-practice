@@ -56,6 +56,8 @@ class UserPublic(BaseModel):
     profile_image_type: str | None = None
     is_suspended: bool | None = None  # For moderation responses
     is_banned: bool | None = None  # For moderation responses
+    completed_exchanges: int | None = None  # Number of completed exchanges
+    average_rating: float | None = None  # Average rating (0-5)
     
     model_config = {"from_attributes": True}
 

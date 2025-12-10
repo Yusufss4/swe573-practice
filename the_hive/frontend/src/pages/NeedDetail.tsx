@@ -72,6 +72,8 @@ interface NeedDetail {
     full_name?: string
     profile_image?: string
     profile_image_type?: string
+    completed_exchanges?: number
+    average_rating?: number
   }
   title: string
   description: string
@@ -421,6 +423,26 @@ export default function NeedDetail() {
                                   >
                     @{need.creator.username}
                   </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5, alignItems: 'center' }}>
+                    {need.creator.average_rating !== undefined && need.creator.average_rating !== null && (
+                      <Chip
+                        icon={<StarIcon />}
+                        label={need.creator.average_rating.toFixed(1)}
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                      />
+                    )}
+                    {need.creator.completed_exchanges !== undefined && (
+                      <Chip
+                        icon={<CheckIcon />}
+                        label={`${need.creator.completed_exchanges} exchanges`}
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                      />
+                    )}
+                  </Box>
                 </Box>
               </Box>
 

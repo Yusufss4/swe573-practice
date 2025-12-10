@@ -74,6 +74,8 @@ interface OfferDetail {
     full_name?: string
     profile_image?: string
     profile_image_type?: string
+    completed_exchanges?: number
+    average_rating?: number
   }
   title: string
   description: string
@@ -408,6 +410,26 @@ export default function OfferDetail() {
                   >
                     @{offer.creator.username}
                   </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5, alignItems: 'center' }}>
+                    {offer.creator.average_rating !== undefined && offer.creator.average_rating !== null && (
+                      <Chip
+                        icon={<StarIcon />}
+                        label={offer.creator.average_rating.toFixed(1)}
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                      />
+                    )}
+                    {offer.creator.completed_exchanges !== undefined && (
+                      <Chip
+                        icon={<CheckIcon />}
+                        label={`${offer.creator.completed_exchanges} exchanges`}
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                      />
+                    )}
+                  </Box>
                 </Box>
               </Box>
 

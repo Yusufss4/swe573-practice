@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 from app.core.auth import CurrentUser
 from app.core.db import get_session
@@ -22,6 +22,9 @@ from app.core.offers_needs import (
 )
 from app.models.offer import Offer, OfferStatus
 from app.models.user import User
+from app.models.participant import Participant, ParticipantStatus
+from app.models.need import Need
+from app.models.rating import Rating
 from app.schemas.offer import (
     OfferCreate,
     OfferExtend,
@@ -32,6 +35,46 @@ from app.schemas.offer import (
 from app.schemas.auth import UserPublic
 
 router = APIRouter(prefix="/offers", tags=["Offers"])
+
+
+def _get_creator_stats(session: Session, user_id: int) -> tuple[int, float | None]:
+    """Get creator's completed exchanges and average rating."""
+    # Completed exchanges
+    completed_as_participant = session.exec(
+        select(func.count(Participant.id)).where(
+            Participant.user_id == user_id,
+            Participant.status == ParticipantStatus.COMPLETED
+        )
+    ).one() or 0
+    
+    completed_on_offers = session.exec(
+        select(func.count(Participant.id))
+        .select_from(Participant)
+        .join(Offer, Participant.offer_id == Offer.id)
+        .where(
+            Offer.creator_id == user_id,
+            Participant.status == ParticipantStatus.COMPLETED
+        )
+    ).one() or 0
+    
+    completed_on_needs = session.exec(
+        select(func.count(Participant.id))
+        .select_from(Participant)
+        .join(Need, Participant.need_id == Need.id)
+        .where(
+            Need.creator_id == user_id,
+            Participant.status == ParticipantStatus.COMPLETED
+        )
+    ).one() or 0
+    
+    total_completed = completed_as_participant + completed_on_offers + completed_on_needs
+    
+    # Average rating
+    avg_rating = session.exec(
+        select(func.avg(Rating.general_rating)).where(Rating.to_user_id == user_id)
+    ).one()
+    
+    return total_completed, avg_rating
 
 
 def _build_offer_response(session: Session, offer: Offer) -> OfferResponse:
@@ -46,6 +89,9 @@ def _build_offer_response(session: Session, offer: Offer) -> OfferResponse:
             detail=f"Creator user not found"
         )
     
+    # Get creator stats
+    completed_exchanges, average_rating = _get_creator_stats(session, creator.id)
+    
     creator_public = UserPublic(
         id=creator.id,
         username=creator.username,
@@ -53,6 +99,8 @@ def _build_offer_response(session: Session, offer: Offer) -> OfferResponse:
         full_name=creator.full_name,
         profile_image=creator.profile_image,
         profile_image_type=creator.profile_image_type,
+        completed_exchanges=completed_exchanges,
+        average_rating=round(average_rating, 1) if average_rating else None,
     )
     
     # Parse available slots if present
