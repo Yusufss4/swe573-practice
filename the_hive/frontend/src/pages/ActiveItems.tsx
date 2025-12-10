@@ -1082,7 +1082,10 @@ export default function ActiveItems() {
                           variant="outlined"
                           color="error"
                           startIcon={<WithdrawIcon />}
-                          onClick={() => handleWithdraw(application.id)}
+                          onClick={() => {
+                            console.log('Withdraw clicked for application:', application.id)
+                            handleWithdraw(application.id)
+                          }}
                           disabled={declineMutation.isPending}
                         >
                           Withdraw Application

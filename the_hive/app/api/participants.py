@@ -306,3 +306,77 @@ def complete_exchange_endpoint(
         warning=warning_message if warning_message else None,
         completed_at=transfer.timestamp,
     )
+
+
+@router.delete("/{participant_id}", status_code=status.HTTP_204_NO_CONTENT)
+def decline_or_withdraw_participant(
+    participant_id: int,
+    current_user: CurrentUser,
+    session: Annotated[Session, Depends(get_session)],
+) -> None:
+    """Decline or withdraw a participant application.
+    
+    - If the current user is the participant (applicant): withdraw their own application
+    - If the current user is the offer/need creator: decline the application
+    
+    Only works for PENDING or ACCEPTED participants.
+    """
+    # Get the participant
+    participant = session.get(Participant, participant_id)
+    if not participant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Participant not found"
+        )
+    
+    # Check if user has permission (either the applicant or the creator)
+    is_applicant = participant.user_id == current_user.id
+    
+    if participant.offer_id:
+        offer = session.get(Offer, participant.offer_id)
+        if not offer:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found")
+        is_creator = offer.creator_id == current_user.id
+    elif participant.need_id:
+        need = session.get(Need, participant.need_id)
+        if not need:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Need not found")
+        is_creator = need.creator_id == current_user.id
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid participant")
+    
+    if not is_applicant and not is_creator:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to modify this participant"
+        )
+    
+    # Can only decline/withdraw PENDING or ACCEPTED participants
+    if participant.status not in [ParticipantStatus.PENDING, ParticipantStatus.ACCEPTED]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot decline/withdraw participant with status: {participant.status}"
+        )
+    
+    # Store original status before updating
+    original_status = participant.status
+    
+    # Update status based on who is declining
+    if is_applicant:
+        # Applicant is withdrawing
+        participant.status = ParticipantStatus.CANCELLED
+    else:
+        # Creator is declining
+        participant.status = ParticipantStatus.DECLINED
+    
+    # If the participant was ACCEPTED, update the accepted_count
+    if original_status == ParticipantStatus.ACCEPTED:
+        if participant.offer_id and offer:
+            offer.accepted_count = max(0, offer.accepted_count - 1)
+        elif participant.need_id and need:
+            need.accepted_count = max(0, need.accepted_count - 1)
+    
+    session.add(participant)
+    session.commit()
+    
+    return None
