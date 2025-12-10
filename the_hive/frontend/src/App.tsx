@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import HomePage from './pages/HomePage'
 import MapView from './pages/MapView'
 import OfferDetail from './pages/OfferDetail'
 import NeedDetail from './pages/NeedDetail'
@@ -23,11 +24,11 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
+        {/* Landing Page / Home Screen */}
+        <Route index element={<HomePage />} />
+
         {/* SRS FR-9: Map-Based Visualization - Map view */}
-        <Route index element={<MapView />} />
-        
-        {/* Home page - To be implemented */}
-        <Route path="home" element={<div>Home - To be implemented</div>} />
+        <Route path="map" element={<MapView />} />
 
         {/* SRS FR-1: User Registration and Authentication */}
         <Route path="login" element={<Login />} />

@@ -40,7 +40,7 @@ const Layout = () => {
   const hideNavbar = ['/login', '/register'].includes(location.pathname)
   
   // Use full width for map page
-  const isMapPage = location.pathname === '/'
+  const isMapPage = location.pathname === '/map'
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -109,7 +109,7 @@ const Layout = () => {
                 <Button 
                   color="inherit" 
                   component={Link} 
-                  to="/home"
+                  to="/"
                   sx={{ color: 'text.primary' }}
                 >
                   Home
@@ -117,7 +117,7 @@ const Layout = () => {
                 <Button 
                   color="inherit" 
                   component={Link} 
-                  to="/"
+                  to="/map"
                   sx={{ color: 'text.primary' }}
                 >
                   Map
@@ -441,7 +441,7 @@ const Layout = () => {
         >
           <Container maxWidth="lg">
             <Typography variant="body2" color="text.secondary" align="center">
-              © 2024 The Hive - Time Banking Platform
+              © 2025 The Hive - Where every hour counts and every skill matters.
             </Typography>
           </Container>
         </Box>
