@@ -19,6 +19,9 @@ import {
   Chip,
   Alert,
   CircularProgress,
+  Select,
+  MenuItem,
+  InputLabel,
 } from '@mui/material'
 import {
   ArrowBack as ArrowBackIcon,
@@ -29,6 +32,7 @@ import {
 import { useMutation } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
+import LocationPicker from '@/components/LocationPicker'
 
 export default function CreateForumTopic() {
   const navigate = useNavigate()
@@ -44,9 +48,22 @@ export default function CreateForumTopic() {
   const [content, setContent] = useState('')
   const [tagInput, setTagInput] = useState('')
   const [tags, setTags] = useState<string[]>([])
+  const [eventStartDate, setEventStartDate] = useState('')
   const [eventStartTime, setEventStartTime] = useState('')
+  const [eventEndDate, setEventEndDate] = useState('')
   const [eventEndTime, setEventEndTime] = useState('')
-  const [eventLocation, setEventLocation] = useState('')
+  const [eventLocation, setEventLocation] = useState<{
+    name: string
+    lat?: number
+    lon?: number
+  }>({ name: '' })
+
+  // Generate time options (24-hour format, 30-minute intervals)
+  const timeOptions = Array.from({ length: 48 }, (_, i) => {
+    const hour = Math.floor(i / 2)
+    const minute = i % 2 === 0 ? '00' : '30'
+    return `${hour}:${minute}`
+  })
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -62,14 +79,22 @@ export default function CreateForumTopic() {
       }
 
       if (topicType === 'event') {
-        if (eventStartTime) {
-          payload.event_start_time = new Date(eventStartTime).toISOString()
+        if (eventStartDate && eventStartTime) {
+          const [hour, minute] = eventStartTime.split(':')
+          const startDateTime = `${eventStartDate}T${hour.padStart(2, '0')}:${minute}:00`
+          payload.event_start_time = new Date(startDateTime).toISOString()
         }
-        if (eventEndTime) {
-          payload.event_end_time = new Date(eventEndTime).toISOString()
+        if (eventEndDate && eventEndTime) {
+          const [hour, minute] = eventEndTime.split(':')
+          const endDateTime = `${eventEndDate}T${hour.padStart(2, '0')}:${minute}:00`
+          payload.event_end_time = new Date(endDateTime).toISOString()
         }
-        if (eventLocation.trim()) {
-          payload.event_location = eventLocation.trim()
+        if (eventLocation.name.trim()) {
+          payload.event_location = eventLocation.name.trim()
+          if (eventLocation.lat && eventLocation.lon) {
+            payload.event_location_lat = eventLocation.lat
+            payload.event_location_lon = eventLocation.lon
+          }
         }
       }
 
@@ -121,12 +146,22 @@ export default function CreateForumTopic() {
       newErrors.content = 'Content must be less than 5000 characters'
     }
 
+    if (topicType === 'event' && !eventStartDate) {
+      newErrors.eventStartDate = 'Event start date is required'
+    }
+
     if (topicType === 'event' && !eventStartTime) {
       newErrors.eventStartTime = 'Event start time is required'
     }
 
-    if (eventEndTime && eventStartTime && new Date(eventEndTime) <= new Date(eventStartTime)) {
-      newErrors.eventEndTime = 'End time must be after start time'
+    if (eventEndDate && eventEndTime && eventStartDate && eventStartTime) {
+      const [startHour, startMinute] = eventStartTime.split(':')
+      const [endHour, endMinute] = eventEndTime.split(':')
+      const startDateTime = new Date(`${eventStartDate}T${startHour.padStart(2, '0')}:${startMinute}:00`)
+      const endDateTime = new Date(`${eventEndDate}T${endHour.padStart(2, '0')}:${endMinute}:00`)
+      if (endDateTime <= startDateTime) {
+        newErrors.eventEndTime = 'End time must be after start time'
+      }
     }
 
     setErrors(newErrors)
@@ -241,38 +276,94 @@ export default function CreateForumTopic() {
                   Event Details
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-                  <TextField
-                    type="datetime-local"
-                    label="Start Date & Time"
-                    value={eventStartTime}
-                    onChange={(e) => setEventStartTime(e.target.value)}
-                    error={!!errors.eventStartTime}
-                    helperText={errors.eventStartTime}
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ minWidth: 220 }}
-                    required
-                  />
-                  <TextField
-                    type="datetime-local"
-                    label="End Date & Time (optional)"
-                    value={eventEndTime}
-                    onChange={(e) => setEventEndTime(e.target.value)}
-                    error={!!errors.eventEndTime}
-                    helperText={errors.eventEndTime}
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ minWidth: 220 }}
-                  />
+                {/* Start Date and Time */}
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Start Date & Time *
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    <TextField
+                      type="date"
+                      value={eventStartDate}
+                      onChange={(e) => setEventStartDate(e.target.value)}
+                      error={!!errors.eventStartDate}
+                      helperText={errors.eventStartDate}
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ minWidth: 180 }}
+                      required
+                    />
+                    <FormControl sx={{ minWidth: 120 }} error={!!errors.eventStartTime} required>
+                      <InputLabel>Time</InputLabel>
+                      <Select
+                        value={eventStartTime}
+                        onChange={(e) => setEventStartTime(e.target.value)}
+                        label="Time"
+                      >
+                        {timeOptions.map((time) => (
+                          <MenuItem key={time} value={time}>
+                            {time}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.eventStartTime && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                          {errors.eventStartTime}
+                        </Typography>
+                      )}
+                    </FormControl>
+                  </Box>
                 </Box>
 
-                <TextField
-                  fullWidth
-                  label="Location (optional)"
-                  value={eventLocation}
-                  onChange={(e) => setEventLocation(e.target.value)}
-                  placeholder="e.g., Community Center, Online, etc."
-                  helperText="Where will the event take place?"
-                />
+                {/* End Date and Time */}
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    End Date & Time (optional)
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    <TextField
+                      type="date"
+                      value={eventEndDate}
+                      onChange={(e) => setEventEndDate(e.target.value)}
+                      error={!!errors.eventEndDate}
+                      helperText={errors.eventEndDate}
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ minWidth: 180 }}
+                    />
+                    <FormControl sx={{ minWidth: 120 }} error={!!errors.eventEndTime}>
+                      <InputLabel>Time</InputLabel>
+                      <Select
+                        value={eventEndTime}
+                        onChange={(e) => setEventEndTime(e.target.value)}
+                        label="Time"
+                      >
+                        <MenuItem value="">--</MenuItem>
+                        {timeOptions.map((time) => (
+                          <MenuItem key={time} value={time}>
+                            {time}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.eventEndTime && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                          {errors.eventEndTime}
+                        </Typography>
+                      )}
+                    </FormControl>
+                  </Box>
+                </Box>
+
+                {/* Location */}
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Location (optional)
+                  </Typography>
+                  <LocationPicker
+                    value={eventLocation}
+                    onChange={setEventLocation}
+                    disabled={false}
+                    required={false}
+                  />
+                </Box>
               </Box>
             )}
 
