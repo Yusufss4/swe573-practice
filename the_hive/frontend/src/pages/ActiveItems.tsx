@@ -159,9 +159,12 @@ interface MyPost {
   status: string
   capacity: number
   accepted_count: number
-    hours: number
+  hours: number
   participants: Participant[]
   created_at: string
+  creator_username?: string
+  creator_profile_image?: string
+  creator_profile_image_type?: string
 }
 
 // My Application structure
@@ -267,12 +270,18 @@ export default function ActiveItems() {
               ...offer,
               type: 'offer' as const,
               participants: participantsResponse.data.items || [],
+              creator_username: offer.creator?.username || user?.username,
+              creator_profile_image: offer.creator?.profile_image || user?.profile_image,
+              creator_profile_image_type: offer.creator?.profile_image_type || user?.profile_image_type,
             }
           } catch (error) {
             return {
               ...offer,
               type: 'offer' as const,
               participants: [],
+              creator_username: offer.creator?.username || user?.username,
+              creator_profile_image: offer.creator?.profile_image || user?.profile_image,
+              creator_profile_image_type: offer.creator?.profile_image_type || user?.profile_image_type,
             }
           }
         })
@@ -298,12 +307,18 @@ export default function ActiveItems() {
               ...need,
               type: 'need' as const,
               participants: participantsResponse.data.items || [],
+              creator_username: need.creator?.username || user?.username,
+              creator_profile_image: need.creator?.profile_image || user?.profile_image,
+              creator_profile_image_type: need.creator?.profile_image_type || user?.profile_image_type,
             }
           } catch (error) {
             return {
               ...need,
               type: 'need' as const,
               participants: [],
+              creator_username: need.creator?.username || user?.username,
+              creator_profile_image: need.creator?.profile_image || user?.profile_image,
+              creator_profile_image_type: need.creator?.profile_image_type || user?.profile_image_type,
             }
           }
         })
@@ -849,19 +864,67 @@ export default function ActiveItems() {
                                     {/* Action Button for Accepted - Complete Exchange */}
                                     {participant.status === 'accepted' && (
                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end' }}>
-                                            {/* Show confirmation status */}
-                                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                  {/* Show confirmation status with usernames and avatars */}
+                                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                    {/* Provider chip (for Offer: creator, for Need: participant) */}
                                                 <Chip
-                                                    label={participant.provider_confirmed ? "Provider ✓" : "Provider ○"}
+                                      avatar={
+                                        <Avatar
+                                          sx={{
+                                            width: 24,
+                                            height: 24,
+                                            bgcolor: post.type === 'offer'
+                                              ? (post.creator_profile_image_type === 'preset' && post.creator_profile_image ? AVATAR_COLORS[post.creator_profile_image as keyof typeof AVATAR_COLORS] : '#1976d2')
+                                              : (participant.user.profile_image_type === 'preset' && participant.user.profile_image ? AVATAR_COLORS[participant.user.profile_image as keyof typeof AVATAR_COLORS] : '#1976d2'),
+                                            fontSize: '0.875rem'
+                                          }}
+                                        >
+                                          {post.type === 'offer'
+                                            ? (post.creator_profile_image_type === 'preset' && post.creator_profile_image ? AVATAR_EMOJIS[post.creator_profile_image as keyof typeof AVATAR_EMOJIS] : post.creator_username?.charAt(0).toUpperCase())
+                                            : (participant.user.profile_image_type === 'preset' && participant.user.profile_image ? AVATAR_EMOJIS[participant.user.profile_image as keyof typeof AVATAR_EMOJIS] : participant.user.username?.charAt(0).toUpperCase())
+                                          }
+                                        </Avatar>
+                                      }
+                                      label={
+                                        participant.provider_confirmed
+                                          ? `${post.type === 'offer' ? post.creator_username : participant.user.username} ✓`
+                                          : `Waiting for ${post.type === 'offer' ? post.creator_username : participant.user.username}`
+                                      }
                                                     size="small"
-                                                    color={participant.provider_confirmed ? "success" : "default"}
+                                      color={participant.provider_confirmed ? "success" : "warning"}
                                                     variant={participant.provider_confirmed ? "filled" : "outlined"}
+                                      onClick={() => navigate(`/profile/${post.type === 'offer' ? post.creator_username : participant.user.username}`)}
+                                      sx={{ cursor: 'pointer' }}
                                                 />
+                                    {/* Requester chip (for Offer: participant, for Need: creator) */}
                                                 <Chip
-                                                    label={participant.requester_confirmed ? "Requester ✓" : "Requester ○"}
+                                      avatar={
+                                        <Avatar
+                                          sx={{
+                                            width: 24,
+                                            height: 24,
+                                            bgcolor: post.type === 'need'
+                                              ? (post.creator_profile_image_type === 'preset' && post.creator_profile_image ? AVATAR_COLORS[post.creator_profile_image as keyof typeof AVATAR_COLORS] : '#1976d2')
+                                              : (participant.user.profile_image_type === 'preset' && participant.user.profile_image ? AVATAR_COLORS[participant.user.profile_image as keyof typeof AVATAR_COLORS] : '#1976d2'),
+                                            fontSize: '0.875rem'
+                                          }}
+                                        >
+                                          {post.type === 'need'
+                                            ? (post.creator_profile_image_type === 'preset' && post.creator_profile_image ? AVATAR_EMOJIS[post.creator_profile_image as keyof typeof AVATAR_EMOJIS] : post.creator_username?.charAt(0).toUpperCase())
+                                            : (participant.user.profile_image_type === 'preset' && participant.user.profile_image ? AVATAR_EMOJIS[participant.user.profile_image as keyof typeof AVATAR_EMOJIS] : participant.user.username?.charAt(0).toUpperCase())
+                                          }
+                                        </Avatar>
+                                      }
+                                      label={
+                                        participant.requester_confirmed
+                                          ? `${post.type === 'need' ? post.creator_username : participant.user.username} ✓`
+                                          : `Waiting for ${post.type === 'need' ? post.creator_username : participant.user.username}`
+                                      }
                                                     size="small"
-                                                    color={participant.requester_confirmed ? "success" : "default"}
+                                      color={participant.requester_confirmed ? "success" : "warning"}
                                                     variant={participant.requester_confirmed ? "filled" : "outlined"}
+                                      onClick={() => navigate(`/profile/${post.type === 'need' ? post.creator_username : participant.user.username}`)}
+                                      sx={{ cursor: 'pointer' }}
                                                 />
                                             </Box>
                                             {/* Show Rate button if current user (requester/post owner) has confirmed */}
@@ -1096,20 +1159,68 @@ export default function ActiveItems() {
                                         <Alert severity="success">
                                             Accepted! Both parties must confirm completion to finalize the exchange.
                                         </Alert>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            {/* Show confirmation status */}
-                                            <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                            {/* Show confirmation status with usernames and avatars */}
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                              {/* Provider chip (for Offer: creator, for Need: current user) */}
                                                 <Chip
-                                                    label={application.provider_confirmed ? "Provider ✓" : "Provider ○"}
+                                avatar={
+                                  <Avatar
+                                    sx={{
+                                      width: 24,
+                                      height: 24,
+                                      bgcolor: application.type === 'offer'
+                                        ? (application.item_creator.profile_image_type === 'preset' && application.item_creator.profile_image ? AVATAR_COLORS[application.item_creator.profile_image as keyof typeof AVATAR_COLORS] : '#1976d2')
+                                        : (user?.profile_image_type === 'preset' && user?.profile_image ? AVATAR_COLORS[user.profile_image as keyof typeof AVATAR_COLORS] : '#1976d2'),
+                                      fontSize: '0.875rem'
+                                    }}
+                                  >
+                                    {application.type === 'offer'
+                                      ? (application.item_creator.profile_image_type === 'preset' && application.item_creator.profile_image ? AVATAR_EMOJIS[application.item_creator.profile_image as keyof typeof AVATAR_EMOJIS] : application.item_creator.username?.charAt(0).toUpperCase())
+                                      : (user?.profile_image_type === 'preset' && user?.profile_image ? AVATAR_EMOJIS[user.profile_image as keyof typeof AVATAR_EMOJIS] : user?.username?.charAt(0).toUpperCase())
+                                    }
+                                  </Avatar>
+                                }
+                                label={
+                                  application.provider_confirmed
+                                    ? `${application.type === 'offer' ? application.item_creator.username : user?.username} ✓`
+                                    : `Waiting for ${application.type === 'offer' ? application.item_creator.username : user?.username}`
+                                }
                                                     size="small"
-                                                    color={application.provider_confirmed ? "success" : "default"}
+                                color={application.provider_confirmed ? "success" : "warning"}
                                                     variant={application.provider_confirmed ? "filled" : "outlined"}
+                                onClick={() => navigate(`/profile/${application.type === 'offer' ? application.item_creator.username : user?.username}`)}
+                                sx={{ cursor: 'pointer' }}
                                                 />
+                              {/* Requester chip (for Offer: current user, for Need: creator) */}
                                                 <Chip
-                                                    label={application.requester_confirmed ? "Requester ✓" : "Requester ○"}
+                                avatar={
+                                  <Avatar
+                                    sx={{
+                                      width: 24,
+                                      height: 24,
+                                      bgcolor: application.type === 'need'
+                                        ? (application.item_creator.profile_image_type === 'preset' && application.item_creator.profile_image ? AVATAR_COLORS[application.item_creator.profile_image as keyof typeof AVATAR_COLORS] : '#1976d2')
+                                        : (user?.profile_image_type === 'preset' && user?.profile_image ? AVATAR_COLORS[user.profile_image as keyof typeof AVATAR_COLORS] : '#1976d2'),
+                                      fontSize: '0.875rem'
+                                    }}
+                                  >
+                                    {application.type === 'need'
+                                      ? (application.item_creator.profile_image_type === 'preset' && application.item_creator.profile_image ? AVATAR_EMOJIS[application.item_creator.profile_image as keyof typeof AVATAR_EMOJIS] : application.item_creator.username?.charAt(0).toUpperCase())
+                                      : (user?.profile_image_type === 'preset' && user?.profile_image ? AVATAR_EMOJIS[user.profile_image as keyof typeof AVATAR_EMOJIS] : user?.username?.charAt(0).toUpperCase())
+                                    }
+                                  </Avatar>
+                                }
+                                label={
+                                  application.requester_confirmed
+                                    ? `${application.type === 'need' ? application.item_creator.username : user?.username} ✓`
+                                    : `Waiting for ${application.type === 'need' ? application.item_creator.username : user?.username}`
+                                }
                                                     size="small"
-                                                    color={application.requester_confirmed ? "success" : "default"}
+                                color={application.requester_confirmed ? "success" : "warning"}
                                                     variant={application.requester_confirmed ? "filled" : "outlined"}
+                                onClick={() => navigate(`/profile/${application.type === 'need' ? application.item_creator.username : user?.username}`)}
+                                sx={{ cursor: 'pointer' }}
                                                 />
                                             </Box>
                                             {/* Show Rate button if current user (provider/applicant) has confirmed */}

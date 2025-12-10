@@ -308,6 +308,64 @@ def complete_exchange(
     participant.status = ParticipantStatus.COMPLETED
     participant.updated_at = datetime.utcnow()
     
+    # 5. Update offer/need status based on completion
+    # Check if all participants are now completed
+    if participant.offer_id:
+        offer = session.get(Offer, participant.offer_id)
+        if offer:
+            from app.models.offer import OfferStatus
+            # Count remaining active participants (accepted but not completed)
+            from sqlmodel import select
+            active_participants_count = session.exec(
+                select(func.count(Participant.id))
+                .where(Participant.offer_id == offer.id)
+                .where(Participant.status == ParticipantStatus.ACCEPTED)
+            ).one()
+            
+            # If no more active participants, mark offer as COMPLETED
+            if active_participants_count == 0:
+                # Check if there were any accepted participants that are now completed
+                completed_participants_count = session.exec(
+                    select(func.count(Participant.id))
+                    .where(Participant.offer_id == offer.id)
+                    .where(Participant.status == ParticipantStatus.COMPLETED)
+                ).one()
+                
+                if completed_participants_count > 0:
+                    offer.status = OfferStatus.COMPLETED
+            
+            # Update accepted_count to reflect only active (non-completed) participants
+            offer.accepted_count = active_participants_count
+            session.add(offer)
+            
+    elif participant.need_id:
+        need = session.get(Need, participant.need_id)
+        if need:
+            from app.models.need import NeedStatus
+            # Count remaining active participants (accepted but not completed)
+            from sqlmodel import select
+            active_participants_count = session.exec(
+                select(func.count(Participant.id))
+                .where(Participant.need_id == need.id)
+                .where(Participant.status == ParticipantStatus.ACCEPTED)
+            ).one()
+            
+            # If no more active participants, mark need as COMPLETED
+            if active_participants_count == 0:
+                # Check if there were any accepted participants that are now completed
+                completed_participants_count = session.exec(
+                    select(func.count(Participant.id))
+                    .where(Participant.need_id == need.id)
+                    .where(Participant.status == ParticipantStatus.COMPLETED)
+                ).one()
+                
+                if completed_participants_count > 0:
+                    need.status = NeedStatus.COMPLETED
+            
+            # Update accepted_count to reflect only active (non-completed) participants
+            need.accepted_count = active_participants_count
+            session.add(need)
+    
     session.add(transfer)
     session.add(participant)
     session.commit()
