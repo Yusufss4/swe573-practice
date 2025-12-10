@@ -21,6 +21,7 @@ import {
   LocationOn as LocationIcon,
   Map as MapIcon,
   Edit as EditIcon,
+  MyLocation as MyLocationIcon,
 } from '@mui/icons-material'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
@@ -134,6 +135,7 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
   )
   const [tempLocationName, setTempLocationName] = useState(value.name || '')
   const [isGeocoding, setIsGeocoding] = useState(false)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
 
   // Handle reverse geocoding when map is clicked
   const handleLocationSelect = useCallback(async (lat: number, lon: number) => {
@@ -146,6 +148,46 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
     } finally {
       setIsGeocoding(false)
     }
+  }, [])
+
+  // Get user's current location using geolocation API
+  const handleGetCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser')
+      return
+    }
+
+    setIsGettingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        const newPos: [number, number] = [latitude, longitude]
+        setTempPosition(newPos)
+        
+        // Auto-fill location name
+        setIsGeocoding(true)
+        try {
+          const locationName = await reverseGeocode(latitude, longitude)
+          if (locationName) {
+            setTempLocationName(locationName)
+          }
+        } finally {
+          setIsGeocoding(false)
+        }
+        
+        setIsGettingLocation(false)
+      },
+      (error) => {
+        console.error('Geolocation error:', error)
+        alert(`Unable to get your location: ${error.message}`)
+        setIsGettingLocation(false)
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000, // Cache for 5 minutes
+      }
+    )
   }, [])
 
   const handleOpenMapPicker = () => {
@@ -206,7 +248,7 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
           fullWidth
           required={required}
           label="Location Name"
-          placeholder="e.g., Brooklyn, NY or Downtown Seattle"
+          placeholder="e.g., Kadıköy, Istanbul or Taksim Square"
           value={value.name}
           onChange={(e) => handleTextInputChange(e.target.value)}
           disabled={disabled}
@@ -286,7 +328,7 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
               <TextField
                 fullWidth
                 label="Location Name"
-                placeholder="e.g., Near Central Park, Manhattan or Portland, OR"
+                placeholder="e.g., Near Galata Tower or Beşiktaş, Istanbul"
                 value={tempLocationName}
                 onChange={(e) => setTempLocationName(e.target.value)}
                 helperText="Provide as much or as little detail as you're comfortable with"
@@ -295,15 +337,15 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
           ) : (
             <Box>
               <Alert severity="info" sx={{ mb: 2 }}>
-                  Click on the map to select a location. The location name will be filled automatically.
+                Click on the map to select a location. The location name will be filled automatically.
               </Alert>
-              <TextField
-                fullWidth
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <TextField
+                  fullWidth
                   label="Location Name"
                   placeholder="Click on the map to auto-fill, or type manually"
-                value={tempLocationName}
-                onChange={(e) => setTempLocationName(e.target.value)}
-                sx={{ mb: 2 }}
+                  value={tempLocationName}
+                  onChange={(e) => setTempLocationName(e.target.value)}
                   InputProps={{
                     endAdornment: isGeocoding ? (
                       <InputAdornment position="end">
@@ -312,7 +354,17 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
                     ) : null,
                   }}
                   helperText={isGeocoding ? "Looking up location name..." : "Auto-filled from map click, or edit manually"}
-              />
+                />
+                <Button
+                  variant="outlined"
+                  onClick={handleGetCurrentLocation}
+                  disabled={isGettingLocation || isGeocoding}
+                  startIcon={isGettingLocation ? <CircularProgress size={20} /> : <MyLocationIcon />}
+                  sx={{ minWidth: 180 }}
+                >
+                  {isGettingLocation ? 'Getting...' : 'Use My Location'}
+                </Button>
+              </Box>
               <Box sx={{ height: 400, borderRadius: 1, overflow: 'hidden', border: 1, borderColor: 'divider' }}>
                 <MapContainer
                     center={tempPosition || [41.0082, 28.9784]}

@@ -99,6 +99,31 @@ export default function CreateOffer() {
       navigate(`/offers/${data.id}`)
     },
     onError: (err: any) => {
+      // Parse validation errors for user-friendly messages
+      if (err.response?.data?.detail && Array.isArray(err.response.data.detail)) {
+        const validationErrors = err.response.data.detail
+        const descriptionError = validationErrors.find((e: any) => 
+          e.loc?.includes('description') || e.loc?.includes('body')
+        )
+        
+        if (descriptionError) {
+          if (descriptionError.type === 'string_too_short') {
+            setError('Description must be at least 10 characters long. Please provide more details about your offer.')
+            return
+          }
+          if (descriptionError.type === 'string_too_long') {
+            setError('Description is too long. Please keep it under 2000 characters.')
+            return
+          }
+        }
+        
+        const titleError = validationErrors.find((e: any) => e.loc?.includes('title'))
+        if (titleError?.type === 'string_too_short') {
+          setError('Title must be at least 3 characters long.')
+          return
+        }
+      }
+      
       const errorMessage = err.response?.data?.detail || 'Unable to create offer. Please try again.'
       setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage))
     },

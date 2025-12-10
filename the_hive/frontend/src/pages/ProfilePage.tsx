@@ -44,6 +44,10 @@ import {
   Edit as EditIcon,
   PhotoCamera as PhotoCameraIcon,
   Delete as DeleteIcon,
+  Language as BlogIcon,
+  Instagram as InstagramIcon,
+  Facebook as FacebookIcon,
+  Twitter as TwitterIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
@@ -125,6 +129,10 @@ interface UserProfile {
   profile_image_type: string
   location_name?: string | null
   balance: number
+  social_blog?: string | null
+  social_instagram?: string | null
+  social_facebook?: string | null
+  social_twitter?: string | null
   stats: {
     balance: number
     hours_given: number
@@ -335,6 +343,10 @@ export default function ProfilePage() {
   const [editFullName, setEditFullName] = useState('')
   const [editTags, setEditTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+  const [editSocialBlog, setEditSocialBlog] = useState('')
+  const [editSocialInstagram, setEditSocialInstagram] = useState('')
+  const [editSocialFacebook, setEditSocialFacebook] = useState('')
+  const [editSocialTwitter, setEditSocialTwitter] = useState('')
 
   // Avatar selection
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false)
@@ -369,6 +381,10 @@ export default function ProfilePage() {
       setEditFullName(profile.display_name || '')
       setEditTags(profile.tags || [])
       setSelectedAvatar(profile.profile_image || '')
+      setEditSocialBlog(profile.social_blog || '')
+      setEditSocialInstagram(profile.social_instagram || '')
+      setEditSocialFacebook(profile.social_facebook || '')
+      setEditSocialTwitter(profile.social_twitter || '')
     }
   }, [profile])
 
@@ -496,6 +512,10 @@ export default function ProfilePage() {
       full_name: editFullName,
       description: editAbout,
       tags: editTags,
+      social_blog: editSocialBlog || null,
+      social_instagram: editSocialInstagram || null,
+      social_facebook: editSocialFacebook || null,
+      social_twitter: editSocialTwitter || null,
     })
   }
 
@@ -667,6 +687,56 @@ export default function ProfilePage() {
                     Member since {formatDate(profile.created_at)}
                   </Typography>
                 </Box>
+
+                {/* Social Media Links */}
+                {(profile.social_blog || profile.social_instagram || profile.social_facebook || profile.social_twitter) && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+                    {profile.social_blog && (
+                      <IconButton
+                        size="small"
+                        href={profile.social_blog}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                      >
+                        <BlogIcon />
+                      </IconButton>
+                    )}
+                    {profile.social_instagram && (
+                      <IconButton
+                        size="small"
+                        href={`https://instagram.com/${profile.social_instagram}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ color: '#E1306C', '&:hover': { color: '#C13584' } }}
+                      >
+                        <InstagramIcon />
+                      </IconButton>
+                    )}
+                    {profile.social_facebook && (
+                      <IconButton
+                        size="small"
+                        href={`https://facebook.com/${profile.social_facebook}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ color: '#1877F2', '&:hover': { color: '#0C63D4' } }}
+                      >
+                        <FacebookIcon />
+                      </IconButton>
+                    )}
+                    {profile.social_twitter && (
+                      <IconButton
+                        size="small"
+                        href={`https://twitter.com/${profile.social_twitter}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ color: '#1DA1F2', '&:hover': { color: '#0C85D0' } }}
+                      >
+                        <TwitterIcon />
+                      </IconButton>
+                    )}
+                  </Box>
+                )}
 
                 {/* Profile Tags - Clickable to filter map */}
                 {profile.tags && profile.tags.length > 0 && (
@@ -962,7 +1032,7 @@ export default function ProfilePage() {
                     navigate(path)
                   }}
                 >
-                  <CardContent>
+                  <CardContent sx={{ px: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                       <Box>
                         <Typography variant="subtitle1" fontWeight={600}>
@@ -1043,7 +1113,7 @@ export default function ProfilePage() {
                     navigate(path)
                   }}
                 >
-                  <CardContent>
+                  <CardContent sx={{ px: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                       <Box>
                         <Typography variant="subtitle1" fontWeight={600}>
@@ -1116,7 +1186,9 @@ export default function ProfilePage() {
 
         {/* Tab 3: Recent Ratings */}
         <TabPanel value={activeTab} index={2}>
-          <RatingsList userId={profile.id} limit={10} />
+          <Box sx={{ px: 3 }}>
+            <RatingsList userId={profile.id} limit={10} />
+          </Box>
         </TabPanel>
       </Card>
 
@@ -1192,6 +1264,63 @@ export default function ProfilePage() {
                 >
                   Add
                 </Button>
+              </Box>
+            </Box>
+
+            {/* Social Media Links */}
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                Social Media
+              </Typography>
+              <Typography variant="caption" color="text.secondary" paragraph>
+                Add your social media profiles (optional)
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  label="Blog/Website URL"
+                  value={editSocialBlog}
+                  onChange={(e) => setEditSocialBlog(e.target.value)}
+                  placeholder="https://yourblog.com"
+                  fullWidth
+                  size="small"
+                  InputProps={{
+                    startAdornment: <BlogIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                  }}
+                />
+                <TextField
+                  label="Instagram Username"
+                  value={editSocialInstagram}
+                  onChange={(e) => setEditSocialInstagram(e.target.value)}
+                  placeholder="username"
+                  fullWidth
+                  size="small"
+                  InputProps={{
+                    startAdornment: <InstagramIcon sx={{ mr: 1, color: '#E1306C' }} />,
+                  }}
+                />
+                <TextField
+                  label="Facebook Username"
+                  value={editSocialFacebook}
+                  onChange={(e) => setEditSocialFacebook(e.target.value)}
+                  placeholder="username"
+                  fullWidth
+                  size="small"
+                  InputProps={{
+                    startAdornment: <FacebookIcon sx={{ mr: 1, color: '#1877F2' }} />,
+                  }}
+                />
+                <TextField
+                  label="Twitter Username"
+                  value={editSocialTwitter}
+                  onChange={(e) => setEditSocialTwitter(e.target.value)}
+                  placeholder="username"
+                  fullWidth
+                  size="small"
+                  InputProps={{
+                    startAdornment: <TwitterIcon sx={{ mr: 1, color: '#1DA1F2' }} />,
+                  }}
+                />
               </Box>
             </Box>
           </Box>

@@ -104,47 +104,50 @@ const Layout = () => {
             </Box>
 
             {/* Navigation Links - Desktop */}
-            {isAuthenticated && (
-              <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, flexGrow: 1 }}>
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/"
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, flexGrow: 1 }}>
+              <Button 
+                color="inherit" 
+                component={Link} 
+                to="/"
+                sx={{ color: 'text.primary' }}
+              >
+                Home
+              </Button>
+              <Button 
+                color="inherit" 
+                component={Link} 
+                to="/map"
+                sx={{ color: 'text.primary' }}
+              >
+                Map
+              </Button>
+              <Button 
+                color="inherit" 
+                component={Link} 
+                to="/forum"
+                sx={{ color: 'text.primary' }}
+              >
+                Forum
+              </Button>
+              <Button 
+                color="inherit" 
+                component={Link} 
+                to="/map?tags=true"
+                sx={{ color: 'text.primary' }}
+              >
+                Tags
+              </Button>
+              {isAuthenticated && (user?.role === 'moderator' || user?.role === 'admin') && (
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/moderator"
                   sx={{ color: 'text.primary' }}
                 >
-                  Home
+                  Moderator
                 </Button>
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/map"
-                  sx={{ color: 'text.primary' }}
-                >
-                  Map
-                </Button>
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/forum"
-                  sx={{ color: 'text.primary' }}
-                >
-                  Forum
-                </Button>
-                {(user?.role === 'moderator' || user?.role === 'admin') && (
-                  <Button
-                    color="inherit"
-                    component={Link}
-                    to="/moderator"
-                    sx={{ color: 'text.primary' }}
-                  >
-                    Moderator
-                  </Button>
-                )}
-              </Box>
-            )}
-
-            {/* Spacer for non-authenticated users */}
-            {!isAuthenticated && <Box sx={{ flexGrow: 1 }} />}
+              )}
+            </Box>
 
             {/* Right side - Authenticated user actions */}
             {isAuthenticated ? (

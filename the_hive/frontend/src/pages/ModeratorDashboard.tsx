@@ -32,6 +32,8 @@ import {
   Tooltip,
   Divider,
   Snackbar,
+  Tabs,
+  Tab,
 } from '@mui/material'
 import {
   Dashboard as DashboardIcon,
@@ -763,19 +765,17 @@ const ModeratorDashboard = () => {
             Report Queue
           </Typography>
 
-          <FormControl size="small" sx={{ mb: 2, minWidth: 200 }}>
-            <InputLabel>Filter by Status</InputLabel>
-            <Select
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Tabs
               value={statusFilter}
-              label="Filter by Status"
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(_, newValue) => setStatusFilter(newValue)}
+              aria-label="report status tabs"
             >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="resolved">Resolved</MenuItem>
-              <MenuItem value="dismissed">Dismissed</MenuItem>
-            </Select>
-          </FormControl>
+              <Tab label="Pending" value="pending" />
+              <Tab label="Resolved" value="resolved" />
+              <Tab label="Dismissed" value="dismissed" />
+            </Tabs>
+          </Box>
 
           <TableContainer component={Paper} variant="outlined">
             <Table>

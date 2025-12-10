@@ -83,6 +83,12 @@ class User(SQLModel, table=True):
     location_lon: Optional[float] = Field(default=None)
     location_name: Optional[str] = Field(default=None, max_length=255)  # e.g., "Brooklyn, NY"
     
+    # Social media links
+    social_blog: Optional[str] = Field(default=None, max_length=255)
+    social_instagram: Optional[str] = Field(default=None, max_length=100)  # Username only
+    social_facebook: Optional[str] = Field(default=None, max_length=100)   # Username only
+    social_twitter: Optional[str] = Field(default=None, max_length=100)    # Username only
+    
     # Moderation fields (SRS FR-11.5: User sanctions)
     is_suspended: bool = Field(default=False)
     suspended_at: Optional[datetime] = Field(default=None)

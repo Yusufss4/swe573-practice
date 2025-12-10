@@ -352,7 +352,7 @@ const MapView = () => {
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Search Input */}
             <TextField
-              placeholder="Search by title..."
+              placeholder="Search by title, user or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               size="small"

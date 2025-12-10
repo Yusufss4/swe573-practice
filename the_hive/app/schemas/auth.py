@@ -40,6 +40,10 @@ class UserResponse(BaseModel):
     location_lat: float | None = None
     location_lon: float | None = None
     location_name: str | None = None
+    social_blog: str | None = None
+    social_instagram: str | None = None
+    social_facebook: str | None = None
+    social_twitter: str | None = None
     is_active: bool
     created_at: datetime
     
@@ -71,6 +75,10 @@ class UserProfileUpdate(BaseModel):
     location_lat: float | None = None
     location_lon: float | None = None
     location_name: str | None = Field(None, max_length=255)
+    social_blog: str | None = Field(None, max_length=255)
+    social_instagram: str | None = Field(None, max_length=100)
+    social_facebook: str | None = Field(None, max_length=100)
+    social_twitter: str | None = Field(None, max_length=100)
     tags: list[str] | None = None  # List of tag names
 
 
@@ -95,6 +103,10 @@ class UserProfileResponse(BaseModel):
     location_lat: float | None
     location_lon: float | None
     location_name: str | None
+    social_blog: str | None
+    social_instagram: str | None
+    social_facebook: str | None
+    social_twitter: str | None
     is_active: bool
     created_at: datetime
     updated_at: datetime
