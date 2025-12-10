@@ -25,7 +25,7 @@ class ReportCreate(BaseModel):
     reported_forum_topic_id: Optional[int] = None
     
     reason: ReportReason
-    description: str = Field(min_length=10, max_length=1000)
+    description: Optional[str] = Field(None, min_length=10, max_length=1000)
 
 
 class ReportUpdate(BaseModel):
@@ -75,7 +75,7 @@ class ReportResponse(BaseModel):
     
     # Report details
     reason: ReportReason
-    description: str
+    description: Optional[str] = None
     
     # Status
     status: ReportStatus

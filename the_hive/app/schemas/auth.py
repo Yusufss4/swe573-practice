@@ -50,10 +50,12 @@ class UserPublic(BaseModel):
     """Public user information for displaying in offers/needs."""
     id: int
     username: str
-    display_name: str | None
+    display_name: str | None = None
     full_name: str | None = None
     profile_image: str | None = None
     profile_image_type: str | None = None
+    is_suspended: bool | None = None  # For moderation responses
+    is_banned: bool | None = None  # For moderation responses
     
     model_config = {"from_attributes": True}
 

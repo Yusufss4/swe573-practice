@@ -42,6 +42,70 @@ import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
 import RatingSubmitDialog from '@/components/RatingSubmitDialog'
 
+// Preset avatar emoji mappings
+const AVATAR_EMOJIS: Record<string, string> = {
+  // Insects
+  bee: '🐝',
+  butterfly: '🦋',
+  ladybug: '🐞',
+  ant: '🐜',
+  cricket: '🦗',
+  caterpillar: '🐛',
+  snail: '🐌',
+  spider: '🕷️',
+  mosquito: '🦟',
+  // Nature/animals
+  bird: '🐦',
+  owl: '🦉',
+  turtle: '🐢',
+  frog: '🐸',
+  rabbit: '🐰',
+  fox: '🦊',
+  bear: '🐻',
+  wolf: '🐺',
+  deer: '🦌',
+  squirrel: '🐿️',
+  // Plants
+  flower: '🌸',
+  sunflower: '🌻',
+  tree: '🌳',
+  leaf: '🍃',
+  mushroom: '🍄',
+  cactus: '🌵',
+}
+
+// Avatar colors for presets
+const AVATAR_COLORS: Record<string, string> = {
+  // Insects
+  bee: '#FFD700',
+  butterfly: '#E91E63',
+  ladybug: '#F44336',
+  ant: '#795548',
+  cricket: '#8BC34A',
+  caterpillar: '#4CAF50',
+  snail: '#9E9E9E',
+  spider: '#424242',
+  mosquito: '#607D8B',
+  // Nature/animals
+  bird: '#03A9F4',
+  owl: '#8D6E63',
+  turtle: '#009688',
+  frog: '#8BC34A',
+  rabbit: '#FFCCBC',
+  fox: '#FF5722',
+  bear: '#795548',
+  wolf: '#78909C',
+  deer: '#A1887F',
+  squirrel: '#FF8A65',
+  // Plants
+  flower: '#F48FB1',
+  sunflower: '#FFC107',
+  tree: '#4CAF50',
+  leaf: '#81C784',
+  mushroom: '#D7CCC8',
+  cactus: '#66BB6A',
+}
+
 interface TabPanelProps {
   children?: React.ReactNode
   index: number
@@ -72,11 +136,14 @@ interface Participant {
     username: string
     display_name?: string
     full_name?: string
+    profile_image?: string
+    profile_image_type?: string
   }
   offer_id?: number
   need_id?: number
   status: 'pending' | 'accepted' | 'completed' | 'declined'
   message: string
+  selected_slot?: string
   hours_contributed?: number
   provider_confirmed?: boolean
   requester_confirmed?: boolean
@@ -107,9 +174,12 @@ interface MyApplication {
     id: number
     username: string
     display_name?: string
+    profile_image?: string
+    profile_image_type?: string
   }
   status: 'pending' | 'accepted' | 'completed' | 'declined'
   message: string
+  selected_slot?: string  // JSON array of selected time slots
   hours_contributed?: number
   provider_confirmed?: boolean
   requester_confirmed?: boolean
@@ -151,8 +221,12 @@ export default function ActiveItems() {
   }, [])
   const [acceptDialogOpen, setAcceptDialogOpen] = useState(false)
     const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false)
+  const [declineDialogOpen, setDeclineDialogOpen] = useState(false)
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null)
     const [selectedPost, setSelectedPost] = useState<MyPost | null>(null)
+  const [withdrawParticipantId, setWithdrawParticipantId] = useState<number | null>(null)
+  const [declineParticipantId, setDeclineParticipantId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
     const [completeSuccess, setCompleteSuccess] = useState<{
         hours: number
@@ -279,6 +353,8 @@ export default function ActiveItems() {
                       id: offerRes.data.creator_id,
                       username: offerRes.data.creator?.username || 'Unknown',
                       display_name: offerRes.data.creator?.display_name,
+                    profile_image: offerRes.data.creator?.profile_image,
+                    profile_image_type: offerRes.data.creator?.profile_image_type,
                   }
                 item_id = proposal.offer_id
                 type = 'offer'
@@ -289,6 +365,8 @@ export default function ActiveItems() {
                     id: needRes.data.creator_id,
                     username: needRes.data.creator?.username || 'Unknown',
                     display_name: needRes.data.creator?.display_name,
+                  profile_image: needRes.data.creator?.profile_image,
+                  profile_image_type: needRes.data.creator?.profile_image_type,
               }
                 item_id = proposal.need_id
                 type = 'need'
@@ -302,6 +380,7 @@ export default function ActiveItems() {
                   item_creator,
                   status: proposal.status,
                   message: proposal.message || '',
+                selected_slot: proposal.selected_slot,
                   hours_contributed: proposal.hours_contributed,
                   provider_confirmed: proposal.provider_confirmed,
                   requester_confirmed: proposal.requester_confirmed,
@@ -319,9 +398,12 @@ export default function ActiveItems() {
                     id: 0,
                     username: 'Unknown',
                     display_name: undefined,
+                    profile_image: undefined,
+                    profile_image_type: undefined,
                 },
                   status: proposal.status,
                   message: proposal.message || '',
+                selected_slot: proposal.selected_slot,
                   hours_contributed: proposal.hours_contributed,
                   provider_confirmed: proposal.provider_confirmed,
                   requester_confirmed: proposal.requester_confirmed,
@@ -426,14 +508,28 @@ export default function ActiveItems() {
   }
 
   const handleDecline = (participantId: number) => {
-    if (confirm('Are you sure you want to decline this application?')) {
-      declineMutation.mutate(participantId)
+    setDeclineParticipantId(participantId)
+    setDeclineDialogOpen(true)
+  }
+
+  const handleDeclineConfirm = () => {
+    if (declineParticipantId) {
+      declineMutation.mutate(declineParticipantId)
+      setDeclineDialogOpen(false)
+      setDeclineParticipantId(null)
     }
   }
 
   const handleWithdraw = (participantId: number) => {
-    if (confirm('Are you sure you want to withdraw your application?')) {
-      declineMutation.mutate(participantId)
+    setWithdrawParticipantId(participantId)
+    setWithdrawDialogOpen(true)
+  }
+
+  const handleWithdrawConfirm = () => {
+    if (withdrawParticipantId) {
+      declineMutation.mutate(withdrawParticipantId)
+      setWithdrawDialogOpen(false)
+      setWithdrawParticipantId(null)
     }
   }
 
@@ -492,6 +588,20 @@ export default function ActiveItems() {
       const path = postType === 'offer' ? `/offers/${postId}` : `/needs/${postId}`
       console.log('Navigating to:', path)
       navigate(path)
+  }
+
+  const formatStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+  }
+
+  const parseSelectedSlots = (slotString?: string): string[] => {
+    if (!slotString) return []
+    try {
+      const parsed = JSON.parse(slotString)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -558,7 +668,7 @@ export default function ActiveItems() {
                             color={post.type === 'offer' ? 'success' : 'info'}
                           />
                           <Chip
-                            label={post.status.toUpperCase()}
+                            label={formatStatus(post.status)}
                             size="small"
                             variant="outlined"
                           />
@@ -608,11 +718,25 @@ export default function ActiveItems() {
                           >
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
-                                        <Avatar
-                                            sx={{ bgcolor: 'primary.main', cursor: 'pointer' }}
-                                            onClick={() => navigate(`/profile/${participant.user.username}`)}
-                                        >
-                                  <PersonIcon />
+                                <Avatar
+                                  sx={{
+                                    width: 48,
+                                    height: 48,
+                                    bgcolor: participant.user.profile_image_type === 'preset' && participant.user.profile_image
+                                      ? AVATAR_COLORS[participant.user.profile_image] || 'primary.main'
+                                      : 'primary.main',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer'
+                                  }}
+                                  onClick={() => navigate(`/profile/${participant.user.username}`)}
+                                >
+                                  {participant.user.profile_image_type === 'preset' && participant.user.profile_image ? (
+                                    AVATAR_EMOJIS[participant.user.profile_image] || participant.user.profile_image
+                                  ) : participant.user.profile_image_type === 'custom' ? (
+                                      <PersonIcon />
+                                  ) : (
+                                    <PersonIcon />
+                                  )}
                                 </Avatar>
                                 <Box sx={{ flex: 1 }}>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
@@ -628,7 +752,7 @@ export default function ActiveItems() {
                                       {participant.user.display_name || participant.user.username}
                                     </Typography>
                                     <Chip
-                                      label={participant.status}
+                                      label={formatStatus(participant.status)}
                                       size="small"
                                       color={
                                         participant.status === 'accepted'
@@ -652,10 +776,45 @@ export default function ActiveItems() {
                                             >
                                     @{participant.user.username}
                                   </Typography>
-                                  <Typography variant="body2" sx={{ mb: 1 }}>
-                                    {participant.message}
+
+                                  {/* Application Date */}
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                                    Applied {formatDate(participant.created_at)}
                                   </Typography>
-                                  {participant.hours_contributed && (
+
+                                  {/* Message */}
+                                  {participant.message && (
+                                    <Box sx={{ mb: 1 }}>
+                                      <Typography variant="caption" fontWeight={600} color="text.secondary">
+                                        Message:
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                        {participant.message}
+                                      </Typography>
+                                    </Box>
+                                  )}
+
+                                  {/* Selected Time Slots */}
+                                  {participant.selected_slot && parseSelectedSlots(participant.selected_slot).length > 0 && (
+                                    <Box sx={{ mb: 1 }}>
+                                      <Typography variant="caption" fontWeight={600} color="text.secondary" display="block" gutterBottom>
+                                        Preferred Time Slots:
+                                      </Typography>
+                                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {parseSelectedSlots(participant.selected_slot).map((slot, idx) => (
+                                          <Chip
+                                            key={idx}
+                                            label={slot}
+                                            size="small"
+                                            variant="outlined"
+                                            color="primary"
+                                          />
+                                        ))}
+                                      </Box>
+                                    </Box>
+                                  )}
+
+                                  {participant.hours_contributed > 0 && (
                                     <Typography variant="caption" color="text.secondary">
                                       Hours: {participant.hours_contributed}
                                     </Typography>
@@ -812,7 +971,7 @@ export default function ActiveItems() {
                             color={application.type === 'offer' ? 'success' : 'info'}
                           />
                           <Chip
-                            label={application.status.toUpperCase()}
+                            label={formatStatus(application.status)}
                             size="small"
                             color={
                               application.status === 'accepted'
@@ -829,11 +988,33 @@ export default function ActiveItems() {
                           {application.item_title}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <Avatar sx={{ width: 24, height: 24, bgcolor: 'primary.main' }}>
-                            <PersonIcon fontSize="small" />
+                          <Avatar
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              bgcolor: application.item_creator.profile_image_type === 'preset' && application.item_creator.profile_image
+                                ? AVATAR_COLORS[application.item_creator.profile_image] || 'primary.main'
+                                : 'primary.main',
+                              fontSize: '1.2rem',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => navigate(`/profile/${application.item_creator.username}`)}
+                          >
+                            {application.item_creator.profile_image_type === 'preset' && application.item_creator.profile_image ? (
+                              AVATAR_EMOJIS[application.item_creator.profile_image] || application.item_creator.profile_image
+                            ) : application.item_creator.profile_image_type === 'custom' ? (
+                              <PersonIcon fontSize="small" />
+                            ) : (
+                              <PersonIcon fontSize="small" />
+                            )}
                           </Avatar>
-                          <Typography variant="caption" color="text.secondary">
-                            Created by @{application.item_creator.username}
+                          <Typography
+                            variant="body2"
+                            color="primary"
+                            sx={{ cursor: 'pointer', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}
+                            onClick={() => navigate(`/profile/${application.item_creator.username}`)}
+                          >
+                            {application.item_creator.display_name || application.item_creator.username}
                           </Typography>
                         </Box>
                         <Typography variant="caption" color="text.secondary">
@@ -860,8 +1041,28 @@ export default function ActiveItems() {
                       </Box>
                     </Box>
 
+                    {/* Selected Time Slots */}
+                    {application.selected_slot && parseSelectedSlots(application.selected_slot).length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                          Your Preferred Time Slots
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {parseSelectedSlots(application.selected_slot).map((slot, idx) => (
+                            <Chip
+                              key={idx}
+                              label={slot}
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+
                     {/* Hours if accepted */}
-                    {application.hours_contributed && (
+                    {application.hours_contributed > 0 && (
                       <Box sx={{ mb: 2 }}>
                         <Typography variant="subtitle2" fontWeight={600} gutterBottom>
                           Hours Agreed
@@ -1141,6 +1342,74 @@ export default function ActiveItems() {
           exchangeTitle={ratingData.exchangeTitle}
         />
       )}
+
+      {/* Withdraw Confirmation Dialog */}
+      <Dialog
+        open={withdrawDialogOpen}
+        onClose={() => !declineMutation.isPending && setWithdrawDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Withdraw Application</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Are you sure you want to withdraw your application? This action cannot be undone.
+          </Typography>
+          <Alert severity="warning">
+            The creator will be notified that you have withdrawn your application.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setWithdrawDialogOpen(false)}
+            disabled={declineMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleWithdrawConfirm}
+            variant="contained"
+            color="error"
+            disabled={declineMutation.isPending}
+          >
+            {declineMutation.isPending ? 'Withdrawing...' : 'Withdraw Application'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Decline Confirmation Dialog */}
+      <Dialog
+        open={declineDialogOpen}
+        onClose={() => !declineMutation.isPending && setDeclineDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Decline Application</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Are you sure you want to decline this application? This action cannot be undone.
+          </Typography>
+          <Alert severity="warning">
+            The applicant will be notified that their application has been declined.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeclineDialogOpen(false)}
+            disabled={declineMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeclineConfirm}
+            variant="contained"
+            color="error"
+            disabled={declineMutation.isPending}
+          >
+            {declineMutation.isPending ? 'Declining...' : 'Decline Application'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   )
 }

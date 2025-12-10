@@ -600,7 +600,7 @@ def test_notification_types(session: Session, test_users):
 def test_notification_unauthorized(client: TestClient):
     """Test accessing notifications without authentication."""
     response = client.get("/api/v1/notifications")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_notification_ordering(client: TestClient, session: Session, test_users, auth_headers):

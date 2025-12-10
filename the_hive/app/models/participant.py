@@ -57,8 +57,9 @@ class Participant(SQLModel, table=True):
     # Optional message when offering help (FR-5.1)
     message: Optional[str] = Field(default=None, max_length=500)
     
-    # Selected time slot (if applicable)
-    selected_slot: Optional[datetime] = Field(default=None)
+    # Selected time slots (if applicable) - stored as JSON array
+    # Format: JSON array of "YYYY-MM-DD HH:MM-HH:MM" strings
+    selected_slot: Optional[str] = Field(default=None, max_length=1000)
     
     # Mutual completion confirmation flags
     # Both must be True for exchange to complete

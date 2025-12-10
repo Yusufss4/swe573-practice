@@ -68,7 +68,7 @@ class Report(SQLModel, table=True):
     
     # Report details
     reason: ReportReason = Field(index=True)
-    description: str = Field(max_length=1000)
+    description: Optional[str] = Field(default=None, max_length=1000)
     
     # Status tracking
     status: ReportStatus = Field(default=ReportStatus.PENDING, index=True)

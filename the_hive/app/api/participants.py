@@ -41,7 +41,9 @@ def _build_participant_response(session: Session, participant: Participant) -> P
     user_public = UserPublic(
         id=user.id,
         username=user.username,
-        display_name=user.full_name
+        display_name=user.full_name,
+        profile_image=user.profile_image,
+        profile_image_type=user.profile_image_type,
     )
     
     return ParticipantResponse(

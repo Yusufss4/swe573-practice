@@ -73,6 +73,7 @@ def propose_help(
     current_user: CurrentUser,
     session: Annotated[Session, Depends(get_session)],
     message: str = Query(None, max_length=500, description="Optional short message"),
+    selected_slots: str = Query(None, description="JSON array of selected time slots"),
 ) -> ParticipantResponse:
     """
     Propose to help with an Offer or Need (Handshake proposal).
@@ -146,6 +147,7 @@ def propose_help(
             role=ParticipantRole.PROVIDER,
             status=ParticipantStatus.PENDING,  # proposed state
             message=message,
+            selected_slot=selected_slots,
         )
         
     else:  # need
@@ -198,9 +200,10 @@ def propose_help(
         participant = Participant(
             need_id=item_id,
             user_id=current_user.id,
-            role=ParticipantRole.PROVIDER,
+            role=ParticipantRole.REQUESTER,
             status=ParticipantStatus.PENDING,  # proposed state
             message=message,
+            selected_slot=selected_slots,
         )
     
     session.add(participant)

@@ -23,8 +23,12 @@ def get_password_hash(password: str) -> str:
     return hashed.decode('utf-8')
 
 
-def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
-    to_encode = data.copy()
+def create_access_token(data: dict[str, Any] | int, expires_delta: timedelta | None = None) -> str:
+    # Support passing user_id as int for convenience
+    if isinstance(data, int):
+        to_encode = {"sub": str(data)}
+    else:
+        to_encode = data.copy()
     
     if "sub" in to_encode and not isinstance(to_encode["sub"], str):
         to_encode["sub"] = str(to_encode["sub"])

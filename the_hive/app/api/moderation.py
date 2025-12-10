@@ -29,7 +29,7 @@ def remove_offer(
     offer_id: int,
     moderator: ModeratorUser,
     session: SessionDep,
-    reason: str = Body(..., embed=True, description="Reason for removal"),
+    reason: str = Body(None, embed=True, description="Reason for removal"),
 ) -> None:
     """
     Remove an offer (moderators only).
@@ -58,7 +58,7 @@ def remove_need(
     need_id: int,
     moderator: ModeratorUser,
     session: SessionDep,
-    reason: str = Body(..., embed=True, description="Reason for removal"),
+    reason: str = Body(None, embed=True, description="Reason for removal"),
 ) -> None:
     """
     Remove a need (moderators only).
@@ -84,7 +84,7 @@ def remove_comment(
     comment_id: int,
     moderator: ModeratorUser,
     session: SessionDep,
-    reason: str = Body(..., embed=True, description="Reason for removal"),
+    reason: str = Body(None, embed=True, description="Reason for removal"),
 ) -> None:
     """
     Remove a forum comment (moderators only).

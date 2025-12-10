@@ -100,8 +100,7 @@ interface OfferDetail {
 // SRS FR-5.1: Propose help with message
 interface ProposeHelpRequest {
   message: string
-  selected_date?: string
-  selected_time_range?: string
+  selected_slots?: Array<{ date: string; timeRange: string }>
 }
 
 // Accepted participant structure
@@ -145,8 +144,7 @@ export default function OfferDetail() {
   const queryClient = useQueryClient()
 
   const [proposeDialogOpen, setProposeDialogOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedTimeRange, setSelectedTimeRange] = useState<string | null>(null)
+  const [selectedSlots, setSelectedSlots] = useState<Array<{ date: string; timeRange: string }>>([])
   const [message, setMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [currentTab, setCurrentTab] = useState(0)
@@ -178,9 +176,12 @@ export default function OfferDetail() {
         item_id: id!,
         message: data.message,
       })
-      if (data.selected_date && data.selected_time_range) {
-        params.append('selected_date', data.selected_date)
-        params.append('selected_time_range', data.selected_time_range)
+      if (data.selected_slots && data.selected_slots.length > 0) {
+        // Send as JSON array of "YYYY-MM-DD HH:MM-HH:MM" format
+        const slotsJson = JSON.stringify(
+          data.selected_slots.map(s => `${s.date} ${s.timeRange}`)
+        )
+        params.append('selected_slots', slotsJson)
       }
       const response = await apiClient.post('/handshake/propose', null, { params })
       return response.data
@@ -188,8 +189,7 @@ export default function OfferDetail() {
     onSuccess: () => {
       setProposeDialogOpen(false)
       setMessage('')
-      setSelectedDate(null)
-      setSelectedTimeRange(null)
+      setSelectedSlots([])
       setError(null)
       queryClient.invalidateQueries({ queryKey: ['offer', id] })
       // Navigate to My Applications tab in Active Items
@@ -217,23 +217,21 @@ export default function OfferDetail() {
     }
     proposeMutation.mutate({
       message: message.trim(),
-      selected_date: selectedDate || undefined,
-      selected_time_range: selectedTimeRange || undefined,
+      selected_slots: selectedSlots.length > 0 ? selectedSlots : undefined,
     })
   }
 
   const handleTimeSlotClick = (date: string, timeRange: string) => {
-    const key = `${date}-${timeRange}`
-    const currentKey = selectedDate && selectedTimeRange ? `${selectedDate}-${selectedTimeRange}` : null
+    const existing = selectedSlots.findIndex(
+      s => s.date === date && s.timeRange === timeRange
+    )
 
-    if (currentKey === key) {
-      // Deselect if clicking the same slot
-      setSelectedDate(null)
-      setSelectedTimeRange(null)
+    if (existing >= 0) {
+      // Remove if already selected
+      setSelectedSlots(selectedSlots.filter((_, idx) => idx !== existing))
     } else {
-      // Select new slot
-      setSelectedDate(date)
-      setSelectedTimeRange(timeRange)
+      // Add to selection
+      setSelectedSlots([...selectedSlots, { date, timeRange }])
     }
   }
 
@@ -473,7 +471,7 @@ export default function OfferDetail() {
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                               {slot.time_ranges.map((range, rangeIdx) => {
                                 const rangeKey = `${range.start_time}-${range.end_time}`
-                                const isSelected = selectedDate === slot.date && selectedTimeRange === rangeKey
+                                const isSelected = selectedSlots.some(s => s.date === slot.date && s.timeRange === rangeKey)
                                 return (
                                   <Chip
                                     key={rangeIdx}
@@ -706,7 +704,7 @@ export default function OfferDetail() {
           {offer.available_slots && offer.available_slots.length > 0 && (
             <Box>
               <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-                Select a preferred time slot (optional)
+                Select preferred time slots (optional - you can select multiple)
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
                 {offer.available_slots.map((slot, idx) => (
@@ -717,7 +715,9 @@ export default function OfferDetail() {
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {slot.time_ranges.map((range, rangeIdx) => {
                         const rangeKey = `${range.start_time}-${range.end_time}`
-                        const isSelected = selectedDate === slot.date && selectedTimeRange === rangeKey
+                        const isSelected = selectedSlots.some(
+                          s => s.date === slot.date && s.timeRange === rangeKey
+                        )
                         return (
                           <Chip
                             key={rangeIdx}
@@ -734,6 +734,11 @@ export default function OfferDetail() {
                   </Box>
                 ))}
               </Box>
+              {selectedSlots.length > 0 && (
+                <Typography variant="caption" color="primary" sx={{ mt: 1, display: 'block' }}>
+                  {selectedSlots.length} slot{selectedSlots.length > 1 ? 's' : ''} selected
+                </Typography>
+              )}
             </Box>
           )}
         </DialogContent>

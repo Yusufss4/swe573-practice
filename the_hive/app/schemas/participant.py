@@ -17,7 +17,7 @@ from app.schemas.auth import UserPublic
 class ParticipantCreate(BaseModel):
     """Schema for creating a new participant (offering help)."""
     message: Optional[str] = Field(None, max_length=500, description="Optional message when offering help")
-    selected_slot: Optional[datetime] = Field(None, description="Preferred time slot")
+    selected_slot: Optional[str] = Field(None, description="JSON array of selected time slots")
 
 
 class ParticipantAccept(BaseModel):
@@ -37,7 +37,7 @@ class ParticipantResponse(BaseModel):
     status: str
     hours_contributed: float
     message: Optional[str]
-    selected_slot: Optional[datetime]
+    selected_slot: Optional[str]
     provider_confirmed: bool = False
     requester_confirmed: bool = False
     created_at: datetime
