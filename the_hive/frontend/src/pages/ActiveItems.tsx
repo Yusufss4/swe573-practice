@@ -328,11 +328,11 @@ export default function ActiveItems() {
     enabled: !!user,
   })
 
-  // Combine offers and needs into "My Posts"
+  // Combine offers and needs into "My Posts" and sort by creation date (newest first)
   const myPosts: MyPost[] = [
     ...(myOffers || []),
     ...(myNeeds || []),
-  ]
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   // Fetch user's applications (proposals to help others)
   const { data: myApplicationsData, isLoading: applicationsLoading } = useQuery({

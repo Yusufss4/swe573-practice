@@ -192,6 +192,7 @@ export default function OfferDetail() {
       setSelectedSlots([])
       setError(null)
       queryClient.invalidateQueries({ queryKey: ['offer', id] })
+      queryClient.invalidateQueries({ queryKey: ['myApplications'] })
       // Navigate to My Applications tab in Active Items
       navigate('/active-items?tab=applications')
     },
@@ -562,7 +563,20 @@ export default function OfferDetail() {
 
               {isCreator && (
                 <Alert severity="info" sx={{ mt: 2 }}>
-                  This is your offer. You can view proposals in your Active Items dashboard.
+                  This is your offer. You can view proposals in your{' '}
+                  <Box
+                    component="span"
+                    onClick={() => navigate('/active-items?tab=posts')}
+                    sx={{
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      '&:hover': { color: 'primary.dark' }
+                    }}
+                  >
+                    Active Items
+                  </Box>
+                  {' '}dashboard.
                 </Alert>
               )}
             </CardContent>

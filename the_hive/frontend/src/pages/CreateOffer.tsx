@@ -27,7 +27,7 @@ import {
   LocationOn as LocationIcon,
   People as PeopleIcon,
 } from '@mui/icons-material'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
 import LocationPicker from '@/components/LocationPicker'
@@ -84,6 +84,7 @@ export default function CreateOffer() {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
   // Create offer mutation
   const createMutation = useMutation({
@@ -92,6 +93,8 @@ export default function CreateOffer() {
       return response.data
     },
     onSuccess: (data) => {
+      // Invalidate queries so it shows up in Active Items immediately
+      queryClient.invalidateQueries({ queryKey: ['myOffers'] })
       // Navigate to the newly created offer
       navigate(`/offers/${data.id}`)
     },

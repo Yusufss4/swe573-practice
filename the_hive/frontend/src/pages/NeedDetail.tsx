@@ -190,6 +190,7 @@ export default function NeedDetail() {
       setSelectedSlots([])
       setError(null)
       queryClient.invalidateQueries({ queryKey: ['need', id] })
+      queryClient.invalidateQueries({ queryKey: ['myApplications'] })
       // Navigate to My Applications tab in Active Items
       navigate('/active-items?tab=applications')
     },
@@ -576,7 +577,20 @@ export default function NeedDetail() {
 
               {isCreator && (
                 <Alert severity="info" sx={{ mt: 2 }}>
-                  This is your need. You can view proposals in your Active Items dashboard.
+                  This is your need. You can view proposals in your{' '}
+                  <Box
+                    component="span"
+                    onClick={() => navigate('/active-items?tab=posts')}
+                    sx={{
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      '&:hover': { color: 'primary.dark' }
+                    }}
+                  >
+                    Active Items
+                  </Box>
+                  {' '}dashboard.
                 </Alert>
               )}
             </CardContent>
