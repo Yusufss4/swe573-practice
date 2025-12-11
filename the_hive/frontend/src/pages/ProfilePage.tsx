@@ -825,7 +825,7 @@ export default function ProfilePage() {
                 <Grid container spacing={2}>
                   {/* Balance */}
                   <Grid item xs={6} sm={4}>
-                    <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
+                    <Paper elevation={1} sx={{ p: 2, bgcolor: 'primary.50' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <BalanceIcon color="primary" />
                         <Typography variant="caption" color="text.secondary">
@@ -840,7 +840,7 @@ export default function ProfilePage() {
 
                   {/* Hours Given */}
                   <Grid item xs={6} sm={4}>
-                    <Paper elevation={0} sx={{ p: 2, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
+                    <Paper elevation={1} sx={{ p: 2, bgcolor: 'success.50' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <TrendingUpIcon color="success" />
                         <Typography variant="caption" color="text.secondary">
@@ -855,7 +855,7 @@ export default function ProfilePage() {
 
                   {/* Hours Received */}
                   <Grid item xs={6} sm={4}>
-                    <Paper elevation={0} sx={{ p: 2, bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
+                    <Paper elevation={1} sx={{ p: 2, bgcolor: 'info.50' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <TrendingDownIcon color="info" />
                         <Typography variant="caption" color="text.secondary">
@@ -878,7 +878,7 @@ export default function ProfilePage() {
                     <Grid container spacing={2}>
                       {/* Overall */}
                       <Grid item xs={6} sm={3}>
-                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                        <Paper elevation={1} sx={{ p: 1.5, bgcolor: 'grey.50' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                             <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
                             <Typography variant="caption" color="text.secondary">
@@ -895,7 +895,7 @@ export default function ProfilePage() {
                       </Grid>
                       {/* Reliability */}
                       <Grid item xs={6} sm={3}>
-                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                        <Paper elevation={1} sx={{ p: 1.5, bgcolor: 'grey.50' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                             <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                             <Typography variant="caption" color="text.secondary">
@@ -912,7 +912,7 @@ export default function ProfilePage() {
                       </Grid>
                       {/* Kindness */}
                       <Grid item xs={6} sm={3}>
-                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                        <Paper elevation={1} sx={{ p: 1.5, bgcolor: 'grey.50' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                             <FavoriteIcon sx={{ fontSize: 16, color: 'error.light' }} />
                             <Typography variant="caption" color="text.secondary">
@@ -929,7 +929,7 @@ export default function ProfilePage() {
                       </Grid>
                       {/* Helpfulness */}
                       <Grid item xs={6} sm={3}>
-                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                        <Paper elevation={1} sx={{ p: 1.5, bgcolor: 'grey.50' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                             <SupportIcon sx={{ fontSize: 16, color: 'primary.light' }} />
                             <Typography variant="caption" color="text.secondary">
