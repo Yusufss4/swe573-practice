@@ -549,7 +549,7 @@ export default function ProfilePage() {
 
   // Handle tag click - navigate to map with filter (same as OfferDetail/NeedDetail)
   const handleTagClick = (tag: string) => {
-    navigate(`/?tag=${encodeURIComponent(tag)}`)
+    navigate(`/map?tag=${encodeURIComponent(tag)}`)
   }
 
   // Get avatar display

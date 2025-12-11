@@ -693,7 +693,7 @@ export default function OfferDetail() {
                       label={tag}
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate(`/?tag=${encodeURIComponent(tag)}&type=offers`)}
+                      onClick={() => navigate(`/map?tag=${encodeURIComponent(tag)}&type=offers`)}
                       sx={{ cursor: 'pointer' }}
                     />
                   ))}

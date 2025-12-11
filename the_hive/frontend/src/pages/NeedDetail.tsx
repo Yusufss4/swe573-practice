@@ -708,7 +708,7 @@ export default function NeedDetail() {
                       label={tag}
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate(`/?tag=${encodeURIComponent(tag)}&type=needs`)}
+                      onClick={() => navigate(`/map?tag=${encodeURIComponent(tag)}&type=needs`)}
                       sx={{ cursor: 'pointer' }}
                     />
                   ))}

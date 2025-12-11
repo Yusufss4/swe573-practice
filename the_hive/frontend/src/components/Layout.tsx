@@ -132,7 +132,7 @@ const Layout = () => {
               <Button 
                 color="inherit" 
                 component={Link} 
-                to="/map?tags=true"
+                to="/tags"
                 sx={{ color: 'text.primary' }}
               >
                 Tags
