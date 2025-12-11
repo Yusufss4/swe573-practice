@@ -138,7 +138,16 @@ export default function ForumTopicDetail() {
     onSuccess: () => {
       setNewComment('')
       queryClient.invalidateQueries({ queryKey: ['forumComments', topicId] })
-      queryClient.invalidateQueries({ queryKey: ['forumTopic', topicId] })
+      // Update comment count in cached topic data without refetching (avoids incrementing view count)
+      queryClient.setQueryData(['forumTopic', topicId], (oldData: ForumTopic | undefined) => {
+        if (oldData) {
+          return {
+            ...oldData,
+            comment_count: oldData.comment_count + 1
+          }
+        }
+        return oldData
+      })
     },
   })
 
