@@ -56,8 +56,10 @@ services:
     container_name: the_hive_nginx
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
       - frontend
