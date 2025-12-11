@@ -533,9 +533,9 @@ export default function ProfilePage() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      // Validate file size (500KB max)
-      if (file.size > 500 * 1024) {
-        alert('Image too large. Maximum size is 500KB.')
+      // Validate file size (2MB max)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image too large. Maximum size is 2MB.')
         // Reset input to allow re-selecting
         if (fileInputRef.current) fileInputRef.current.value = ''
         return
@@ -1382,7 +1382,7 @@ export default function ProfilePage() {
               Upload Your Own Image
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Upload a custom profile picture (JPEG, PNG, GIF, or WebP, max 500KB).
+              Upload a custom profile picture (JPEG, PNG, GIF, or WebP, max 2MB).
             </Typography>
 
             <input

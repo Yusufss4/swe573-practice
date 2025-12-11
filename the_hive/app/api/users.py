@@ -24,8 +24,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-# Maximum image size: 500KB
-MAX_IMAGE_SIZE = 500 * 1024
+# Maximum image size: 2MB
+MAX_IMAGE_SIZE = 2 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
 
