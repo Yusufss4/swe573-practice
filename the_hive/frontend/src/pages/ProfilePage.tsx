@@ -311,6 +311,10 @@ interface ProfileUpdateData {
   profile_image?: string
   profile_image_type?: string
   tags?: string[]
+  social_blog?: string | null
+  social_instagram?: string | null
+  social_facebook?: string | null
+  social_twitter?: string | null
 }
 
 /**
@@ -697,7 +701,10 @@ export default function ProfilePage() {
                         href={profile.social_blog}
                         target="_blank"
                         rel="noopener noreferrer"
-                        sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'primary.main' }
+                        }}
                       >
                         <BlogIcon />
                       </IconButton>
@@ -708,7 +715,10 @@ export default function ProfilePage() {
                         href={`https://instagram.com/${profile.social_instagram}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        sx={{ color: '#E1306C', '&:hover': { color: '#C13584' } }}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'primary.main' }
+                        }}
                       >
                         <InstagramIcon />
                       </IconButton>
@@ -719,7 +729,10 @@ export default function ProfilePage() {
                         href={`https://facebook.com/${profile.social_facebook}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        sx={{ color: '#1877F2', '&:hover': { color: '#0C63D4' } }}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'primary.main' }
+                        }}
                       >
                         <FacebookIcon />
                       </IconButton>
@@ -730,7 +743,10 @@ export default function ProfilePage() {
                         href={`https://twitter.com/${profile.social_twitter}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        sx={{ color: '#1DA1F2', '&:hover': { color: '#0C85D0' } }}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'primary.main' }
+                        }}
                       >
                         <TwitterIcon />
                       </IconButton>
@@ -1296,7 +1312,7 @@ export default function ProfilePage() {
                   fullWidth
                   size="small"
                   InputProps={{
-                    startAdornment: <InstagramIcon sx={{ mr: 1, color: '#E1306C' }} />,
+                    startAdornment: <InstagramIcon sx={{ mr: 1, color: 'text.secondary' }} />,
                   }}
                 />
                 <TextField
@@ -1307,7 +1323,7 @@ export default function ProfilePage() {
                   fullWidth
                   size="small"
                   InputProps={{
-                    startAdornment: <FacebookIcon sx={{ mr: 1, color: '#1877F2' }} />,
+                    startAdornment: <FacebookIcon sx={{ mr: 1, color: 'text.secondary' }} />,
                   }}
                 />
                 <TextField
@@ -1318,7 +1334,7 @@ export default function ProfilePage() {
                   fullWidth
                   size="small"
                   InputProps={{
-                    startAdornment: <TwitterIcon sx={{ mr: 1, color: '#1DA1F2' }} />,
+                    startAdornment: <TwitterIcon sx={{ mr: 1, color: 'text.secondary' }} />,
                   }}
                 />
               </Box>

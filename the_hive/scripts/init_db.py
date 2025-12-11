@@ -148,6 +148,9 @@ def seed_basic_data():
                 "profile_image": "butterfly",
                 "profile_image_type": "preset",
                 "tags": ["programming", "web development", "python", "teaching"],
+                "social_blog": "https://aysecodes.dev",
+                "social_instagram": "ayse.codes",
+                "social_twitter": "aysecodes",
             },
             {
                 "email": "bob@example.com",
@@ -160,6 +163,8 @@ def seed_basic_data():
                 "profile_image": "bear",
                 "profile_image_type": "preset",
                 "tags": ["carpentry", "home repair", "woodworking", "furniture"],
+                "social_instagram": "burak.woodworks",
+                "social_facebook": "burak.carpenter",
             },
             {
                 "email": "carol@example.com",
@@ -172,6 +177,10 @@ def seed_basic_data():
                 "profile_image": "bird",
                 "profile_image_type": "preset",
                 "tags": ["music", "singing", "vocal coaching", "performance"],
+                "social_blog": "https://cerensings.com",
+                "social_instagram": "ceren.vocal",
+                "social_twitter": "cerensings",
+                "social_facebook": "cerenmusic",
             },
             {
                 "email": "david@example.com",
@@ -184,6 +193,8 @@ def seed_basic_data():
                 "profile_image": "mushroom",
                 "profile_image_type": "preset",
                 "tags": ["cooking", "turkish cuisine", "chef", "meal prep"],
+                "social_instagram": "chef.deniz",
+                "social_facebook": "denizchef",
             },
             {
                 "email": "emma@example.com",
@@ -196,6 +207,8 @@ def seed_basic_data():
                 "profile_image": "sunflower",
                 "profile_image_type": "preset",
                 "tags": ["gardening", "sustainability", "composting", "plants"],
+                "social_blog": "https://greencityistanbul.blog",
+                "social_instagram": "elif.gardens",
             },
             {
                 "email": "frank@example.com",
@@ -208,6 +221,8 @@ def seed_basic_data():
                 "profile_image": "fox",
                 "profile_image_type": "preset",
                 "tags": ["fitness", "yoga", "personal training", "wellness"],
+                "social_instagram": "fatih.fitness",
+                "social_twitter": "fitfatih",
             },
             {
                 "email": "grace@example.com",
@@ -220,6 +235,8 @@ def seed_basic_data():
                 "profile_image": "owl",
                 "profile_image_type": "preset",
                 "tags": ["languages", "english", "german", "french", "tutoring"],
+                "social_blog": "https://polyglotgul.com",
+                "social_twitter": "gul_polyglot",
             },
             {
                 "email": "henry@example.com",
@@ -244,6 +261,8 @@ def seed_basic_data():
                 "profile_image": "flower",
                 "profile_image_type": "preset",
                 "tags": ["art", "painting", "art therapy", "creativity"],
+                "social_instagram": "irem.artistry",
+                "social_facebook": "iremartist",
             },
             {
                 "email": "jack@example.com",
@@ -256,6 +275,7 @@ def seed_basic_data():
                 "profile_image": "bee",
                 "profile_image_type": "preset",
                 "tags": ["bike repair", "cycling", "mechanics", "community"],
+                "social_instagram": "cem.cycles",
             },
         ]
         
@@ -275,6 +295,10 @@ def seed_basic_data():
                 location_name=user_data["location_name"],
                 profile_image=user_data.get("profile_image"),
                 profile_image_type=user_data.get("profile_image_type", "preset"),
+                social_blog=user_data.get("social_blog"),
+                social_instagram=user_data.get("social_instagram"),
+                social_facebook=user_data.get("social_facebook"),
+                social_twitter=user_data.get("social_twitter"),
             )
             session.add(user)
             users.append(user)

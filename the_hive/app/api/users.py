@@ -48,6 +48,10 @@ class UserProfileResponse(BaseModel):
     profile_image_type: str
     location_name: Optional[str]
     balance: float
+    social_blog: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_facebook: Optional[str] = None
+    social_twitter: Optional[str] = None
     stats: UserStats
     tags: list[str]
     created_at: str
@@ -157,6 +161,10 @@ def _build_profile_response(session: Session, user: User) -> UserProfileResponse
         profile_image_type=user.profile_image_type or "preset",
         location_name=user.location_name,
         balance=user.balance,
+        social_blog=user.social_blog,
+        social_instagram=user.social_instagram,
+        social_facebook=user.social_facebook,
+        social_twitter=user.social_twitter,
         stats=stats,
         tags=tags,
         created_at=user.created_at.isoformat()
@@ -228,6 +236,19 @@ def update_my_profile(
     
     if profile_update.location_name is not None:
         current_user.location_name = profile_update.location_name
+    
+    # Update social media fields if provided
+    if profile_update.social_blog is not None:
+        current_user.social_blog = profile_update.social_blog
+    
+    if profile_update.social_instagram is not None:
+        current_user.social_instagram = profile_update.social_instagram
+    
+    if profile_update.social_facebook is not None:
+        current_user.social_facebook = profile_update.social_facebook
+    
+    if profile_update.social_twitter is not None:
+        current_user.social_twitter = profile_update.social_twitter
     
     # Update tags if provided
     if profile_update.tags is not None:
