@@ -148,7 +148,7 @@ const MapView = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTag ? [initialTag] : [])
   const [remoteOnly, setRemoteOnly] = useState<boolean>(false)
   const [distanceFilter, setDistanceFilter] = useState<number>(50) // km
-  const [sortBy, setSortBy] = useState<'recent' | 'distance' | 'popularity' | 'rating'>('recent')
+  const [sortBy, setSortBy] = useState<'recent' | 'distance' | 'rating'>('recent')
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
   const [locationName, setLocationName] = useState<string | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
@@ -427,19 +427,25 @@ const MapView = () => {
             </ToggleButton>
 
             {/* More Filters Button */}
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon />}
-              onClick={() => setFilterDrawerOpen(true)}
-              sx={{ minHeight: 40 }}
-              endIcon={
-                selectedTags.length > 0 && (
-                  <Badge badgeContent={selectedTags.length} color="primary" />
-                )
-              }
+            <Badge 
+              badgeContent={selectedTags.length > 0 ? selectedTags.length : undefined} 
+              color="primary"
+              sx={{
+                '& .MuiBadge-badge': {
+                  right: -3,
+                  top: 3,
+                }
+              }}
             >
-              More Filters
-            </Button>
+              <Button
+                variant="outlined"
+                startIcon={<FilterIcon />}
+                onClick={() => setFilterDrawerOpen(true)}
+                sx={{ minHeight: 40 }}
+              >
+                More Filters
+              </Button>
+            </Badge>
 
             {/* Location Status - Square Box */}
             {locationError && (
@@ -841,7 +847,6 @@ const MapView = () => {
             <MenuItem value="recent">Most Recent</MenuItem>
             <MenuItem value="distance">Distance</MenuItem>
             <MenuItem value="rating">Rating</MenuItem>
-            <MenuItem value="popularity">Popularity</MenuItem>
           </Select>
         </FormControl>
 

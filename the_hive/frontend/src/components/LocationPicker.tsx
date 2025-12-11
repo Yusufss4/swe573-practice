@@ -339,7 +339,7 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
               <Alert severity="info" sx={{ mb: 2 }}>
                 Click on the map to select a location. The location name will be filled automatically.
               </Alert>
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'flex-start' }}>
                 <TextField
                   fullWidth
                   label="Location Name"
@@ -360,7 +360,11 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
                   onClick={handleGetCurrentLocation}
                   disabled={isGettingLocation || isGeocoding}
                   startIcon={isGettingLocation ? <CircularProgress size={20} /> : <MyLocationIcon />}
-                  sx={{ minWidth: 180 }}
+                  sx={{ 
+                    minWidth: 180,
+                    height: '56px', // Match TextField height
+                    mt: 0,
+                  }}
                 >
                   {isGettingLocation ? 'Getting...' : 'Use My Location'}
                 </Button>
@@ -384,8 +388,8 @@ export default function LocationPicker({ value, onChange, disabled, required }: 
               </Box>
               {tempPosition && (
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  Selected: {tempPosition[0].toFixed(4)}, {tempPosition[1].toFixed(4)} 
-                  (will be rounded to {Math.round(tempPosition[0] * 100) / 100}, {Math.round(tempPosition[1] * 100) / 100})
+                  📍 To protect your privacy, coordinates will be rounded to approximately 1 km precision.
+                  Selected location will show as: {Math.round(tempPosition[0] * 100) / 100}, {Math.round(tempPosition[1] * 100) / 100}
                 </Typography>
               )}
             </Box>

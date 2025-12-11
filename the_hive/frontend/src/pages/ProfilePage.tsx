@@ -336,7 +336,7 @@ interface ProfileUpdateData {
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>()
   const navigate = useNavigate()
-  const { user: currentUser } = useAuth()
+  const { user: currentUser, refreshUser } = useAuth()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -356,6 +356,9 @@ export default function ProfilePage() {
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false)
   const [selectedAvatar, setSelectedAvatar] = useState<string>('')
   const [uploadingImage, setUploadingImage] = useState(false)
+  
+  // Badges display
+  const [showAllBadges, setShowAllBadges] = useState(false)
 
   // Fetch user profile by username
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<UserProfile>({
@@ -415,6 +418,7 @@ export default function ProfilePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userProfile', username] })
+      refreshUser() // Update navbar avatar immediately
       setAvatarDialogOpen(false)
     },
   })
@@ -429,6 +433,7 @@ export default function ProfilePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userProfile', username] })
+      refreshUser() // Update navbar avatar immediately
       setAvatarDialogOpen(false)
       setUploadingImage(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -448,6 +453,7 @@ export default function ProfilePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userProfile', username] })
+      refreshUser() // Update navbar avatar immediately
     },
   })
 
@@ -957,15 +963,27 @@ export default function ProfilePage() {
       {/* Badges Section */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" fontWeight={600} gutterBottom>
-            Badges
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            {earnedBadges.length} of {badges.length} badges earned
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Box>
+              <Typography variant="h6" fontWeight={600}>
+                Badges
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {earnedBadges.length} of {badges.length} badges earned
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setShowAllBadges(!showAllBadges)}
+              sx={{ textTransform: 'none' }}
+            >
+              {showAllBadges ? 'Show Earned Only' : 'Show All Badges'}
+            </Button>
+          </Box>
 
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            {badges.map((badge) => (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
+            {(showAllBadges ? badges : earnedBadges).map((badge) => (
               <Paper
                 key={badge.id}
                 elevation={badge.earned ? 2 : 0}
@@ -1120,7 +1138,8 @@ export default function ProfilePage() {
                     '&:hover': { 
                       bgcolor: 'action.hover',
                       borderColor: 'primary.main'
-                    }
+                    },
+                    px: 3
                   }}
                   onClick={() => {
                     const path = exchange.item_type === 'offer' 
@@ -1129,7 +1148,7 @@ export default function ProfilePage() {
                     navigate(path)
                   }}
                 >
-                  <CardContent sx={{ px: 3 }}>
+                  <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                       <Box>
                         <Typography variant="subtitle1" fontWeight={600}>

@@ -887,7 +887,7 @@ export default function ActiveItems() {
                                       }
                                       label={
                                         participant.provider_confirmed
-                                          ? `${post.type === 'offer' ? post.creator_username : participant.user.username} ✓`
+                                          ? `${post.type === 'offer' ? post.creator_username : participant.user.username} completed`
                                           : `Waiting for ${post.type === 'offer' ? post.creator_username : participant.user.username}`
                                       }
                                                     size="small"
@@ -917,7 +917,7 @@ export default function ActiveItems() {
                                       }
                                       label={
                                         participant.requester_confirmed
-                                          ? `${post.type === 'need' ? post.creator_username : participant.user.username} ✓`
+                                          ? `${post.type === 'need' ? post.creator_username : participant.user.username} completed`
                                           : `Waiting for ${post.type === 'need' ? post.creator_username : participant.user.username}`
                                       }
                                                     size="small"
