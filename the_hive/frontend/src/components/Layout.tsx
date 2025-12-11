@@ -264,11 +264,11 @@ const Layout = () => {
                     py: 1,
                     bgcolor: 'primary.50',
                     borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: 'primary.200',
+                    boxShadow: 1,
                     cursor: 'pointer',
                     '&:hover': {
                       bgcolor: 'primary.100',
+                      boxShadow: 2,
                     },
                   }}
                   onClick={() => navigate('/profile/me')}
