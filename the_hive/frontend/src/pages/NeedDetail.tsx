@@ -38,6 +38,7 @@ import {
   HelpOutline as NeedIcon,
   CheckCircle as CheckIcon,
   Map as MapIcon,
+  Star as StarIcon,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/services/api'
