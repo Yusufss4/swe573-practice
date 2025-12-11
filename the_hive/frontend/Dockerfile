@@ -27,6 +27,18 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# Accept build arguments for Vite environment variables
+ARG VITE_API_BASE_URL=http://localhost:8000/api/v1
+ARG VITE_MAP_DEFAULT_LAT=41.0082
+ARG VITE_MAP_DEFAULT_LNG=28.9784
+ARG VITE_MAP_DEFAULT_ZOOM=12
+
+# Set as environment variables for Vite build
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_MAP_DEFAULT_LAT=$VITE_MAP_DEFAULT_LAT
+ENV VITE_MAP_DEFAULT_LNG=$VITE_MAP_DEFAULT_LNG
+ENV VITE_MAP_DEFAULT_ZOOM=$VITE_MAP_DEFAULT_ZOOM
+
 # Copy package files
 COPY package*.json ./
 
@@ -36,7 +48,7 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build application
+# Build application (Vite will use the environment variables)
 RUN npm run build
 
 # Production stage
