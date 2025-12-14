@@ -163,6 +163,9 @@ class RatingResponse(BaseModel):
     @classmethod
     def from_rating(cls, rating, from_username: str = None, to_username: str = None, is_visible: bool = False):
         """Create response from Rating model with labels."""
+        # Handle visibility - it might be an enum or a string
+        visibility_value = rating.visibility.value if hasattr(rating.visibility, 'value') else str(rating.visibility)
+        
         return cls(
             id=rating.id,
             from_user_id=rating.from_user_id,
@@ -170,8 +173,8 @@ class RatingResponse(BaseModel):
             to_user_id=rating.to_user_id,
             to_username=to_username,
             participant_id=rating.participant_id,
-            general_rating=rating.general_rating,
-            general_rating_label=get_rating_label(rating.general_rating),
+            general_rating=int(rating.general_rating) if isinstance(rating.general_rating, float) else rating.general_rating,
+            general_rating_label=get_rating_label(int(rating.general_rating) if isinstance(rating.general_rating, float) else rating.general_rating),
             reliability_rating=rating.reliability_rating,
             reliability_rating_label=get_rating_label(rating.reliability_rating),
             kindness_rating=rating.kindness_rating,
@@ -181,7 +184,7 @@ class RatingResponse(BaseModel):
             average_rating=rating.calculate_average(),
             public_comment=rating.public_comment if is_visible and rating.comment_is_approved else None,
             comment_is_approved=rating.comment_is_approved,
-            visibility=rating.visibility.value,
+            visibility=visibility_value,
             is_visible=is_visible,
             visibility_deadline=rating.visibility_deadline,
             created_at=rating.created_at,

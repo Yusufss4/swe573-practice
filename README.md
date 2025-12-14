@@ -149,7 +149,7 @@ The frontend uses environment variables configured in the docker-compose.yml fil
 
 After seeding the database, you can log in with:
 
-**Regular Users (all use password: `password123`):**
+**Regular Users (all use password: `UserPass123!`):**
 - Username: `alice`
 - Username: `bob`
 - Username: `carol`

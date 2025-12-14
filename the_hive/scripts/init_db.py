@@ -23,6 +23,7 @@ sys.path.insert(0, str(project_root))
 import json
 from datetime import datetime, timedelta
 from sqlmodel import SQLModel, Session, select, func
+from sqlalchemy import text
 
 from app.core.db import engine, check_db_connection
 
@@ -58,7 +59,13 @@ def create_tables():
 def drop_tables():
     """Drop all database tables."""
     print("Dropping all database tables...")
-    SQLModel.metadata.drop_all(engine)
+    # Use CASCADE to drop dependent objects (foreign keys, etc.)
+    # Drop and recreate the public schema to remove all tables and dependencies
+    with engine.begin() as conn:
+        conn.execute(text("DROP SCHEMA public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
+        conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
+        conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
     print("✅ All tables dropped successfully")
 
 
@@ -281,11 +288,13 @@ def seed_basic_data():
         
         users = []
         users_with_tags = []
+        # Hash password once for all regular users
+        regular_user_password_hash = get_password_hash("UserPass123!")
         for user_data in users_data:
             user = User(
                 email=user_data["email"],
                 username=user_data["username"],
-                password_hash="$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5oDWKZVzZVJ0G",  # password: "password123"
+                password_hash=regular_user_password_hash,  # password: "UserPass123!"
                 full_name=user_data["full_name"],
                 description=user_data["description"],
                 role=UserRole.USER,
