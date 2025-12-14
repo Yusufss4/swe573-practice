@@ -85,6 +85,7 @@ interface OfferDetail {
   location_lon?: number
   capacity: number
   accepted_count: number
+  hours: number
   status: string
   tags: string[]
   available_slots?: Array<{
@@ -215,7 +216,7 @@ export default function OfferDetail() {
 
   const handleSubmitProposal = () => {
     if (!message.trim()) {
-      setError('Please write a message explaining why you want to help')
+      setError('Please write a message explaining why you want to take this offer')
       return
     }
     proposeMutation.mutate({
@@ -677,6 +678,22 @@ export default function OfferDetail() {
               )}
             </Box>
 
+            {/* TimeBank Hours */}
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <ClockIcon color="action" fontSize="small" />
+                <Typography variant="subtitle2" fontWeight={500}>
+                  TimeBank Hours
+                </Typography>
+              </Box>
+              <Typography variant="h6" fontWeight={600} color="primary.main">
+                {offer.hours} {offer.hours === 1 ? 'hour' : 'hours'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Required for this service
+              </Typography>
+            </Box>
+
             {/* Tags */}
             {offer.tags.length > 0 && (
               <Box>
@@ -711,10 +728,10 @@ export default function OfferDetail() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Propose to Help</DialogTitle>
+        <DialogTitle>Request Service</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Tell {offer.creator.username} why you want to help and what makes you a good fit for this offer.
+            Tell {offer.creator.username} why you want to take this offer and what makes you a good fit.
           </Typography>
 
           {error && (
@@ -729,7 +746,7 @@ export default function OfferDetail() {
             rows={4}
             fullWidth
             label="Your Message"
-            placeholder="Hi! I'd love to help with this. I have experience in..."
+            placeholder="Hi! I'd like to take this offer. I have experience in..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             disabled={proposeMutation.isPending}

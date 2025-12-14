@@ -22,14 +22,17 @@ import {
   CircularProgress,
   Tooltip,
   Divider,
+  Button,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Search as SearchIcon,
   LocalOffer as TagIcon,
+  Map as MapIcon,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 interface TagSimple {
@@ -171,6 +174,7 @@ const TagNode: React.FC<{
 
 // Tag detail sidebar
 const TagDetail: React.FC<{ tagId: number }> = ({ tagId }) => {
+  const navigate = useNavigate();
   const { data: tag, isLoading, error } = useQuery<TagFull>({
     queryKey: ['tag', tagId],
     queryFn: async () => {
@@ -290,6 +294,16 @@ const TagDetail: React.FC<{ tagId: number }> = ({ tagId }) => {
         )}
 
         <Divider sx={{ my: 2 }} />
+
+        <Button
+          fullWidth
+          variant="contained"
+          startIcon={<MapIcon />}
+          onClick={() => navigate(`/map?tag=${encodeURIComponent(tag.name)}`)}
+          sx={{ mb: 2 }}
+        >
+          View on Map
+        </Button>
 
         <Typography variant="caption" color="text.secondary" display="block">
           Created: {new Date(tag.created_at).toLocaleDateString()}

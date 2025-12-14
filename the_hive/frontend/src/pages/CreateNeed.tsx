@@ -181,6 +181,15 @@ export default function CreateNeed() {
       setError('Hours must be greater than 0')
       return
     }
+    if (hoursNum > 10) {
+      setError('Hours cannot exceed 10 hours')
+      return
+    }
+    // For needs, check that hours don't exceed user's balance
+    if (user && hoursNum > user.balance) {
+      setError(`Hours cannot exceed your TimeBank balance of ${user.balance} hours`)
+      return
+    }
 
     // Build request
     const requestData: CreateNeedRequest = {
@@ -361,9 +370,10 @@ export default function CreateNeed() {
               type="number"
               inputProps={{
                 min: 1,
+                max: 10,
                 step: 1
               }}
-              helperText="TimeBank hours you'll offer for this service (whole numbers only, minimum 1)"
+              helperText={`TimeBank hours you'll offer for this service (whole numbers only, minimum 1, maximum 10${user ? `, cannot exceed your balance of ${user.balance} hours` : ''})`}
               sx={{ mb: 3 }}
             />
 

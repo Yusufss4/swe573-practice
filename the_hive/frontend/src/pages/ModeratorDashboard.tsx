@@ -792,16 +792,28 @@ const ModeratorDashboard = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {reportsData?.reports.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                        No reports found
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  reportsData?.reports.map((report) => (
+                {(() => {
+                  // Filter reports by status (client-side filtering as backup)
+                  const filteredReports = reportsData?.reports.filter((report) => {
+                    // Normalize status to lowercase for comparison
+                    const reportStatus = report.status.toLowerCase()
+                    const filterStatus = statusFilter.toLowerCase()
+                    return reportStatus === filterStatus
+                  }) || []
+
+                  if (filteredReports.length === 0) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
+                            No {statusFilter} reports found
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  }
+
+                  return filteredReports.map((report) => (
                     <TableRow key={report.id}>
                       <TableCell>{report.id}</TableCell>
                       <TableCell>
@@ -889,7 +901,7 @@ const ModeratorDashboard = () => {
                       </TableCell>
                     </TableRow>
                   ))
-                )}
+                })()}
               </TableBody>
             </Table>
           </TableContainer>
@@ -897,7 +909,7 @@ const ModeratorDashboard = () => {
           {reportsData && reportsData.total > 0 && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="body2" color="text.secondary">
-                Showing {reportsData.reports.length} of {reportsData.total} reports
+                Showing {reportsData.reports.filter((r) => r.status.toLowerCase() === statusFilter.toLowerCase()).length} of {reportsData.total} {statusFilter} reports
               </Typography>
             </Box>
           )}

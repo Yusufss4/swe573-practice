@@ -127,7 +127,7 @@ const Login = () => {
             <Box component="form" onSubmit={handleSubmit} noValidate>
               <TextField
                 fullWidth
-                label="Username or Email"
+                label="Username"
                 name="username"
                 value={formData.username}
                 onChange={handleChange('username')}

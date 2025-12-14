@@ -181,6 +181,10 @@ export default function CreateOffer() {
       setError('Hours must be greater than 0')
       return
     }
+    if (hoursNum > 10) {
+      setError('Hours cannot exceed 10 hours')
+      return
+    }
 
     // Build request
     const requestData: CreateOfferRequest = {
@@ -361,9 +365,10 @@ export default function CreateOffer() {
               type="number"
               inputProps={{
                 min: 1,
+                max: 10,
                 step: 1
               }}
-              helperText="TimeBank hours for this service (whole numbers only, minimum 1)"
+              helperText="TimeBank hours for this service (whole numbers only, minimum 1, maximum 10)"
               sx={{ mb: 3 }}
             />
 

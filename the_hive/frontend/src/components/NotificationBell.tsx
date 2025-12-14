@@ -67,7 +67,10 @@ const NotificationBell: React.FC = () => {
     }
 
     // Navigate to relevant page
-    if (notification.related_offer_id) {
+    // For new applications, redirect to Active Items instead of offer/need detail
+    if (notification.type === 'application_received') {
+      navigate('/active-items?tab=posts')
+    } else if (notification.related_offer_id) {
       navigate(`/offers/${notification.related_offer_id}`)
     } else if (notification.related_need_id) {
       navigate(`/needs/${notification.related_need_id}`)

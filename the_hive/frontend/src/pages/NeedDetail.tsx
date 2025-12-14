@@ -84,6 +84,7 @@ interface NeedDetail {
   location_lon?: number
   capacity: number
   accepted_count: number
+  hours: number
   status: string
   tags: string[]
   available_slots?: Array<{
@@ -690,6 +691,22 @@ export default function NeedDetail() {
                   </Box>
                 </Box>
               )}
+            </Box>
+
+            {/* TimeBank Hours */}
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <ClockIcon color="action" fontSize="small" />
+                <Typography variant="subtitle2" fontWeight={500}>
+                  TimeBank Hours
+                </Typography>
+              </Box>
+              <Typography variant="h6" fontWeight={600} color="info.main">
+                {need.hours} {need.hours === 1 ? 'hour' : 'hours'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Offered for this service
+              </Typography>
             </Box>
 
             {/* Tags */}
