@@ -16,5 +16,5 @@ else
     # Outside Docker
     echo "🐳 Running tests via Docker..."
     cd infra
-    docker compose exec app pytest tests/ -v --tb=short
+    docker compose exec backend pytest tests/ -v --tb=short
 fi
