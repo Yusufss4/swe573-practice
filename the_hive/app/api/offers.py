@@ -173,6 +173,7 @@ def create_offer(
         location_lon=offer_data.location_lon,
         location_name=offer_data.location_name,
         capacity=offer_data.capacity,
+        hours=offer_data.hours,
         start_date=now,
         end_date=end_date,
         status=OfferStatus.ACTIVE,

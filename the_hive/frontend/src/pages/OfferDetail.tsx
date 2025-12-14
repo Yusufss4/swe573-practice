@@ -202,6 +202,12 @@ export default function OfferDetail() {
     onError: (err: any) => {
       const errorMessage = err.response?.data?.detail || 'Unable to send your request. Please try again.'
       setError(errorMessage)
+      // If it's an hours validation error, keep dialog open to show the error
+      if (errorMessage.includes('Insufficient TimeBank hours') || errorMessage.includes('reciprocity limit')) {
+        // Error will be shown in the dialog
+      } else {
+        // For other errors, we might want to close the dialog
+      }
     },
   })
 
@@ -209,6 +215,18 @@ export default function OfferDetail() {
     if (!user) {
       navigate('/login')
       return
+    }
+    // Double-check hours before opening dialog
+    if (offer && user) {
+      const userBalance = user.balance ?? 0
+      const requiredHours = offer.hours ?? 0
+      if (userBalance < requiredHours) {
+        setError(
+          `Insufficient TimeBank hours. This offer requires ${requiredHours} hours, but your current balance is only ${userBalance.toFixed(1)} hours. ` +
+          `Please earn more hours by fulfilling Needs before requesting this service.`
+        )
+        return
+      }
     }
     setProposeDialogOpen(true)
     setError(null)
@@ -282,7 +300,17 @@ export default function OfferDetail() {
 
   const isCreator = user?.id === offer.creator_id
   const isFull = offer.accepted_count >= offer.capacity
-  const canPropose = user && !isCreator && !isFull && offer.status === 'active'
+
+  // Check if user has enough hours (must have at least the required hours in balance)
+  const hasEnoughHours = user && offer ? (() => {
+    const userBalance = user.balance ?? 0
+    const requiredHours = offer.hours ?? 0
+    if (requiredHours === 0) return true // If offer has no hours requirement, allow
+    // User must have at least the required hours in their balance
+    return userBalance >= requiredHours
+  })() : false
+
+  const canPropose = user && offer && !isCreator && !isFull && offer.status === 'active' && hasEnoughHours
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -559,17 +587,29 @@ export default function OfferDetail() {
               )}
 
               {/* Action Button */}
-              {canPropose && (
+              {user && !isCreator && offer.status === 'active' && (
                 <Button
                   variant="contained"
                   size="large"
                   fullWidth
                   onClick={handleProposeClick}
-                  disabled={proposeMutation.isPending}
+                  disabled={proposeMutation.isPending || isFull || !hasEnoughHours}
                   sx={{ mt: 2 }}
                 >
                   Request Service
                 </Button>
+              )}
+
+              {!hasEnoughHours && user && !isCreator && offer.status === 'active' && !isFull && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  <Typography variant="body2" fontWeight={600} gutterBottom>
+                    Insufficient TimeBank Hours
+                  </Typography>
+                  <Typography variant="body2">
+                    This offer requires {offer.hours} hours, but your current balance is only {user.balance.toFixed(1)} hours.
+                    Please earn more hours by fulfilling Needs before requesting this service.
+                  </Typography>
+                </Alert>
               )}
 
               {isFull && !isCreator && offer.status !== 'completed' && (

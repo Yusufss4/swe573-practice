@@ -20,6 +20,7 @@ from sqlmodel import Session, select, and_
 
 from app.core.auth import CurrentUser
 from app.core.db import get_session
+from app.core.ledger import get_user_balance, RECIPROCITY_LIMIT
 from app.models.offer import Offer, OfferStatus
 from app.models.need import Need, NeedStatus
 from app.models.participant import Participant, ParticipantStatus, ParticipantRole
@@ -138,6 +139,21 @@ def propose_help(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"You already have a {existing.status} proposal for this offer"
+            )
+        
+        # Check if user has enough hours to apply to this offer
+        # User must have at least the required hours in their balance
+        user_balance = get_user_balance(session, current_user.id)
+        required_hours = offer.hours
+        
+        if user_balance < required_hours:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Insufficient TimeBank hours. This offer requires {required_hours} hours, "
+                    f"but your current balance is only {user_balance:.1f} hours. "
+                    f"Please earn more hours by fulfilling Needs before requesting this service."
+                )
             )
         
         # Create handshake proposal

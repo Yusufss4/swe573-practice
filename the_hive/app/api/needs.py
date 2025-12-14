@@ -173,6 +173,7 @@ def create_need(
         location_lon=need_data.location_lon,
         location_name=need_data.location_name,
         capacity=need_data.capacity,
+        hours=need_data.hours,
         start_date=now,
         end_date=end_date,
         status=NeedStatus.ACTIVE,
