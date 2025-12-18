@@ -47,6 +47,7 @@ from app.models import (
 from app.models.user import UserTag
 from app.models.rating import Rating, RatingVisibility
 from app.models.forum import ForumTopic, ForumComment, ForumTopicTag, TopicType
+from app.models.semantic_tag import SemanticTagSynonym, SemanticTagProperty
 
 
 def create_tables():
@@ -57,16 +58,40 @@ def create_tables():
 
 
 def drop_tables():
-    """Drop all database tables."""
+    """Drop all database tables.
+    
+    Uses DROP SCHEMA CASCADE to handle all foreign key dependencies,
+    including semantic tag relationships that have complex dependencies.
+    """
     print("Dropping all database tables...")
     # Use CASCADE to drop dependent objects (foreign keys, etc.)
     # Drop and recreate the public schema to remove all tables and dependencies
-    with engine.begin() as conn:
-        conn.execute(text("DROP SCHEMA public CASCADE"))
-        conn.execute(text("CREATE SCHEMA public"))
-        conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
-        conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
-    print("✅ All tables dropped successfully")
+    # This is more reliable than drop_all() which can fail on complex FK chains
+    try:
+        with engine.begin() as conn:
+            # Drop schema with CASCADE to remove all dependent objects
+            conn.execute(text("DROP SCHEMA public CASCADE"))
+            conn.execute(text("CREATE SCHEMA public"))
+            conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
+            conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
+        print("✅ All tables dropped successfully")
+    except Exception as e:
+        # Fallback: try using drop_all with explicit CASCADE handling
+        print(f"⚠️  Schema drop encountered issue: {e}")
+        print("   Attempting alternative drop method...")
+        with engine.begin() as conn:
+            # Get all table names and drop them individually with CASCADE
+            result = conn.execute(text("""
+                SELECT tablename FROM pg_tables 
+                WHERE schemaname = 'public'
+            """))
+            tables = [row[0] for row in result]
+            for table in tables:
+                try:
+                    conn.execute(text(f'DROP TABLE IF EXISTS "{table}" CASCADE'))
+                except Exception as table_error:
+                    print(f"   Warning: Could not drop table {table}: {table_error}")
+        print("✅ Tables dropped (with some warnings)")
 
 
 def create_time_slots_json(slots_data):
@@ -118,6 +143,7 @@ def seed_basic_data():
             location_name="İstanbul, Turkey",
             profile_image="owl",
             profile_image_type="preset",
+            is_active=True,
         )
         session.add(moderator)
         session.commit()
@@ -308,6 +334,7 @@ def seed_basic_data():
                 social_instagram=user_data.get("social_instagram"),
                 social_facebook=user_data.get("social_facebook"),
                 social_twitter=user_data.get("social_twitter"),
+                is_active=True,
             )
             session.add(user)
             users.append(user)
